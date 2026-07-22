@@ -26,3 +26,7 @@ Thumbs.db
 # local backups / release tarballs
 *.tar.gz
 *.bak
+
+# local pre-change backups (\.env.bak-pre-r18 holds INTERNAL_API_SECRET)
+.env.bak*
+dist.bak*
