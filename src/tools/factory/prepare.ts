@@ -203,6 +203,32 @@ export function registerFactoryTools(server: McpServer): void {
       // The lender funds the PRINCIPAL, not the repayment — that is what
       // leaves their wallet if they win.
       const principal = auction.loan_amount != null ? toBaseUnits(String(auction.loan_amount), meta.decimals) : 0n;
+
+      // A repayment at or below the principal is a negative-yield loan: the
+      // lender pays out more than they get back. The contract permits it and
+      // the bid-step check does not catch it, so without this the tool will
+      // happily encode a guaranteed loss — which is precisely the mistake a
+      // first-time user makes by mistyping an amount.
+      //
+      // Warn rather than refuse. Stating the arithmetic is descriptive; the
+      // bid is a legal action and it is not this tool's place to veto it.
+      let yourAprPct: number | null = null;
+      if (principal > 0n && auction.duration_days) {
+        const p = Number(fromBaseUnits(principal, meta.decimals));
+        const r = Number(fromBaseUnits(repayment, meta.decimals));
+        yourAprPct = ((r - p) / p) * (365 / auction.duration_days) * 100;
+      }
+      if (principal > 0n && repayment <= principal) {
+        warnings.push(
+          `THIS BID LOSES MONEY. You would fund ${fromBaseUnits(principal, meta.decimals)} ${meta.symbol} ` +
+            `and be repaid ${repayment_amount} ${meta.symbol} — a loss of ` +
+            `${fromBaseUnits(principal - repayment, meta.decimals)} ${meta.symbol} if you win` +
+            (yourAprPct !== null ? ` (${yourAprPct.toFixed(2)}% annualised)` : '') +
+            `. Gavel is a reverse auction, so a lower repayment is a more competitive bid — but it must stay ` +
+            `above the ${fromBaseUnits(principal, meta.decimals)} principal to earn anything. Check the amount before signing.`
+        );
+      }
+
       const balance = await balanceOf(network as Network, loanToken, lender);
       if (balance < principal) {
         warnings.push(
@@ -228,7 +254,8 @@ export function registerFactoryTools(server: McpServer): void {
         summaryForUser:
           `You are bidding to lend ${auction.loan_amount ?? '?'} ${meta.symbol} on auction #${auction_id} ` +
           `(${auction.pair ?? 'unknown pair'}) on ${network}. If you win, you receive ${repayment_amount} ` +
-          `${meta.symbol} at maturity in ${auction.duration_days ?? '?'} days. ` +
+          `${meta.symbol} at maturity in ${auction.duration_days ?? '?'} days` +
+          (yourAprPct !== null ? ` — ${yourAprPct.toFixed(2)}% annualised` : '') + `. ` +
           (currentBest !== null
             ? `The current best bid is ${fromBaseUnits(currentBest, meta.decimals)} ${meta.symbol}; a lower repayment wins.`
             : `There are no competing bids yet.`),
@@ -247,6 +274,7 @@ export function registerFactoryTools(server: McpServer): void {
           max_repayment: auction.max_repayment ?? null,
           current_best_repayment: auction.current_best_repayment ?? null,
           bid_step: auction.bid_step ?? null,
+          your_apr_pct: yourAprPct === null ? null : Number(yourAprPct.toFixed(4)),
           duration_days: auction.duration_days ?? null,
           auction_ends_at: auction.auction_ends_at ?? null,
         },
