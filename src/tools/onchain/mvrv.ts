@@ -45,7 +45,7 @@ export function registerMvrvTool(server: McpServer): void {
       },
     },
     async ({ timestamp }) => {
-      requireTier('anonymous');
+      requireTier('free');
       const data = await upstreamGet<MvrvResponse>('/v1/onchain/mvrv', { query: { timestamp } });
       return {
         content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],

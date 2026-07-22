@@ -219,7 +219,7 @@ export function registerProtocolReferenceTool(server: McpServer): void {
       },
     },
     async ({ network }) => {
-      requireTier('anonymous');
+      requireTier('free');
       const ref = REFERENCES[network];
       return {
         content: [{ type: 'text', text: JSON.stringify(ref, null, 2) }],

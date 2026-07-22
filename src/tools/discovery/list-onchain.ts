@@ -31,7 +31,7 @@ export function registerListOnchainTool(server: McpServer): void {
       inputSchema: {},
     },
     async () => {
-      requireTier('anonymous');
+      requireTier('free');
       return {
         content: [{ type: 'text', text: JSON.stringify({ tools: ONCHAIN_CATALOG }, null, 2) }],
       };

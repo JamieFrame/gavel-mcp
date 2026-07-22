@@ -85,7 +85,7 @@ export function registerWalletStatusTool(server: McpServer): void {
       },
     },
     async ({ address, network }) => {
-      requireTier('anonymous');
+      requireTier('free');
 
       if (!isAddress(address)) {
         throw new McpError(

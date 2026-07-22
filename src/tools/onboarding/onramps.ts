@@ -122,7 +122,13 @@ export function registerOnrampsTool(server: McpServer): void {
         `Useful for: an LLM agent helping a novice user fund their wallet from ` +
         `fiat USD/EUR/GBP. The LLM presents the catalog to the user; the user ` +
         `picks one and proceeds.\n\n` +
-        `Returns: { providers: OnrampProvider[], filter_echo, notes }.`,
+        `IMPORTANT — a cold-start user needs TWO purchases, not one. None of ` +
+        `these providers delivers gas ETH alongside the USDC. A wallet holding ` +
+        `only USDC cannot transact at all, and the failure is opaque (the ` +
+        `transaction simply will not send). Surface the gas purchase to the ` +
+        `user at the same time as the USDC purchase — see 'gas_requirement' ` +
+        `in the response.\n\n` +
+        `Returns: { providers: OnrampProvider[], gas_requirement, filter_echo, notes }.`,
       inputSchema: {
         country: z
           .string()
@@ -139,7 +145,7 @@ export function registerOnrampsTool(server: McpServer): void {
       },
     },
     async ({ country, amount_usd }) => {
-      requireTier('anonymous');
+      requireTier('free');
 
       // Normalise country code to uppercase if provided
       const cc = country?.toUpperCase();
@@ -168,6 +174,28 @@ export function registerOnrampsTool(server: McpServer): void {
 
       const response = {
         providers: filtered,
+        // R18 Phase 6 / MD11 — the two-purchase reality.
+        //
+        // Verified 2026-07-21 against the providers' own APIs (MoonPay
+        // /v3/currencies, Ramp /host-api/v3/assets, the Transak catalogue):
+        // none of them delivers gas ETH together with the USDC. Both assets
+        // exist on Arbitrum One at all three, but as two separate purchases,
+        // each with its own euro minimum.
+        //
+        // This is stated unconditionally rather than as a footnote because a
+        // user funded with USDC and no ETH is stuck in a way that gives no
+        // useful error — the single most likely place for a cold-start
+        // concierge session to fail silently.
+        gas_requirement: {
+          summary:
+            'Two separate purchases are required. USDC is what you lend or borrow; ETH on Arbitrum One is what pays network fees. No provider in this catalogue delivers both in one transaction.',
+          native_gas_token: 'ETH (on Arbitrum One)',
+          why: 'Every on-chain action — approving a token, placing a bid, creating an auction, repaying — costs a small ETH network fee. A wallet holding only USDC cannot send any transaction.',
+          typical_need_eth: '0.002–0.005 ETH covers many transactions; Arbitrum fees are small.',
+          minimum_purchase_note:
+            'Each provider enforces its own minimum per purchase, so the ETH order is often floored well above what the gas actually costs — roughly €12 at the cheapest observed (Ramp) up to ~€40 (MoonPay). Compare minimums before choosing.',
+          verified_on: '2026-07-21',
+        },
         filter_echo: { country: cc, amount_usd, chain: 'arbitrum-one' },
         notes: filtered.length === 0
           ? `No providers matched the filter. Consider relaxing the criteria — most users in unlisted countries can still onramp through MoonPay or Transak (broadest country coverage).`

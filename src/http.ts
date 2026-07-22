@@ -44,15 +44,23 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Per-tier rate limit. The key is the request's tier plus IP; anonymous gets
-// the lower bucket, paid gets the higher. When real per-key tier resolution
-// lands in Phase 1.5 we can split paid into developer / pro / enterprise.
+// Per-tier rate limit. The key is the request's tier plus IP; free gets the
+// lower bucket, paid gets the higher.
+//
+// R18 / MD6 + D2: these are INFRASTRUCTURE PROTECTION, not a billing meter.
+// They apply irrespective of MCP_TIER_ENFORCEMENT — a scraping loop is a
+// scraping loop whether or not anyone is being charged. The free ceiling is
+// deliberately generous (60/min, 10 000/day) because a cold-start concierge
+// session — wallet choice through funding to a placed bid — is tens of tool
+// calls, and a shared egress IP (corporate NAT, a university, a mobile
+// carrier) must not exhaust it. Throttling that path would breach D3:
+// participation is never gated.
 const tieredRateLimit = rateLimit({
   windowMs: 60_000,
   limit: (req: Request) => {
     try {
       const { tier } = getContext();
-      return tier === 'anonymous' ? ANONYMOUS_PER_MINUTE : PAID_PER_MINUTE;
+      return tier === 'free' ? ANONYMOUS_PER_MINUTE : PAID_PER_MINUTE;
     } catch {
       return ANONYMOUS_PER_MINUTE;
     }
@@ -60,11 +68,12 @@ const tieredRateLimit = rateLimit({
   keyGenerator: (req: Request) => {
     try {
       const ctx = getContext();
-      // Bearer-key callers share their own bucket across IPs; anonymous
-      // callers are bucketed per-IP.
-      return ctx.tier === 'anonymous'
-        ? `anon:${ctx.ip}`
-        : `key:${ctx.bearerToken?.slice(0, 16) ?? 'unknown'}`;
+      // Bearer-key callers share their own bucket across IPs; keyless callers
+      // are bucketed per-IP. Note a free *key* is bucketed as a key, not an
+      // IP — it is a stabler identifier and costs the holder nothing.
+      return ctx.bearerToken
+        ? `key:${ctx.bearerToken.slice(0, 16)}`
+        : `anon:${ctx.ip}`;
     } catch {
       return `anon:${req.ip ?? 'unknown'}`;
     }

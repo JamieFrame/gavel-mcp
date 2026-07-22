@@ -65,7 +65,7 @@ export function registerFindAuctionsTool(server: McpServer): void {
       },
     },
     async (args) => {
-      requireTier('anonymous');
+      requireTier('free');
 
       const upstream = await upstreamGet<UpstreamAuctionsResponse>('/v1/auctions', {
         query: {

@@ -143,7 +143,7 @@ export function registerListWalletsTool(server: McpServer): void {
       },
     },
     async ({ platform }) => {
-      requireTier('anonymous');
+      requireTier('free');
 
       const filtered = platform
         ? CATALOG.filter((w) => w.platforms.includes(platform))

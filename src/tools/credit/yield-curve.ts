@@ -48,7 +48,7 @@ export function registerYieldCurveTool(server: McpServer): void {
       },
     },
     async ({ pair, include_points }) => {
-      requireTier('anonymous');
+      requireTier('free');
 
       const data = await upstreamGet<YieldCurveResponse>('/v1/yield-curve', {
         query: { pair, points: include_points ? 'true' : undefined },
