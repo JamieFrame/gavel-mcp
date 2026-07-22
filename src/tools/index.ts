@@ -10,6 +10,7 @@ import { registerOnrampsTool } from './onboarding/onramps.js';
 import { registerListWalletsTool } from './onboarding/wallets.js';
 import { registerIndicatorTools } from './indicators/indicators.js';
 import { registerPositionTools } from './protocol/positions.js';
+import { registerFactoryTools } from './factory/prepare.js';
 
 /**
  * Registers every tool in the catalog. Discovery tools are registered first
@@ -64,4 +65,8 @@ export function registerAllTools(server: McpServer): void {
 
   // R18 Phase 3 — the indicator & analytics surface
   registerIndicatorTools(server);
+
+  // R18 Phase 5 — Layer B factory model. Aletheia builds, the user signs;
+  // there is no signing surface in this process. See src/factory/envelope.ts.
+  registerFactoryTools(server);
 }

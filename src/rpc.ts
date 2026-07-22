@@ -65,4 +65,13 @@ export const ERC20_ABI = [
     inputs: [],
     outputs: [{ type: 'uint8' }],
   },
+  // Needed by the R18 factory tools: a blueprint summary that says "you are
+  // repaying 569.19 0xaf88…5831" is not a summary a user can check.
+  {
+    name: 'symbol',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'string' }],
+  },
 ] as const;

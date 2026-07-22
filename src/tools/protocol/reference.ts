@@ -84,7 +84,7 @@ const IMPORTANT_NOTES = [
   'The whitelisted loan tokens are USDC and USDT (USD₮0). WBTC is the only whitelisted collateral. Custom pairs require admin action — see isLoanTokenWhitelisted().',
 ] as const;
 
-interface ContractAddresses {
+export interface ContractAddresses {
   LoanProtocol: string;
   PositionNFT: string;
   ListingService: string;
@@ -116,7 +116,7 @@ interface NetworkReference {
   };
 }
 
-const MAINNET_CONTRACTS: ContractAddresses = {
+export const MAINNET_CONTRACTS: ContractAddresses = {
   LoanProtocol:      '0xFCDd6Ef75638D8D19ad634004C234Ad18751fEf2',
   PositionNFT:       '0xAD6Edb72409605a51dc6C990A09829616178A8f4',
   ListingService:    '0x22B2C327Ed73da9e32a3eEB9DcBaa9AEBD8BD0d8',
@@ -125,7 +125,7 @@ const MAINNET_CONTRACTS: ContractAddresses = {
   NFTListingService: '0x43fD6Fda249820D98BC34733D4B5c896c613C674',
 };
 
-const TESTNET_CONTRACTS: ContractAddresses = {
+export const TESTNET_CONTRACTS: ContractAddresses = {
   LoanProtocol:      '0xB15336ba21410181AF1B8751Ee88aB4AFc9F1c26',
   PositionNFT:       '0x004eAfB3017E60A6574136bcF4e07364E438801D',
   ListingService:    '0xd1C6073d550E1C0A588081087E30B3091c635B6e',
