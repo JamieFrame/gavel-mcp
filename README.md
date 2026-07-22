@@ -9,18 +9,59 @@ hand-rolling REST glue.
 
 ## Status
 
-Phase 1 Week 1 scaffold — implements the bootstrap, transport, auth, tier,
-and rate-limit layers from `Aletheia_MCP_Implementation_Spec_v1_0.md`, plus
-three tools as the working sample:
+All three layers of the AI concierge spec (`aletheia-docs`
+`data/specs/mcp/ai_concierge.md`) are live, plus the indicator surface and
+real key→tier resolution. Delivered by **Runbook R18** and governed by the
+decisions note `data/specs/mcp/tier_and_scope_decisions_v1.md` (MD1–MD12).
 
-| Tool | Status | Upstream |
-|---|---|---|
-| `list_onchain_indicators` | live | none — static catalog |
-| `get_yield_curve`         | live | `/v1/yield-curve` |
-| `get_mvrv`                | pending | `/v1/onchain/mvrv` (404 until UTXO parser ships) |
+**Layer A — read state**
 
-Week 2 fills out the rest of §7 of the spec — all 19 on-chain tools plus
-credit, protocol, pairing, and triangulation surfaces.
+| Tool | Upstream |
+|---|---|
+| `check_wallet_status` | direct RPC (balances, allowances, readiness blockers) |
+| `find_auctions_matching_criteria` | `/v1/auctions` |
+| `get_user_positions` | `/v1/user/:address/positions` |
+| `get_loan_status` | `/v1/loans/:id/status` |
+
+**Layer B — factory model** (unsigned blueprints; the user signs)
+
+| Tool | Encodes |
+|---|---|
+| `prepare_bid_calldata` | `placeBid` + approval when allowance is short |
+| `prepare_create_auction_calldata` | `createAuction` + collateral approval |
+| `prepare_repay_loan_calldata` | `repayLoan` + repayment approval |
+| `prepare_claim_collateral_calldata` | `claimCollateral` |
+| `prepare_claim_refund_calldata` | `claimRefund` |
+
+**Layer C — catalogues**
+
+| Tool | Notes |
+|---|---|
+| `list_wallet_options` | static catalogue, no ranking |
+| `recommend_fiat_onramp` | static catalogue; carries the two-purchase gas requirement |
+
+**Data surface**
+
+| Tool | Upstream |
+|---|---|
+| `list_gavel_indicators` | static catalogue of 32 indicators |
+| `get_gavel_indicator` | `/v1/credit/*`, `/v1/onchain/*`, `/v1/market/*` |
+| `get_yield_curve` | `/v1/yield-curve` |
+| `get_mvrv` | `/v1/onchain/mvrv` |
+| `get_protocol_reference` | static — addresses, signatures, conventions |
+| `list_onchain_indicators` | static catalogue |
+
+### The invariant
+
+**Aletheia builds; the user signs.** There is no signing surface in this
+codebase — no wallet client, no account, no key material. `viem` is imported
+for `encodeFunctionData` only. That is what makes "Aletheia never signs" an
+architectural fact rather than a policy promise, and it must stay that way.
+
+Equally load-bearing: **no tool ranks, scores, or selects on the user's
+behalf.** Filtering by user-supplied criteria is an information service;
+ranking by an internal model is investment advice. `find_auctions_matching_criteria`
+is named as it is deliberately, and the naming is not cosmetic.
 
 ## Architecture
 
@@ -80,7 +121,9 @@ npm install --omit=dev
 cp .env.example .env
 nano .env
 # Set:
-#   GAVEL_API_BASE_URL=http://localhost:3001   (local API)
+#   GAVEL_API_BASE_URL=https://api.thegavel.io  (public API, for tool reads)
+#   GAVEL_API_INTERNAL_URL=http://127.0.0.1:4012  (loopback, for tier lookup)
+#   INTERNAL_API_SECRET=<must match gavel-indexer/.env.mainnet>
 #   PORT=3002
 #   NODE_ENV=production
 
@@ -121,22 +164,75 @@ All knobs live in `.env`:
 | `RATE_LIMIT_PAID_PER_MINUTE` | `300` | Paid bucket size |
 | `CORS_ALLOWED_ORIGINS` | empty | Comma-separated; empty = no CORS |
 | `HEALTH_CHECK_SECRET` | empty | If set, `/health` requires `?secret=...` |
+| `GAVEL_API_INTERNAL_URL` | `http://127.0.0.1:4012` | Key→tier lookup. Must be the **loopback** address — `/internal/resolve-tier` refuses any request carrying an `X-Forwarded-For`, so the public `api.thegavel.io` host will not work |
+| `INTERNAL_API_SECRET` | empty | Shared secret for the tier lookup. Must match `gavel-indexer/.env.mainnet`. Unset ⇒ every caller resolves to `free` |
+| `MCP_TIER_ENFORCEMENT` | `false` | Enforce per-tool tiers. Leave `false` until Gate B — see *Tier model* |
+| `ARBITRUM_RPC_URL` | public RPC | Chain reads for Layer A/B. Point at a paid endpoint in production |
+| `ARBITRUM_SEPOLIA_RPC_URL` | public RPC | Testnet equivalent |
 
 ## Tier model
 
-Per `Aletheia_Data_Product_Free_Tier_Strategy_v1_0.md`:
+The ladder is `free / pro / enterprise` — **identical** to the product's
+(`gavel-indexer/lib/tiers.js`) and to what Stripe sells. The scaffold's
+original `anonymous / developer / professional / enterprise` was a second
+vocabulary for one entitlement and is retired (MD1).
 
-- **anonymous** — no auth header; rate-limited by IP; on-chain commodity
-  indicators and current-snapshot credit data
-- **developer** — any bearer token (Phase 1 placeholder); credit surface,
-  history depth, real-time feeds
-- **professional** — defined in the enum, gated by `requireTier`; real
-  per-key resolution lands in Phase 1.5
-- **enterprise** — same
+`gavel-indexer/lib/api-keys.js` is **the** authority on what tier a key is.
+The MCP does not open its own database pool; it asks
+`GET /internal/resolve-tier` over loopback, caches the answer for 60 s, and
+**fails open to `free`** on any error. A data MCP that 500s because the key
+database hiccuped is worse than one that briefly serves anonymous.
 
-Tools call `requireTier('anonymous' | 'developer' | ...)` at the top of
-their handler. Phase 1 resolves all bearer tokens to `developer`; real
-validation against `api_keys` arrives with the paid-tier rollout.
+### Enforcement is authored but OFF
+
+`MCP_TIER_ENFORCEMENT` defaults to `false`, and that is the correct state
+today. Monetisation is gated until Gate B (D16–D18): *do not build a paywall
+until someone has asked to pay*. Runbook A2 withdrew the commercial surface,
+and `www.thegavel.io/pricing` currently states that data access is free and
+open — so refusing a tool and pointing the user at a page which denies tiers
+exist would be a self-refuting journey.
+
+With the flag off, `requireTier` still resolves the caller's real tier and
+**logs what it would have refused**. That log is the evidence for M6, the
+"has anyone actually asked to pay?" gate condition.
+
+**Before flipping it on**, read MD2. There are two incompatible readings of
+what a paid MCP means — whole-surface-paid (`lib/tiers.js` carries
+`mcp: false` on free) versus depth-paid (MD3, the endorsed one). They are
+very different products.
+
+### What is free, and why
+
+Per MD3, inheriting the D5 route/depth map: raw on-chain state, auction
+discovery, wallet status, commodity on-chain indicators, the **current**
+value of any Gavel-derived assessment, and **history** are all free. History
+is free because D9 retired the 30-day REST cap, and the MCP must not
+reintroduce a fence the surface it mirrors has abandoned. The paid boundary
+is **bulk delivery**, which this server does not offer.
+
+Participation is never gated (D3). Every Layer A/B/C tool is `free`: a
+would-be bidder must never meet a paywall between deciding to bid and being
+able to.
+
+Rate limits are infrastructure protection, not a billing meter (D2), and
+apply irrespective of the enforcement flag.
+
+## Redeploying a change
+
+```bash
+npm run build            # tsc -> dist/ ; must be clean
+systemctl restart gavel-mcp
+systemctl is-active gavel-mcp
+journalctl -u gavel-mcp -n 30 --no-pager
+```
+
+**This service is systemd, not pm2.** pm2 on this host carries
+`quorum-mcp-testnet`, a different service — `pm2 restart gavel-mcp` is a
+no-op that looks like a successful deploy. R18 v1 had this wrong; it is
+recorded in that runbook's §8.
+
+The service runs `dist/`, not `src/`, so a change that is not built is a
+change that is not deployed.
 
 ## Adding a tool
 
