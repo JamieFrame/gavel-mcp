@@ -66,12 +66,13 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'cdr',
-    name: 'Collateral Decay Rate',
+    name: 'Confidence Decay Rate',
     family: 'credit',
     path: '/v1/credit/cdr',
     historyPath: '/v1/credit/cdr/history',
     units: 'rate per day',
-    description: 'The rate at which the market-implied collateral floor decays across the curve.',
+    description:
+      'The rate at which the market-implied collateral floor decays across the curve, with an implied half-life. A measure of how fast lender confidence falls away with tenor.',
     live: true,
   },
   {
@@ -118,42 +119,57 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'lci',
-    name: 'Lending Cost Index',
+    name: 'Leverage Conviction Index',
     family: 'credit',
     path: '/v1/credit/lci',
     historyPath: '/v1/credit/lci/history',
-    units: 'APR (%) by tenor',
-    description: 'The cost of borrowing on Gavel by tenor, as an index.',
+    units: 'annualised % by rolling window',
+    description:
+      'The annualised cost of holding leveraged BTC long exposure via perpetual futures funding. ' +
+      'NOT a Gavel rate: sourced from Binance BTCUSDT 8-hour funding, summed over the rolling ' +
+      'window and annualised. Positive means longs pay shorts (net long conviction); negative ' +
+      'means shorts pay longs. Functions as the zero-duration point of the capital stack.',
     live: true,
   },
   {
     id: 'vrb',
-    name: 'Volatility Risk Basis',
+    name: 'Variable Rate Basis',
     family: 'credit',
     path: '/v1/credit/vrb',
     historyPath: '/v1/credit/vrb/history',
-    units: 'spread',
-    description: 'The spread attributable to collateral volatility risk.',
+    units: 'spread (percentage points)',
+    description:
+      'The premium Gavel lenders earn over passive variable-rate DeFi lending: ' +
+      'gavel_rate − max(USDC supply APY across Aave, Compound, Morpho) at matched tenor. ' +
+      'The fixed-versus-variable lending premium. Uses supply APY, not borrow APY, because ' +
+      'the lender\'s actual alternative is earning USDC supply yield.',
     live: true,
   },
   {
     id: 'lpi',
-    name: 'Liquidity Premium Index',
+    name: 'Leverage Premium Index',
     family: 'credit',
     path: '/v1/credit/lpi',
     historyPath: '/v1/credit/lpi/history',
-    units: 'index',
-    description: 'The premium lenders demand for tying up capital at each tenor.',
+    units: 'spread (percentage points)',
+    description:
+      'The excess that leveraged perp exposure commands over Gavel fixed-term collateralised ' +
+      'lending at matched duration: LPI = LCI − gavel_rate. Positive means leverage costs more ' +
+      'than term borrowing; negative (INVERSION) means the derivatives market is bearish while ' +
+      'the term credit market prices stability.',
     live: true,
   },
   {
     id: 'drp',
-    name: 'Duration Risk Premium',
+    name: 'DeFi Risk Premium',
     family: 'credit',
     path: '/v1/credit/drp',
     historyPath: '/v1/credit/drp/history',
-    units: 'spread vs matched treasury',
-    description: 'Gavel rates spread against duration-matched treasuries.',
+    units: 'spread vs matched treasury (percentage points)',
+    description:
+      'The spread Gavel rates command over duration-matched US Treasury yields: ' +
+      'DRP = gavel_rate − treasury_yield at the matched tenor. The institutional benchmark — ' +
+      'what is earned in DeFi over the risk-free rate at similar maturity.',
     live: true,
   },
   {
@@ -178,22 +194,30 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'coc',
-    name: 'Cost of Capital',
+    name: 'Collateral Opportunity Cost',
     family: 'credit',
     path: '/v1/credit/coc',
     historyPath: '/v1/credit/coc/history',
     units: 'APR (%)',
-    description: 'The best available external cost of capital, against which Gavel rates are compared.',
+    description:
+      'The yield a Gavel borrower foregoes by locking WBTC as collateral instead of supplying it ' +
+      'on Aave/Compound/Morpho: COC = max(WBTC supply APY across protocols). Makes the borrower\'s ' +
+      'true all-in cost visible as gavel_rate + COC. Small today (0.004–0.05%) but material if ' +
+      'BTC yield opportunities emerge.',
     live: true,
   },
   {
     id: 'gls',
-    name: 'Gavel Lending Spread',
+    name: 'Gavel Liquidity Sensitivity',
     family: 'credit',
     path: '/v1/credit/gls',
     historyPath: '/v1/credit/gls/history',
-    units: 'spread (bps)',
-    description: 'Gavel rates spread against a reference DeFi venue at matched tenor.',
+    units: 'regression coefficient (beta) + residual gap',
+    description:
+      'How strongly the reference lending rate responds to stablecoin liquidity conditions. ' +
+      'An OLS fit of rate on SLI over a trailing window (rate = alpha + beta x SLI), returning ' +
+      'the full fit (alpha, beta, R-squared, confidence intervals) plus the current-moment ' +
+      'residual gap. NOT a spread against a venue. Returns null below 30 paired observations.',
     live: true,
   },
   {
@@ -286,9 +310,12 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/hrcs',
     historyPath: null,
     units: 'spread',
-    description: 'Mining economics spread against the Gavel curve.',
+    description: 'Mining economics spread against the Gavel curve — miner breakeven price against the credit-implied collateral floor.',
     live: false,
-    note: 'Not implemented — the endpoint returns 404. Awaits its upstream inputs being populated.',
+    note:
+      'Computed and stored, but not yet served: `compute-onchain.js` writes `hrcs_history` ' +
+      'nightly on both networks. What is missing is the REST route, so the endpoint returns 404. ' +
+      'This is a serving gap, not an unimplemented indicator.',
   },
   {
     id: 'rpid',
@@ -299,7 +326,10 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'divergence',
     description: 'Divergence between the on-chain realised price and the credit-implied collateral floor.',
     live: false,
-    note: 'Not implemented — the compute module does not exist yet. The endpoint returns 404.',
+    note:
+      'Computed and stored, but not yet served: `compute-onchain.js` writes `rpid_history` ' +
+      'nightly on both networks. What is missing is the REST route, so the endpoint returns 404. ' +
+      'This is a serving gap, not an unimplemented indicator.',
   },
 
   // ── Commodity on-chain — free permanently (D4) ────────────────────────────
