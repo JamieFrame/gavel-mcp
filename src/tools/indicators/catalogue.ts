@@ -80,7 +80,10 @@ export const INDICATORS: IndicatorSpec[] = [
     name: 'Credit-Cycle Phase Indicator',
     family: 'credit',
     path: '/v1/credit/ccpi',
-    historyPath: null,
+    // History route added 2026-07-24 (R12). ccpi_history had been accumulating
+    // since 2026-03 with no route to serve it, so has_history:false was
+    // accurate only because the data was unreachable, not absent.
+    historyPath: '/v1/credit/ccpi/history',
     units: 'composite z-score',
     description:
       'Composite of TCI-z, SOPR-z and MVRV-z classifying the credit cycle phase. Combines the credit and on-chain layers.',
@@ -289,7 +292,13 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: null,
     units: 'mixed',
     description:
-      'Every credit-complex indicator in one response. Prefer this over N separate calls when building a dashboard view.',
+      'Fourteen credit indicators in one response: the yield curve (rates, fit and both shape ' +
+      'classifications), tci, tsr, cdr, implied_price, lci, vrb, lpi, drp, sli, sdr, srcs, coc ' +
+      'and ccpi. Cheaper than fetching these individually when building a dashboard. ' +
+      'It is NOT the whole catalogue — surface, gls, mrys, ccs, intermediation-spread, ' +
+      'capital-stack and benchmark-curves have their own endpoints, and the response carries a ' +
+      '_coverage block listing exactly what is and is not included. Check it rather than ' +
+      'assuming completeness.',
     live: true,
   },
   {
