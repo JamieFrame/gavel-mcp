@@ -316,29 +316,30 @@ export const INDICATORS: IndicatorSpec[] = [
     id: 'hrcs',
     name: 'Hash-Rate Credit Spread',
     family: 'credit',
-    path: '/v1/credit/hrcs',
-    historyPath: null,
+    // Served under /v1/onchain/*, not /v1/credit/* — it is computed by the
+    // on-chain module from mining economics, and the route follows the module.
+    // The catalogue pointed at /v1/credit/hrcs, which does not exist, and
+    // declared the indicator unimplemented on the strength of that 404.
+    path: '/v1/onchain/hrcs',
+    historyPath: '/v1/onchain/hrcs/history',
     units: 'spread',
-    description: 'Mining economics spread against the Gavel curve — miner breakeven price against the credit-implied collateral floor.',
-    live: false,
-    note:
-      'Computed and stored, but not yet served: `compute-onchain.js` writes `hrcs_history` ' +
-      'nightly on both networks. What is missing is the REST route, so the endpoint returns 404. ' +
-      'This is a serving gap, not an unimplemented indicator.',
+    description:
+      'Mining economics spread against the Gavel curve: the miner breakeven price against the ' +
+      'credit-implied collateral floor, with hash rate and BTC price. Carries `data_maturity`.',
+    live: true,
   },
   {
     id: 'rpid',
     name: 'Realised Price Implied Divergence',
     family: 'credit',
-    path: '/v1/credit/rpid',
-    historyPath: null,
+    // Served under /v1/onchain/*, for the same reason as hrcs above.
+    path: '/v1/onchain/rpid',
+    historyPath: '/v1/onchain/rpid/history',
     units: 'divergence',
-    description: 'Divergence between the on-chain realised price and the credit-implied collateral floor.',
-    live: false,
-    note:
-      'Computed and stored, but not yet served: `compute-onchain.js` writes `rpid_history` ' +
-      'nightly on both networks. What is missing is the REST route, so the endpoint returns 404. ' +
-      'This is a serving gap, not an unimplemented indicator.',
+    description:
+      'Divergence between the on-chain realised price and the credit-implied collateral floor, ' +
+      'with the MVRV ratio and BTC price. Carries `data_maturity`.',
+    live: true,
   },
 
   // ── Commodity on-chain — free permanently (D4) ────────────────────────────

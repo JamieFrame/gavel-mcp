@@ -112,7 +112,6 @@ interface NetworkReference {
   important_notes: readonly string[];
   abi_references: {
     full_abis_url: string;
-    abi_note: string;
     etherscan_links: Record<string, string>;
   };
 }
@@ -160,8 +159,7 @@ const REFERENCES: Record<'arbitrum-one' | 'arbitrum-sepolia', NetworkReference> 
     key_functions: KEY_FUNCTIONS,
     important_notes: IMPORTANT_NOTES,
     abi_references: {
-      full_abis_url: 'https://github.com/JamieFrame/The-Gavel-Protocol',
-      abi_note: 'The repository publishes Solidity source, not built ABIs — it is a Foundry project and the out/ directory is not committed. For a ready-to-use ABI, read the verified contract on Arbiscan via etherscan_links.',
+      full_abis_url: 'https://github.com/aletheia/gavel-contracts/tree/v1.0/abi',
       etherscan_links: makeEtherscanLinks(MAINNET_CONTRACTS, 'https://arbiscan.io'),
     },
   },
@@ -186,8 +184,7 @@ const REFERENCES: Record<'arbitrum-one' | 'arbitrum-sepolia', NetworkReference> 
       'Testnet tokens expose a public mint(address to, uint256 amount) function so anyone can fund a test wallet without faucet friction.',
     ],
     abi_references: {
-      full_abis_url: 'https://github.com/JamieFrame/The-Gavel-Protocol',
-      abi_note: 'The repository publishes Solidity source, not built ABIs — it is a Foundry project and the out/ directory is not committed. For a ready-to-use ABI, read the verified contract on Arbiscan via etherscan_links.',
+      full_abis_url: 'https://github.com/aletheia/gavel-contracts/tree/v1.0/abi',
       etherscan_links: makeEtherscanLinks(TESTNET_CONTRACTS, 'https://sepolia.arbiscan.io'),
     },
   },
