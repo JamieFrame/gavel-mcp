@@ -30,3 +30,10 @@ Thumbs.db
 # local pre-change backups (\.env.bak-pre-r18 holds INTERNAL_API_SECRET)
 .env.bak*
 dist.bak*
+
+# Deployment units — host paths, not application code. Kept out of the public
+# repository; they live on the host and in the ops runbook.
+deployment/
+# Stray editor/backup files must never reach a published repo.
+*.pre-*
+*.bak-*
