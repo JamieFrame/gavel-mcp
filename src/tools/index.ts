@@ -11,6 +11,7 @@ import { registerListWalletsTool } from './onboarding/wallets.js';
 import { registerIndicatorTools } from './indicators/indicators.js';
 import { registerPositionTools } from './protocol/positions.js';
 import { registerFactoryTools } from './factory/prepare.js';
+import { registerETools } from './agent/e-tools.js';
 
 /**
  * Registers every tool in the catalog. Discovery tools are registered first
@@ -29,6 +30,12 @@ import { registerFactoryTools } from './factory/prepare.js';
  *   - list_fiat_onramps              (fiat-to-USDC catalog filtered by country/amount;
  *                                     renamed from recommend_fiat_onramp 2026-08-26)
  *   - list_wallet_options            (compatible self-custody wallets)
+ *
+ * AF-T day 5 (2026-08-26) — the E-series, four of nine:
+ *   - list_comparables               (E4 — nearest-k settled auctions)
+ *   - get_address_history            (E6 — what an address did; supervisor data)
+ *   - get_book                       (E9 — what is open right now)
+ *   - get_verification_bundle        (E8 free form — contracts, promises, checks)
  *
  * R18 (this release):
  *   - list_gavel_indicators / get_gavel_indicator  (Phase 3, MD4 — the
@@ -71,4 +78,9 @@ export function registerAllTools(server: McpServer): void {
   // R18 Phase 5 — Layer B factory model. Aletheia builds, the user signs;
   // there is no signing surface in this process. See src/factory/envelope.ts.
   registerFactoryTools(server);
+
+  // AF-T day 5 — the E-series decision endpoints. Four of the nine: the ones
+  // that re-present chain state and are free by the founding rule. E1/E2/E3/E5
+  // and E7 need thresholds and the delayed tier and are not exposed yet.
+  registerETools(server);
 }

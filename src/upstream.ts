@@ -5,6 +5,36 @@ import { logger } from './logger.js';
 const DEFAULT_TIMEOUT_MS = 10_000;
 const BASE_URL = (process.env.GAVEL_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
+// Testnet is served by a separate API process against a separate database, so
+// reaching it is a different host and not a query parameter. Added 2026-08-26
+// for the E-series tools: the operator direction is to build testnet-first, and
+// testnet carries the deeper book (446 loans against mainnet's 14).
+const TESTNET_BASE_URL = (process.env.GAVEL_API_TESTNET_BASE_URL || '').replace(/\/$/, '');
+
+export type GavelNetwork = 'arbitrum-one' | 'arbitrum-sepolia';
+
+/**
+ * Resolve the API host for a network. Falls back to mainnet when no testnet
+ * host is configured — and says so in the log rather than silently serving
+ * mainnet data under a testnet label, which would be the worse failure.
+ */
+export function baseUrlFor(network?: GavelNetwork): string {
+  if (network === 'arbitrum-sepolia') {
+    if (TESTNET_BASE_URL) return TESTNET_BASE_URL;
+    logger.warn(
+      { requested: network },
+      'testnet API host not configured (GAVEL_API_TESTNET_BASE_URL); refusing to serve mainnet data as testnet'
+    );
+    throw new McpError(
+      ErrorCode.InternalError,
+      'The testnet deployment is not reachable from this server: no testnet API host is ' +
+        'configured. Mainnet data is not returned in its place, because a mainnet figure ' +
+        'labelled testnet is worse than an error.'
+    );
+  }
+  return BASE_URL;
+}
+
 export interface UpstreamGetOptions {
   /**
    * Query parameters. Values of `undefined` and `null` are omitted from the
@@ -20,6 +50,11 @@ export interface UpstreamGetOptions {
    * not the MCP server's anonymous IP.
    */
   forwardAuth?: boolean;
+  /**
+   * Which deployment to read. Selects the API host; defaults to mainnet.
+   * Note the two run different contract builds — see the verification bundle.
+   */
+  network?: GavelNetwork;
 }
 
 /**
@@ -34,10 +69,10 @@ export async function upstreamGet<T = unknown>(
   path: string,
   opts: UpstreamGetOptions = {}
 ): Promise<T> {
-  const { query, timeoutMs = DEFAULT_TIMEOUT_MS, forwardAuth = true } = opts;
+  const { query, timeoutMs = DEFAULT_TIMEOUT_MS, forwardAuth = true, network } = opts;
   const ctx = tryGetContext();
 
-  const url = new URL(`${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`);
+  const url = new URL(`${baseUrlFor(network)}${path.startsWith('/') ? '' : '/'}${path}`);
   if (query) {
     for (const [key, val] of Object.entries(query)) {
       if (val !== undefined && val !== null) url.searchParams.set(key, String(val));

@@ -1,6 +1,6 @@
 {
   "name": "gavel-mcp-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Aletheia MCP server — agent-native interface over the Gavel data product.",
   "type": "module",
   "main": "dist/http.js",

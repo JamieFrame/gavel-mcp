@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAllTools } from './tools/index.js';
 
 export const SERVER_NAME = 'aletheia-mcp';
-export const SERVER_VERSION = '0.2.0';
+export const SERVER_VERSION = '0.3.0';
 
 /**
  * Served as the MCP `initialize` result's `instructions`. Public copy —
