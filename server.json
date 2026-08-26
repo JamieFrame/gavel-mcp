@@ -1,7 +1,7 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.thegavel/gavel",
-  "description": "Gavel — oracle-free, fixed-rate, fixed-term BTC-collateralised credit on Arbitrum One. A loan's repayment amount and its maturity date are fixed when the auction settles; there is no external price feed in the call graph and no mid-term liquidation. Aletheia Analytics SASU operates this interface and data product; the Gavel Protocol is autonomous, permissionless code with no operating entity. Informational only. Transaction blueprints are unsigned and are signed by the caller's own wallet.",
+  "description": "Oracle-free fixed-rate, fixed-term BTC credit on Arbitrum One. Data and unsigned blueprints.",
   "version": "0.3.0",
   "repository": {
     "url": "https://github.com/JamieFrame/gavel-mcp",
