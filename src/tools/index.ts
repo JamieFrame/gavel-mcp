@@ -20,13 +20,14 @@ import { registerFactoryTools } from './factory/prepare.js';
  * Phase 1 surface (Week 1):
  *   - list_onchain_indicators        (discovery)
  *   - get_yield_curve                (credit, live)
- *   - get_mvrv                       (on-chain, pending UTXO parser; placeholder)
+ *   - get_mvrv                       (on-chain, LIVE — corrected 2026-08-26)
  *   - get_protocol_reference         (protocol metadata: contracts, ABIs, conventions)
  *
  * Phase 1.5 read-tool family (this release — AI concierge layer):
  *   - check_wallet_status            (chain read: balances, allowances, readiness blockers)
  *   - find_auctions_matching_criteria (auction filter, user-supplied params, never ranks)
- *   - recommend_fiat_onramp          (fiat-to-USDC catalog filtered by country/amount)
+ *   - list_fiat_onramps              (fiat-to-USDC catalog filtered by country/amount;
+ *                                     renamed from recommend_fiat_onramp 2026-08-26)
  *   - list_wallet_options            (compatible self-custody wallets)
  *
  * R18 (this release):
@@ -46,7 +47,8 @@ export function registerAllTools(server: McpServer): void {
   // Credit (live now)
   registerYieldCurveTool(server);
 
-  // On-chain (pending — returns "not found" McpError until upstream lights up)
+  // On-chain — LIVE. Reads mvrv from /v1/onchain/indicators/latest. The old
+  // /v1/onchain/mvrv path never existed and every call 404'd; corrected 2026-08-26.
   registerMvrvTool(server);
 
   // Protocol metadata

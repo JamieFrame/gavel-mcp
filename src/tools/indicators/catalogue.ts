@@ -10,6 +10,12 @@
 // refuses redirects would break — so the catalogue names the destination, not
 // the redirect. See gavel-indexer/lib/route-namespacing.js.
 //
+// WARNING, added 2026-08-26: the rule above - name the canonical destination,
+// not the redirect - was applied to two entries whose namespaced destination
+// was never mounted at all: hodl-waves and the onchain-latest history. Both
+// 404'd while advertised live:true. Naming a destination only works if
+// something is serving it. Run `npm run check:advertised` rather than assuming.
+//
 // `live` records what was verified against mainnet on 2026-07-22. It is a
 // documentation hint only — get_gavel_indicator always asks upstream and
 // reports what it actually finds, so a stale flag here can never fabricate a
@@ -348,7 +354,9 @@ export const INDICATORS: IndicatorSpec[] = [
     name: 'On-chain Indicators (latest)',
     family: 'onchain',
     path: '/v1/onchain/indicators/latest',
-    historyPath: '/v1/onchain/indicators/history',
+    // CORRECTED 2026-08-26: '/v1/onchain/indicators/history' 404s; the flat
+    // path is the one actually mounted and answers 200 directly.
+    historyPath: '/v1/indicators/history',
     units: 'mixed',
     description:
       'The full commodity on-chain set in one response: MVRV, MVRV-z, SOPR (and 7d/z), realised cap and price, STH/LTH supply and cost basis, circulating supply, spot price.',
@@ -358,7 +366,13 @@ export const INDICATORS: IndicatorSpec[] = [
     id: 'hodl-waves',
     name: 'HODL Waves',
     family: 'onchain',
-    path: '/v1/onchain/indicators/hodl-waves',
+    // CORRECTED 2026-08-26. This read '/v1/onchain/indicators/hodl-waves',
+    // which 404s and always has: the namespaced route was never mounted.
+    // The flat path below answers 200 directly - it is not a redirect.
+    // SV4 reported this one as live:true-at-a-404 and it was STILL true today,
+    // which is why the fix ships with scripts/check-advertised.mjs rather than
+    // on its own.
+    path: '/v1/indicators/hodl-waves',
     historyPath: null,
     units: 'percent of supply by age band',
     description: 'UTXO supply distribution across twelve age bands, from under a day to over ten years.',

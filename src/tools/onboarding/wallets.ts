@@ -11,7 +11,11 @@ import { requireTier } from '../../tiers.js';
 //
 // The description gives an LLM enough context to surface the right choice
 // for a novice user without the tool itself prescribing one — for example,
-// the `recommended_for` field tags wallets with their typical user fit
+// the `suitability_tags` field tags wallets with their typical user fit
+// (RENAMED 2026-08-26 from `recommended_for`: an output schema field name is
+//  public copy under editorial guideline v1.2, and "recommend" is barred of
+//  wallets. The values were always factual attributes; only the label implied
+//  a verdict.)
 // ('beginner', 'mobile-first', 'hardware') as factual attributes, leaving
 // the matching to the LLM and the user.
 // ============================================================================
@@ -24,7 +28,7 @@ interface WalletOption {
   custody_model: 'self_custody' | 'mpc' | 'smart_account';
   has_built_in_simulation: boolean;
   has_hardware_support: boolean;
-  recommended_for: string[];
+  suitability_tags: string[];
   notes: string;
 }
 
@@ -37,7 +41,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'self_custody',
     has_built_in_simulation: false,
     has_hardware_support: true,
-    recommended_for: ['beginner', 'coinbase_user'],
+    suitability_tags: ['beginner', 'coinbase_user'],
     notes: 'Self-custody wallet from Coinbase, separate from the Coinbase exchange account. Smoothest onboarding for users already familiar with the Coinbase brand. Recovery phrase backup required.',
   },
   {
@@ -48,7 +52,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'self_custody',
     has_built_in_simulation: false,
     has_hardware_support: true,
-    recommended_for: ['desktop_power_user', 'multi_chain'],
+    suitability_tags: ['desktop_power_user', 'multi_chain'],
     notes: 'Desktop-native wallet that connects via system-wide protocol handler. Strong hardware wallet integration (Ledger, Trezor, GridPlus). Power-user tool, not for beginners.',
   },
   {
@@ -59,7 +63,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'self_custody',
     has_built_in_simulation: false,
     has_hardware_support: true,
-    recommended_for: ['high_value', 'hardware', 'long_term_holder'],
+    suitability_tags: ['high_value', 'hardware', 'long_term_holder'],
     notes: 'Hardware wallet — private key never leaves the device. Pairs with software wallets (Rabby, MetaMask) for daily use; signing happens on-device. Recommended for any deployment over a few thousand USD.',
   },
   {
@@ -70,7 +74,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'self_custody',
     has_built_in_simulation: false,
     has_hardware_support: true,
-    recommended_for: ['general_purpose'],
+    suitability_tags: ['general_purpose'],
     notes: 'The most widely-supported wallet in DeFi. Familiar UX, but transaction summaries are more cryptic than newer alternatives. Pairs well with hardware wallets via the bridge feature.',
   },
   {
@@ -81,7 +85,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'self_custody',
     has_built_in_simulation: true,
     has_hardware_support: true,
-    recommended_for: ['beginner', 'safety_conscious', 'first_time_defi'],
+    suitability_tags: ['beginner', 'safety_conscious', 'first_time_defi'],
     notes: 'Built-in transaction simulation shows the user what a transaction will do BEFORE signing — catches drainer scams and incorrect approve calls. Strong safety UX makes it well-suited to first-time DeFi users. Cross-platform.',
   },
   {
@@ -92,7 +96,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'smart_account',
     has_built_in_simulation: true,
     has_hardware_support: true,
-    recommended_for: ['multisig', 'team_treasury', 'institutional'],
+    suitability_tags: ['multisig', 'team_treasury', 'institutional'],
     notes: 'Multisig smart-account wallet — multiple keys must sign. Standard for team treasuries and institutional self-custody. Higher complexity than EOAs but stronger security model. Each transaction requires the threshold number of signers to approve.',
   },
   {
@@ -103,7 +107,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'self_custody',
     has_built_in_simulation: false,
     has_hardware_support: true,
-    recommended_for: ['high_value', 'hardware', 'open_source_preference'],
+    suitability_tags: ['high_value', 'hardware', 'open_source_preference'],
     notes: 'Hardware wallet alternative to Ledger; fully open-source firmware. Same usage pattern: pair with a software wallet for daily transactions, sign on-device.',
   },
   {
@@ -114,7 +118,7 @@ const CATALOG: WalletOption[] = [
     custody_model: 'self_custody',
     has_built_in_simulation: false,
     has_hardware_support: false,
-    recommended_for: ['mobile_first'],
+    suitability_tags: ['mobile_first'],
     notes: 'Mobile-first wallet with broad chain support. Owned by Binance but operates as an independent self-custody wallet. Good for users who prefer phone over desktop.',
   },
 ];
@@ -127,7 +131,7 @@ export function registerListWalletsTool(server: McpServer): void {
       description:
         `Returns a catalog of self-custody wallet apps compatible with Gavel ` +
         `(i.e., that support Arbitrum One). Does not rank wallets by quality. ` +
-        `Each entry has a 'recommended_for' tag list describing the typical ` +
+        `Each entry has a 'suitability_tags' list describing the typical ` +
         `user fit as factual attributes ('beginner', 'mobile_first', 'hardware', ` +
         `'multisig', etc.) — the LLM and user pick based on those.\n\n` +
         `Useful for: an LLM agent helping a user without an existing wallet ` +

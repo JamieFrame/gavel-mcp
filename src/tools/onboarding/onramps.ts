@@ -3,7 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { requireTier } from '../../tiers.js';
 
 // ============================================================================
-// recommend_fiat_onramp — Layer C external integration catalog (Phase 1.5).
+// list_fiat_onramps — Layer C external integration catalog (Phase 1.5).
 //
 // Returns a hand-maintained catalog of fiat-to-USDC-on-Arbitrum onramps with
 // fees, KYC requirements, and supported jurisdictions. Filtered by the
@@ -11,9 +11,19 @@ import { requireTier } from '../../tiers.js';
 // Internal order is alphabetical so the response is deterministic and
 // auditable.
 //
-// The tool name uses "recommend_" because that's what users will ask for in
-// natural language. The BEHAVIOUR is descriptive — the description string
-// makes this explicit per the AI Concierge spec §12.
+// RENAMED 2026-08-26: recommend_fiat_onramp -> list_fiat_onramps.
+//
+// The old name was a deliberate choice, justified here as "that's what users
+// will ask for in natural language", under the AI Concierge spec §12. Both
+// halves of that justification are now gone. The concierge is retired
+// (aletheia-docs data/canonical/surfaces_v1_1_amendment.md), so no Aletheia-
+// hosted model is translating a human's phrasing into a tool name; and the
+// public-copy editorial guideline v1.2 makes a TOOL NAME public copy in its
+// own right, with "recommend" barred of onramps, wallets, venues and tenors.
+//
+// A careful description underneath a name that says "recommend" does not
+// cure it: the name is what appears in a client's tool list, and it is the
+// string most likely to be read alone.
 // ============================================================================
 
 interface OnrampProvider {
@@ -108,7 +118,7 @@ const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 
 export function registerOnrampsTool(server: McpServer): void {
   server.registerTool(
-    'recommend_fiat_onramp',
+    'list_fiat_onramps',
     {
       title: 'Fiat Onramp Catalog',
       description:
