@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
 import { buildServer, SERVER_NAME, SERVER_VERSION } from './server.js';
+import { tryGetContext } from './context.js';
 import { authMiddleware } from './auth.js';
 import { getContext } from './context.js';
 import { logger } from './logger.js';
@@ -107,6 +108,37 @@ app.post(
       transport.close().catch((e: unknown) => logger.warn({ err: String(e) }, 'transport close error'));
       server.close().catch((e: unknown) => logger.warn({ err: String(e) }, 'server close error'));
     });
+
+    // ── AF-T external_agent_signal ────────────────────────────────────────
+    // The signal Gate AF-T is decided on counts "non-own-account MCP sessions
+    // by distinct client fingerprint". Until now nothing recorded who called:
+    // the watching period would have had nothing to read, and a zero would
+    // have meant "we did not look" while reading as "nobody came".
+    //
+    // What is logged is the client's OWN self-description from `initialize` —
+    // e.g. {name: "claude-desktop", version: "0.9.1"}. That is a software
+    // identity the client volunteers, not a person and not an address. No IP,
+    // no header fingerprinting, no correlation across requests: the privacy
+    // bound of E6 applies here too, and a discovery metric is not a reason to
+    // start profiling callers.
+    try {
+      const body = req.body as { method?: string; params?: { clientInfo?: { name?: string; version?: string } } };
+      if (body && body.method === 'initialize') {
+        const ci = body.params?.clientInfo;
+        logger.info(
+          {
+            event: 'mcp_initialize',
+            client_name: ci?.name ?? 'unknown',
+            client_version: ci?.version ?? 'unknown',
+            tier: tryGetContext()?.tier ?? 'anonymous',
+          },
+          'mcp client connected'
+        );
+      }
+    } catch {
+      // Never let telemetry break a request. A missed count is a missed count;
+      // a failed call is a failed product.
+    }
 
     try {
       await server.connect(transport);
