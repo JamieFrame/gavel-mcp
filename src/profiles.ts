@@ -93,7 +93,7 @@ export const GAVEL_DATA_POINTER =
  *     this server names it outside its uniform venue row.
  *
  * Source of truth: aletheia-docs commercial/operational/agent_listing_copy_v1.md
- * §5.2 (the observatory section). `listing_copy_drift` compares against it.
+ * §7 (the observatory section). `listing_copy_drift` compares against it.
  */
 const OBSERVATORY_INSTRUCTIONS = [
   `This server exposes The Bitcoin Credit Stack: Aletheia Analytics' measurements`,

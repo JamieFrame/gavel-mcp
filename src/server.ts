@@ -28,7 +28,7 @@ export function buildServer(profile: Profile = activeProfile()): McpServer {
       // and the server's `instructions` is the one place it belongs. Seventeen
       // repetitions across tool descriptions would be worse.
       //
-      // Source of truth: the copy pack. §2.2 for `gavel`, §5.2 (the observatory
+      // Source of truth: the copy pack. §2.2 for `gavel`, §7 (the observatory
       // section) for `observatory`. Edit there first.
       instructions: profile.instructions,
     }
