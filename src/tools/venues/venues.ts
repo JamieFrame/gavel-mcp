@@ -2,7 +2,6 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
-import { OBSERVATORY_DISCLOSURE } from '../../profiles.js';
 
 // ============================================================================
 // The observatory's venue tools — OB1 §1.3.
@@ -155,7 +154,6 @@ export function registerVenueTools(server: McpServer): void {
         truncated: filtered.length > rows.length,
         ordering: 'registry order. Not sorted by rate, and no venue is floated.',
         is_not: 'Not a ranking, not a shortlist, and not a statement that any listed venue is available to the reader.',
-        observatory_disclosure: OBSERVATORY_DISCLOSURE,
         venues: rows,
       });
     }
@@ -192,7 +190,6 @@ export function registerVenueTools(server: McpServer): void {
         ...row,
         criteria_spec_version: CRITERIA_SPEC_VERSION,
         pillars: buildPillars(row),
-        observatory_disclosure: OBSERVATORY_DISCLOSURE,
       });
     }
   );
@@ -221,7 +218,7 @@ export function registerVenueTools(server: McpServer): void {
       })) as Record<string, unknown>;
       // Passed through untouched — ordering, comparison_caveat, is_not and the
       // concentration note are built upstream and are the compliance surface.
-      return json({ ...data, criteria_spec_version: CRITERIA_SPEC_VERSION, observatory_disclosure: OBSERVATORY_DISCLOSURE });
+      return json({ ...data, criteria_spec_version: CRITERIA_SPEC_VERSION});
     }
   );
 }
