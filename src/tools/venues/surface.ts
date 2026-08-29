@@ -2,7 +2,6 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
-import { OBSERVATORY_DISCLOSURE } from '../../profiles.js';
 
 // ============================================================================
 // The cross-venue market surface — OB1 §1.2's "surface, analytics".
@@ -53,7 +52,6 @@ const CRITERIA_SPEC_VERSION = 'venue_reliability_criteria_v1 (v1.0)';
 const withDisclosure = (data: unknown) => json({
   ...(data as Record<string, unknown>),
   criteria_spec_version: CRITERIA_SPEC_VERSION,
-  observatory_disclosure: OBSERVATORY_DISCLOSURE,
 });
 
 export function registerSurfaceTools(server: McpServer): void {

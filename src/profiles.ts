@@ -42,14 +42,26 @@ export interface Profile {
 }
 
 /**
- * OB1 §0.4 — the observatory's entity disclosure, verbatim. This sentence is
- * fixed by the runbook and is quoted unaltered by the copy pack's observatory
- * section, the OB2 site footer and every observatory payload's `links` block.
- * Edit it in the copy pack first; `listing_copy_drift` compares against that.
+ * OB1 §0.4's global disclosure is REMOVED. Operator decision 2026-08-29,
+ * amending §0.4.
+ *
+ * It said Aletheia Analytics "created the Gavel Protocol". That is factually
+ * wrong and contradicted our own entity map: the Protocol was authored by Jamie
+ * Frame personally under MIT (Layer 1); Aletheia is the commercial operator
+ * (Layer 3). A disclosure carrying a false attribution is worse than none.
+ *
+ * The true half — that Aletheia holds own-account positions on Gavel — is not a
+ * property of THIS DATASET, it is a property of ONE VENUE IN IT. Aletheia could
+ * hold positions on any covered venue; a banner naming Gavel on every page
+ * implies a relationship the data does not support, and would have to be
+ * restated the day a second venue applied.
+ *
+ * So it lives where the criteria spec already put it: Pillar III's "own-account
+ * share where applicable", carried in the registry's per-venue `disclosure`
+ * column and travelling with that venue's row wherever the row is published.
+ * The Gavel row has carried exactly that text since before this change; it is
+ * passed through untouched by get_venue and rendered on the venue page.
  */
-export const OBSERVATORY_DISCLOSURE =
-  'Operated by Aletheia Analytics SASU, which also created the Gavel Protocol ' +
-  '(a venue covered by this data) and participates on it own-account.';
 
 /**
  * OB3 §0.4 requires two canonical scope sentences — one per server — as the
@@ -103,6 +115,10 @@ const OBSERVATORY_INSTRUCTIONS = [
   `on this server: nothing here signs, submits, broadcasts or prepares a`,
   `transaction, and no tool takes custody of funds or receives a mandate.`,
   ``,
+  `Where the operator holds a position at a venue, that is disclosed on that`,
+  `venue's own row rather than as a statement about this dataset — read the`,
+  `venue's disclosure field.`,
+  ``,
   `Read the provenance fields before treating any figure as a market reference.`,
   `Each venue criterion carries the kind of source it came from, the source`,
   `itself and an as-of date; a criterion that cannot be established from public`,
@@ -117,8 +133,6 @@ const OBSERVATORY_INSTRUCTIONS = [
   `distributions report what was observed with the sample size, and do not`,
   `forecast a fill, a rate, a time-to-fill or a return. A reader weighs the`,
   `criteria; this server does not weigh them for the reader.`,
-  ``,
-  OBSERVATORY_DISCLOSURE,
 ].join('\n');
 
 /** The Gavel server's instructions — unchanged from copy pack §2.2, plus the
