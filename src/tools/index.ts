@@ -12,6 +12,10 @@ import { registerIndicatorTools } from './indicators/indicators.js';
 import { registerPositionTools } from './protocol/positions.js';
 import { registerFactoryTools } from './factory/prepare.js';
 import { registerETools } from './agent/e-tools.js';
+import { registerVenueTools } from './venues/venues.js';
+import { registerSurfaceTools } from './venues/surface.js';
+import { registerMovedTools } from './moved.js';
+import type { Profile } from '../profiles.js';
 
 /**
  * Registers every tool in the catalog. Discovery tools are registered first
@@ -47,40 +51,87 @@ import { registerETools } from './agent/e-tools.js';
  * read MD10 and MD12 before touching it — the §12 phrasings and the
  * user-supplied parameter echo are build requirements, not commentary.
  */
-export function registerAllTools(server: McpServer): void {
-  // Discovery
-  registerListOnchainTool(server);
+/**
+ * OB1 — profile scoping.
+ *
+ * Every register* function below is written against the whole catalogue and does
+ * not know which server it is running on. `scopeTo` wraps the McpServer so that
+ * `registerTool` consults the profile's allowlist before anything is exposed,
+ * and applies the profile's rename map.
+ *
+ * This is an ALLOWLIST and it is FAIL-CLOSED: a tool added to the catalogue
+ * tomorrow is invisible on the observatory until someone adds its name to
+ * src/profiles.ts. The denylist alternative fails the other way — a new
+ * `prepare_*` tool would appear on the observatory the day it was written, and
+ * OB1 §0.1 calls a write tool on the observatory a red finding.
+ */
+function scopeTo(server: McpServer, profile: Profile): McpServer {
+  const allowed = new Set(profile.tools);
+  return new Proxy(server, {
+    get(target, prop, receiver) {
+      if (prop === 'registerTool') {
+        return (name: string, config: unknown, handler: unknown) => {
+          if (!allowed.has(name)) return undefined;
+          const exposedName = profile.renames[name] ?? name;
+          return (target as unknown as {
+            registerTool: (n: string, c: unknown, h: unknown) => unknown;
+          }).registerTool(exposedName, config, handler);
+        };
+      }
+      const value = Reflect.get(target, prop, receiver);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
 
-  // Credit (live now)
-  registerYieldCurveTool(server);
+export function registerAllTools(server: McpServer, profile: Profile): void {
+  const s = scopeTo(server, profile);
+
+  // Discovery
+  registerListOnchainTool(s);
+
+  // Credit (live now) — both-split: identical payload on both servers.
+  registerYieldCurveTool(s);
 
   // On-chain — LIVE. Reads mvrv from /v1/onchain/indicators/latest. The old
   // /v1/onchain/mvrv path never existed and every call 404'd; corrected 2026-08-26.
-  registerMvrvTool(server);
+  registerMvrvTool(s);
 
   // Protocol metadata
-  registerProtocolReferenceTool(server);
+  registerProtocolReferenceTool(s);
 
   // Phase 1.5 — concierge read tools
-  registerWalletStatusTool(server);
-  registerFindAuctionsTool(server);
+  registerWalletStatusTool(s);
+  registerFindAuctionsTool(s);
 
   // Phase 1.5 — onboarding catalogs
-  registerOnrampsTool(server);
-  registerListWalletsTool(server);
+  registerOnrampsTool(s);
+  registerListWalletsTool(s);
 
   // R18 Phase 4 — position + loan lifecycle (Layer A completion)
-  registerPositionTools(server);
+  registerPositionTools(s);
 
   // R18 Phase 3 — the indicator & analytics surface
-  registerIndicatorTools(server);
+  registerIndicatorTools(s);
 
   // R18 Phase 5 — Layer B factory model. Aletheia builds, the user signs;
   // there is no signing surface in this process. See src/factory/envelope.ts.
-  registerFactoryTools(server);
+  // The observatory allowlist contains none of these (OB1 §0.1).
+  registerFactoryTools(s);
 
-  // AF-T day 5 — the E-series decision endpoints. Four of the nine: the ones
-  // that re-present chain state and are free by the founding rule. E1/E2/E3/E5
-  // and E7 need thresholds and the delayed tier and are not exposed yet.
-  registerETools(server);
+  // AF-T day 5 — the E-series decision endpoints.
+  registerETools(s);
+
+  // OB1 §1.3 — the observatory's venue registry + criteria payloads.
+  registerVenueTools(s);
+
+  // OB1 §1.2 — the cross-venue market surface. This is where a Stack reader
+  // meets Gavel's rate: inside a reading computed over the venue universe,
+  // not under a heading of its own (operator ruling D-A).
+  registerSurfaceTools(s);
+
+  // OB1 §1.5 — one release of `moved` shims for tools that left this server.
+  // Registered on the UNSCOPED server: these names are deliberately absent from
+  // the profile allowlist, which is the whole reason they need a shim.
+  registerMovedTools(server, profile);
 }

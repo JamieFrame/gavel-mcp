@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.bitcoincreditstack/mcp",
+  "description": "The Bitcoin credit markets, measured. Cross-venue rates, venue criteria, chain indicators.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/JamieFrame/gavel-mcp",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.bitcoincreditstack.com/mcp"
+    }
+  ],
+  "websiteUrl": "https://bitcoincreditstack.com/"
+}

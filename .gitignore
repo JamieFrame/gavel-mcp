@@ -8,6 +8,8 @@ dist/
 .env
 .env.local
 .env.*.local
+# OB1: per-profile host env. Real values live on the host; the example is committed.
+.env.observatory
 
 # logs
 *.log
