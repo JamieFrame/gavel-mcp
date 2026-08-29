@@ -10,7 +10,8 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://data-mcp.thegavel.io/mcp"
+      "url": "https://mcp.bitcoincreditstack.com/mcp"
     }
-  ]
+  ],
+  "websiteUrl": "https://bitcoincreditstack.com/"
 }

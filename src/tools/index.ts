@@ -13,6 +13,7 @@ import { registerPositionTools } from './protocol/positions.js';
 import { registerFactoryTools } from './factory/prepare.js';
 import { registerETools } from './agent/e-tools.js';
 import { registerVenueTools } from './venues/venues.js';
+import { registerSurfaceTools } from './venues/surface.js';
 import { registerMovedTools } from './moved.js';
 import type { Profile } from '../profiles.js';
 
@@ -123,6 +124,11 @@ export function registerAllTools(server: McpServer, profile: Profile): void {
 
   // OB1 §1.3 — the observatory's venue registry + criteria payloads.
   registerVenueTools(s);
+
+  // OB1 §1.2 — the cross-venue market surface. This is where a Stack reader
+  // meets Gavel's rate: inside a reading computed over the venue universe,
+  // not under a heading of its own (operator ruling D-A).
+  registerSurfaceTools(s);
 
   // OB1 §1.5 — one release of `moved` shims for tools that left this server.
   // Registered on the UNSCOPED server: these names are deliberately absent from

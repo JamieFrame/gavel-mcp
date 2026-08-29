@@ -71,7 +71,7 @@ export const SCOPE_SENTENCE_GAVEL =
  * OB2 §0.5 budgets exactly one cross-link each way.
  */
 export const OBSERVATORY_HOST = process.env.OBSERVATORY_MCP_URL
-  ?? 'https://data-mcp.thegavel.io/mcp';
+  ?? 'https://mcp.bitcoincreditstack.com/mcp';
 
 export const GAVEL_DATA_POINTER =
   `Cross-venue credit data is served by the Bitcoin Credit Stack MCP at ${OBSERVATORY_HOST}.`;
@@ -150,8 +150,16 @@ const GAVEL_INSTRUCTIONS_BASE = [
 /**
  * Tools the observatory exposes. OB1 §1.2 disposition table, DRAFT — this list
  * is not authoritative until the operator signs the table. Four rows carry an
- * open flag (D-A get_yield_curve, D-B the indicator pair's names, D-C
- * get_user_positions, D-D list_comparables); see the disposition table.
+ * open flag (D-B the indicator pair's names, D-C get_user_positions, D-D
+ * list_comparables); see the disposition table.
+ *
+ * D-A RULED 2026-08-29 by the operator: `get_yield_curve` is GAVEL-ONLY. It
+ * returns one venue's own fitted curve under its own name, which is a surface
+ * no other venue gets — the gate's "Gavel-special" fail condition on the
+ * plainest reading. Gavel's rate reaches a Stack reader the same way every
+ * other venue's does: as a row in compare_venues / get_venue, and inside the
+ * cross-venue market surface. Gavel-specific curve data belongs on the Gavel
+ * property, not here.
  */
 const OBSERVATORY_TOOLS = [
   // Venue registry + criteria payloads (OB1 §1.3)
@@ -163,8 +171,14 @@ const OBSERVATORY_TOOLS = [
   'get_mvrv',
   'list_gavel_indicators',
   'get_gavel_indicator',
+  // The cross-venue market surface — the Stack's own data (§1.2 "surface,
+  // analytics"). Every venue reaches a reader through these and through the
+  // venue tools above; none of them privileges one venue's own figures.
+  'get_credit_state',
+  'get_credit_state_history',
+  'get_market_composition',
+  'get_market_flows',
   // both-split
-  'get_yield_curve',
   'get_verification_bundle',
 ] as const;
 
@@ -193,7 +207,7 @@ const GAVEL_TOOLS = [
 /** OB1 §0.3 — rows the disposition table records as `both-split`. Both servers
  *  must return an identical payload from the same backend. Any other name
  *  appearing in both allowlists is a `tool_home_unique` red. */
-export const BOTH_SPLIT_TOOLS: readonly string[] = ['get_yield_curve', 'get_verification_bundle'];
+export const BOTH_SPLIT_TOOLS: readonly string[] = ['get_verification_bundle'];
 
 /**
  * OB1 §1.5 — tools that were LIVE on mcp.thegavel.io before the split and have
