@@ -7,8 +7,8 @@
  *                     reads plus the unsigned `prepare_*` blueprints.
  *                     Served at https://mcp.thegavel.io/mcp.
  *   - `observatory` — The Bitcoin Credit Stack. Cross-venue credit data,
- *                     read-only, ZERO write tools. Interim host
- *                     https://data-mcp.thegavel.io/mcp.
+ *                     read-only, ZERO write tools.
+ *                     https://mcp.bitcoincreditstack.com/mcp.
  *
  * Runbook OB1 §0.1 is the hard constraint on the observatory: no write tools,
  * no blueprint tools, no `prepare_*`, and no tool that names Gavel outside its
@@ -23,7 +23,7 @@
  * return an identical payload from the same backend (`split_payload_parity`).
  */
 
-export type ProfileId = 'gavel' | 'observatory';
+export type ProfileId = 'gavel-presplit' | 'gavel' | 'observatory';
 
 export interface Profile {
   readonly id: ProfileId;
@@ -240,6 +240,29 @@ const OBSERVATORY_RENAMES: Record<string, string> = {
 };
 
 export const PROFILES: Record<ProfileId, Profile> = {
+  /**
+   * The surface mcp.thegavel.io serves TODAY: all 21 tools, no renames, no
+   * `moved` shims, no data-ward pointer, version 0.3.0.
+   *
+   * This profile exists so that MERGING OB1 CANNOT CUT OVER. The service takes
+   * no MCP_PROFILE, `dist/` is built from the working tree, and Restart=always
+   * means a reboot is a deploy — so if the default were the post-split surface,
+   * the split would ship the first time anything restarted the process, with no
+   * one deciding to. The disposition table is unsigned; cutover is not ours to
+   * trigger by merging.
+   *
+   * Cutover is then one line: MCP_PROFILE=gavel in /root/gavel-mcp/.env, and a
+   * restart. Reversible the same way.
+   */
+  'gavel-presplit': {
+    id: 'gavel-presplit',
+    serverName: 'aletheia-mcp',
+    serverVersion: '0.3.0',
+    logService: 'aletheia-mcp',
+    instructions: GAVEL_INSTRUCTIONS_BASE,
+    tools: [...GAVEL_TOOLS, ...MOVED_FROM_GAVEL],
+    renames: {},
+  },
   gavel: {
     id: 'gavel',
     serverName: 'aletheia-mcp',
@@ -260,10 +283,16 @@ export const PROFILES: Record<ProfileId, Profile> = {
   },
 };
 
-/** Resolve the active profile from MCP_PROFILE. Defaults to `gavel` so an
- *  existing deployment that has not set the variable is unchanged. */
+/**
+ * Resolve the active profile from MCP_PROFILE.
+ *
+ * Defaults to `gavel-presplit` — the surface that is live today. An unset
+ * variable must mean "nothing changes", never "cut over": the deployment builds
+ * from a working tree and restarts on its own, so a default that changed the
+ * public tool surface would ship the split without a decision behind it.
+ */
 export function activeProfile(): Profile {
-  const raw = (process.env.MCP_PROFILE || 'gavel').trim() as ProfileId;
+  const raw = (process.env.MCP_PROFILE || 'gavel-presplit').trim() as ProfileId;
   const profile = PROFILES[raw];
   if (!profile) {
     throw new Error(

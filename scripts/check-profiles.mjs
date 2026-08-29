@@ -52,6 +52,7 @@ async function toolsFor(profileId) {
 
 const obs = await toolsFor('observatory');
 const gav = await toolsFor('gavel');
+const pre = await toolsFor('gavel-presplit');
 const obsNames = obs.tools.map((t) => t.name);
 const gavNames = gav.tools.map((t) => t.name);
 
@@ -121,6 +122,23 @@ for (const [id, { profile, tools }] of Object.entries({ observatory: obs, gavel:
   }
 }
 
+// ── the merge must not cut over ─────────────────────────────────────────────
+// `gavel-presplit` is what mcp.thegavel.io serves today and what an unset
+// MCP_PROFILE resolves to. If it ever stops matching the pre-split surface,
+// merging OB1 ships the split on the next restart with nobody deciding to.
+if (pre.profile.serverVersion !== '0.3.0')
+  fail('presplit_unchanged', `gavel-presplit reports ${pre.profile.serverVersion}, not the live 0.3.0`);
+if (pre.tools.length !== 21)
+  fail('presplit_unchanged', `gavel-presplit exposes ${pre.tools.length} tools, not the live 21`);
+if (/Bitcoin Credit Stack MCP/.test(pre.instructions))
+  fail('presplit_unchanged', 'gavel-presplit carries the data-ward pointer; that ships at cutover, not before');
+for (const name of MOVED_FROM_GAVEL) {
+  const t = pre.tools.find((x) => x.name === name);
+  if (!t) fail('presplit_unchanged', `gavel-presplit is missing '${name}', which is live today`);
+  else if (/has moved/.test(t.description || ''))
+    fail('presplit_unchanged', `'${name}' is a moved shim on gavel-presplit; it must still SERVE until cutover`);
+}
+
 // ── §0.4 the disclosure is present, verbatim ────────────────────────────────
 const { OBSERVATORY_DISCLOSURE } = await import('../dist/profiles.js');
 if (!obs.instructions.includes(OBSERVATORY_DISCLOSURE))
@@ -128,14 +146,26 @@ if (!obs.instructions.includes(OBSERVATORY_DISCLOSURE))
 
 // ── registry file sanity — the AD2 100-char trap ────────────────────────────
 const sj = JSON.parse(readFileSync(join(ROOT, 'server.observatory.json'), 'utf8'));
-if (sj.name !== 'io.aletheia/bitcoin-credit-stack')
-  fail('registry_id_fixed', `server.observatory.json name is '${sj.name}', not the OB1-D3 id`);
+// OB1-D3 fixed `io.aletheia/bitcoin-credit-stack`. AMENDED by operator decision
+// 2026-08-29: that id reverse-maps to aletheia.io, which Aletheia does not
+// control, and the registry validates that a domain namespace's server URL sits
+// on that domain. The id now matches the domain the server actually lives on,
+// so DNS-auth and URL validation both pass.
+const EXPECTED_REGISTRY_ID = 'com.bitcoincreditstack/mcp';
+if (sj.name !== EXPECTED_REGISTRY_ID)
+  fail('registry_id_fixed', `server.observatory.json name is '${sj.name}', not '${EXPECTED_REGISTRY_ID}'`);
+// The registry rejects a remote URL that is not on the namespace's own domain.
+const nsDomain = EXPECTED_REGISTRY_ID.split('/')[0].split('.').reverse().join('.');
+const remoteUrl = sj.remotes?.[0]?.url ?? '';
+if (!new URL(remoteUrl).hostname.endsWith(nsDomain))
+  fail('registry_namespace_matches_host', `remote ${remoteUrl} is not on the namespace domain ${nsDomain}`);
 if ((sj.description || '').length > 100)
   fail('registry_description_cap', `description is ${sj.description.length} chars; the registry caps it at 100`);
 
 const summary = {
   observatory: { count: obsNames.length, tools: obsNames },
   gavel: { count: gavNames.length, tools: gavNames },
+  presplit: { count: pre.tools.length, version: pre.profile.serverVersion },
   both_split: [...bothSplit],
   moved_shims: [...shims],
   findings,
@@ -144,6 +174,7 @@ if (asJson) console.log(JSON.stringify(summary, null, 2));
 else {
   console.log(`observatory: ${obsNames.length} tools -> ${obsNames.join(', ')}`);
   console.log(`gavel:       ${gavNames.length} tools -> ${gavNames.join(', ')}`);
+  console.log(`presplit:    ${pre.tools.length} tools @ ${pre.profile.serverVersion} (what mcp.thegavel.io serves today)`);
   console.log(`both-split:  ${[...bothSplit].join(', ')}`);
   console.log(`moved shims: ${[...shims].join(', ')}`);
   console.log('');
