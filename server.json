@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.thegavel/gavel",
   "description": "Oracle-free fixed-rate, fixed-term BTC credit on Arbitrum One. Data and unsigned blueprints.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "repository": {
     "url": "https://github.com/JamieFrame/gavel-mcp",
     "source": "github"
