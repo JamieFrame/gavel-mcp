@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAllTools } from './tools/index.js';
+import { registerLensPrompts } from './prompts/index.js';
 import { activeProfile, type Profile } from './profiles.js';
 
 /**
@@ -21,7 +22,12 @@ export function buildServer(profile: Profile = activeProfile()): McpServer {
     {
       capabilities: {
         tools: {},
-        // Resources and prompts deferred to Phase 1.5.
+        // OB4 §1.2 — prompts, on the observatory only. Declared per profile
+        // because a client discovers prompts ONLY through the declared
+        // capability: advertising it on a server with no prompts registered
+        // would put an empty picker in front of a reader.
+        ...(profile.id === 'observatory' ? { prompts: {} } : {}),
+        // Resources deferred.
       },
       // No individual tool description carries the operator disclosure; the
       // editorial guideline v1.2 requires it in every self-description surface
@@ -34,6 +40,7 @@ export function buildServer(profile: Profile = activeProfile()): McpServer {
     }
   );
   registerAllTools(server, profile);
+  registerLensPrompts(server, profile);
   return server;
 }
 
