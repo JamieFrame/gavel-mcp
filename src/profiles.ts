@@ -216,6 +216,9 @@ const OBSERVATORY_TOOLS = [
 
 /** Everything on the catalogue that is not observatory-only. */
 const GAVEL_TOOLS = [
+  // OB4-D10 — the indicator pair, serving this property's own anchored set.
+  'list_gavel_indicators',
+  'get_gavel_indicator',
   'get_protocol_reference',
   'check_wallet_status',
   'find_auctions_matching_criteria',
@@ -256,8 +259,16 @@ export const BOTH_SPLIT_TOOLS: readonly string[] = ['get_verification_bundle'];
 export const MOVED_FROM_GAVEL: readonly string[] = [
   'list_onchain_indicators',
   'get_mvrv',
-  'list_gavel_indicators',
-  'get_gavel_indicator',
+  // ⚠ `list_gavel_indicators` / `get_gavel_indicator` were shimmed away here at
+  // OB1 and are RESTORED at OB4-D10. The catalogue they serve is now split by
+  // property: the Gavel server serves the 10 indicators anchored on its own
+  // rate, the observatory serves the 23 that are venue-independent. A tool
+  // named for Gavel, serving Gavel's own indicators, from the Gavel server is
+  // the correct home — OB1 moved the pair because its catalogue was
+  // cross-venue, and half of it no longer is.
+  //
+  // Leaving them shimmed produced a loop: the observatory pointed here for an
+  // anchored id and this server pointed straight back.
 ];
 
 /**

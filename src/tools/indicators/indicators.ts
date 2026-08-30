@@ -4,7 +4,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
 import { INDICATORS, INDICATOR_IDS, findIndicator, catalogueFor, isAnchored } from './catalogue.js';
-import { activeProfile, GAVEL_MCP_HOST } from '../../profiles.js';
+import { activeProfile, GAVEL_MCP_HOST, OBSERVATORY_HOST, PROFILES } from '../../profiles.js';
 
 // R18 Phase 3 (MD4) — the parameterised indicator pair.
 //
@@ -166,6 +166,43 @@ export function registerIndicatorTools(server: McpServer): void {
                       indicator: spec.id,
                     },
                     anchored_to: spec.anchoredTo,
+                    retryable: true,
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      // The mirror of the branch above. Asking the GAVEL server for a
+      // venue-independent indicator is equally a `moved`, not an unknown id —
+      // otherwise the two catalogues would be disjoint in list_indicators and
+      // silently overlapping in get_indicator, which is worse than either being
+      // wrong consistently.
+      if (spec && !isAnchored(spec) && activeProfile().id === 'gavel') {
+        const exposed = PROFILES.observatory.renames['get_gavel_indicator'] ?? 'get_indicator';
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  error: {
+                    code: 'moved',
+                    message:
+                      `'${spec.id}' is not served here. It is a cross-venue measurement rather ` +
+                      `than one of this venue's own, and is served by the Bitcoin Credit Stack ` +
+                      `MCP at ${OBSERVATORY_HOST}, where this tool is called '${exposed}'.`,
+                    moved_to: {
+                      server: 'The Bitcoin Credit Stack',
+                      url: OBSERVATORY_HOST,
+                      tool: exposed,
+                      indicator: spec.id,
+                    },
                     retryable: true,
                   },
                 },

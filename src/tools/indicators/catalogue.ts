@@ -479,7 +479,22 @@ export const isAnchored = (spec: IndicatorSpec): boolean => Boolean(spec.anchore
 /** The catalogue a given profile may publish. The observatory publishes only
  *  venue-independent indicators; the Gavel server publishes everything. */
 export function catalogueFor(profileId: string): IndicatorSpec[] {
-  return profileId === 'observatory' ? INDICATORS.filter((i) => !isAnchored(i)) : INDICATORS;
+  // DISJOINT, and that is the point. The observatory publishes the 23
+  // venue-independent indicators; the Gavel server publishes the 10 anchored on
+  // its own rate. Neither publishes the other's, so OB1 §0.3's one-tool-one-home
+  // rule holds at the catalogue level too: the pair appears on both servers, but
+  // no INDICATOR is served from both.
+  //
+  // ⚠ The first cut of D10 returned all 33 here, which produced a REDIRECT LOOP:
+  // the observatory said "yield-curve is served by the Gavel MCP", and the Gavel
+  // MCP — where OB1 had shimmed the whole indicator pair away to the observatory
+  // — answered "get_gavel_indicator has moved to the observatory". Each server
+  // pointed at the other. It shipped because the destination was named without
+  // being called, which is the SV6-D3 discipline ("a recast page is deleted only
+  // after its destination renders") applied everywhere this session except here.
+  if (profileId === 'observatory') return INDICATORS.filter((i) => !isAnchored(i));
+  if (profileId === 'gavel') return INDICATORS.filter(isAnchored);
+  return INDICATORS; // gavel-presplit: the pre-split surface, unchanged.
 }
 
 /** Anchored ids, for the observatory's `moved` responses. */
