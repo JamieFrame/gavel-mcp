@@ -3,7 +3,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
-import { INDICATORS, INDICATOR_IDS, findIndicator } from './catalogue.js';
+import { INDICATORS, INDICATOR_IDS, findIndicator, catalogueFor, isAnchored } from './catalogue.js';
+import { activeProfile, GAVEL_MCP_HOST } from '../../profiles.js';
 
 // R18 Phase 3 (MD4) — the parameterised indicator pair.
 //
@@ -47,7 +48,16 @@ export function registerIndicatorTools(server: McpServer): void {
     async ({ family, live_only }) => {
       requireTier('free');
 
-      const matches = INDICATORS.filter(
+      // OB4-D10 — the observatory publishes only venue-independent indicators.
+      // An anchored indicator measures ONE VENUE against the market, and
+      // publishing it here would give that venue an indicator namespace no
+      // other venue has. Same ruling as the disposition table's D-A, applied
+      // one level down to the catalogue that carried the series back in.
+      const profile = activeProfile();
+      const publishable = catalogueFor(profile.id);
+      const withheld = INDICATORS.filter(isAnchored).map((i) => i.id);
+
+      const matches = publishable.filter(
         (i) => (!family || i.family === family) && (!live_only || i.live)
       );
 
@@ -63,11 +73,31 @@ export function registerIndicatorTools(server: McpServer): void {
           ...(i.note ? { note: i.note } : {}),
         })),
         count: matches.length,
-        total_in_catalogue: INDICATORS.length,
+        total_in_catalogue: publishable.length,
         filter_echo: { family: family ?? null, live_only },
         notes:
           'An indicator marked live:false returns an explicit error rather than a fabricated or empty reading. ' +
           'Access to current values and history is free and open.',
+        // Never a silent absence. A reader who knew this catalogue held 33
+        // entries is told where the other ten went and why, rather than
+        // finding a shorter list and drawing their own conclusion.
+        ...(profile.id === 'observatory' && withheld.length
+          ? {
+              not_served_here: {
+                ids: withheld,
+                reason:
+                  'These measure one venue against the market rather than the market itself — ' +
+                  "for example drp is that venue's rate minus the matched treasury yield, and no " +
+                  'equivalent exists for any other venue. Publishing them here would give one venue ' +
+                  'an indicator namespace the other 161 do not have. They are served by that ' +
+                  "venue's own MCP.",
+                served_by: GAVEL_MCP_HOST,
+                will_return_here_when:
+                  'a per-venue rate endpoint exists, at which point each generalises to every ' +
+                  'venue and stops being anchored to one.',
+              },
+            }
+          : {}),
       };
 
       return { content: [{ type: 'text', text: JSON.stringify(shaped, null, 2) }] };
@@ -110,6 +140,43 @@ export function registerIndicatorTools(server: McpServer): void {
       requireTier('free');
 
       const spec = findIndicator(id);
+
+      // OB4-D10 — an anchored id asked of the observatory is MOVED, not
+      // unknown. Answering "unknown id" would be false: the indicator exists,
+      // it is computed nightly, and it is served — just not from a property
+      // whose rule is that no venue gets a surface the others do not.
+      if (spec && isAnchored(spec) && activeProfile().id === 'observatory') {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  error: {
+                    code: 'moved',
+                    message:
+                      `'${spec.id}' is not served here. It measures one venue against the ` +
+                      `market rather than the market itself, so it is served by that venue's ` +
+                      `own MCP at ${GAVEL_MCP_HOST}, where it is called 'get_gavel_indicator'.`,
+                    moved_to: {
+                      server: 'The Gavel MCP',
+                      url: GAVEL_MCP_HOST,
+                      tool: 'get_gavel_indicator',
+                      indicator: spec.id,
+                    },
+                    anchored_to: spec.anchoredTo,
+                    retryable: true,
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
       if (!spec) {
         throw new McpError(
           ErrorCode.InvalidParams,

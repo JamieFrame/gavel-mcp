@@ -35,12 +35,37 @@ export interface IndicatorSpec {
   live: boolean;
   /** Present only when `live` is false — why, in plain language. */
   note?: string;
+  /**
+   * OB4-D10 — the venue whose own rate this indicator is anchored on, if any.
+   *
+   * An anchored indicator does not measure the market; it measures ONE VENUE
+   * against the market. `drp` is `gavel_rate − treasury_yield`; there is no
+   * `aave_drp`. Publishing them in the observatory's catalogue gave that venue
+   * an indicator namespace no other venue has — `/indicators/yield-curve`
+   * resolved while `/indicators/aave` was a 404 — which is the plainest reading
+   * of the "no venue is surfaced in a way the others are not" rule failing.
+   *
+   * This is the SAME ruling the disposition table made at D-A for
+   * `get_yield_curve`, which stayed Gavel-only for exactly this reason. The
+   * catalogue then moved wholesale and carried the series back in, because D-A
+   * was applied to a tool and nobody re-applied it one level down.
+   *
+   * Anchored entries stay in this file — they are real indicators and the Gavel
+   * server serves them. They are filtered OFF the observatory profile and
+   * answer there with a `moved` pointer, never a silent absence.
+   *
+   * The fix that removes this field is a per-venue rate endpoint: with one,
+   * these generalise to every venue and stop being anchored at all. Three
+   * separate workstreams now want that endpoint.
+   */
+  anchoredTo?: string;
 }
 
 export const INDICATORS: IndicatorSpec[] = [
   // ── Gavel-derived credit assessments — the proprietary layer ──────────────
   {
     id: 'yield-curve',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Gavel Yield Curve',
     family: 'credit',
     path: '/v1/credit/yield-curve',
@@ -142,6 +167,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'vrb',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Variable Rate Basis',
     family: 'credit',
     path: '/v1/credit/vrb',
@@ -156,6 +182,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'lpi',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Leverage Premium Index',
     family: 'credit',
     path: '/v1/credit/lpi',
@@ -170,6 +197,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'drp',
+    anchoredTo: 'gavel_arbitrum',
     name: 'DeFi Risk Premium',
     family: 'credit',
     path: '/v1/credit/drp',
@@ -203,6 +231,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'coc',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Collateral Opportunity Cost',
     family: 'credit',
     path: '/v1/credit/coc',
@@ -217,6 +246,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'gls',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Gavel Liquidity Sensitivity',
     family: 'credit',
     path: '/v1/credit/gls',
@@ -231,6 +261,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'mrys',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Miner Revenue Yield Spread',
     family: 'credit',
     path: '/v1/credit/mrys',
@@ -241,6 +272,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'srcs',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Stablecoin-Rate Correlation Signal',
     family: 'credit',
     path: '/v1/credit/srcs',
@@ -251,6 +283,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'ccs',
+    anchoredTo: 'gavel_arbitrum',
     name: 'CeFi Credit Spread',
     family: 'credit',
     path: '/v1/credit/ccs',
@@ -320,6 +353,7 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'hrcs',
+    anchoredTo: 'gavel_arbitrum',
     name: 'Hash-Rate Credit Spread',
     family: 'credit',
     // Served under /v1/onchain/*, not /v1/credit/* — it is computed by the
@@ -438,3 +472,15 @@ export function findIndicator(id: string): IndicatorSpec | undefined {
 }
 
 export const INDICATOR_IDS = INDICATORS.map((i) => i.id);
+
+/** OB4-D10 — indicators anchored on one venue's own rate. */
+export const isAnchored = (spec: IndicatorSpec): boolean => Boolean(spec.anchoredTo);
+
+/** The catalogue a given profile may publish. The observatory publishes only
+ *  venue-independent indicators; the Gavel server publishes everything. */
+export function catalogueFor(profileId: string): IndicatorSpec[] {
+  return profileId === 'observatory' ? INDICATORS.filter((i) => !isAnchored(i)) : INDICATORS;
+}
+
+/** Anchored ids, for the observatory's `moved` responses. */
+export const ANCHORED_IDS: string[] = INDICATORS.filter(isAnchored).map((i) => i.id);

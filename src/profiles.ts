@@ -85,6 +85,24 @@ export const SCOPE_SENTENCE_GAVEL =
 export const OBSERVATORY_HOST = process.env.OBSERVATORY_MCP_URL
   ?? 'https://mcp.bitcoincreditstack.com/mcp';
 
+/**
+ * OB4-D10 — the observatory's ONE pointer back at the Gavel property, and it
+ * exists for a single purpose: telling a caller where a venue-anchored
+ * indicator went.
+ *
+ * ⚠ This is a genuine exception to OB1-D4 ("the observatory never points into
+ * any venue, Gavel included") and it is narrower than it looks. D4 forbids
+ * REFERRING a reader to a venue — routing them toward participation. This
+ * points only in response to a caller who named a moved id, and it names where
+ * that id is served. A `moved` error is not a referral: the alternative is
+ * answering "unknown indicator", which would be false, since the indicator
+ * exists and is computed nightly.
+ *
+ * It appears in no catalogue, no tool description and no unsolicited payload —
+ * only in the error returned to someone who asked for the moved thing by name.
+ */
+export const GAVEL_MCP_HOST = process.env.GAVEL_MCP_URL ?? 'https://mcp.thegavel.io/mcp';
+
 export const GAVEL_DATA_POINTER =
   `Cross-venue credit data is served by the Bitcoin Credit Stack MCP at ${OBSERVATORY_HOST}.`;
 
