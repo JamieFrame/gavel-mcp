@@ -12,5 +12,14 @@
       "type": "streamable-http",
       "url": "https://mcp.thegavel.io/mcp"
     }
-  ]
+  ],
+  "title": "The Gavel Protocol",
+  "websiteUrl": "https://www.thegavel.io/connect",
+  "_meta": {
+    "io.thegavel/surface": {
+      "blueprint_tools_unsigned_only": true,
+      "prompts": [],
+      "verified_on": "2026-08-31"
+    }
+  }
 }

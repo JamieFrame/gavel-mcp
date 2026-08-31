@@ -57,6 +57,15 @@ async function surfaceFor(profileId) {
   const { tools } = await client.listTools();
   let prompts = [];
   try { ({ prompts } = await client.listPrompts()); } catch { prompts = []; }
+  let resources = [];
+  let lensDoc = null;
+  try {
+    ({ resources } = await client.listResources());
+    if (resources.some((r) => r.uri === 'stack://lenses/index.json')) {
+      const doc = await client.readResource({ uri: 'stack://lenses/index.json' });
+      lensDoc = JSON.parse(doc.contents[0].text);
+    }
+  } catch { resources = []; }
   const rendered = {};
   for (const p of prompts) {
     const got = await client.getPrompt({ name: p.name, arguments: {} });
@@ -64,7 +73,7 @@ async function surfaceFor(profileId) {
   }
   await client.close();
   await server.close();
-  return { tools, prompts, rendered, profile: PROFILES[profileId] };
+  return { tools, prompts, rendered, resources, lensDoc, profile: PROFILES[profileId] };
 }
 
 /** Tool-shaped identifiers appearing in prose. */
@@ -190,8 +199,36 @@ for (const lens of L) {
   if (!/Tools in scope/.test(text)) fail('lens_states_scope', `lens:${lens.id} renders no tools-in-scope section`);
 }
 
+// ── 10. The lens catalogue resource agrees with the lenses it describes ───
+// OB4 §1.6 publishes the catalogue as a document so a model can choose a lens
+// before invoking one. A document that describes a lens the server does not
+// serve, or names a tool it does not expose, is the same defect as a lens
+// naming an absent tool — one level further out, and read EARLIER.
+if (obs.lensDoc) {
+  const doc = obs.lensDoc;
+  if (doc.count !== LENSES.length)
+    fail('lens_resource_agrees', `stack://lenses/index.json says ${doc.count} lenses; ${LENSES.length} are defined`);
+  const promptNames = new Set(obs.prompts.map((p) => p.name));
+  for (const l of doc.lenses ?? []) {
+    if (!promptNames.has(l.name))
+      fail('lens_resource_agrees', `the catalogue lists '${l.name}', which this server does not expose as a prompt`);
+    for (const t of l.tools ?? []) {
+      if (!obsExposed.has(t))
+        fail('lens_resource_agrees', `the catalogue gives '${l.name}' the tool '${t}', which this server does not expose`);
+    }
+    if (!(l.does_not_do ?? []).length)
+      fail('lens_resource_agrees', `the catalogue lists '${l.name}' with no limits — every lens must name what it does not do`);
+  }
+} else if (obs.resources.length) {
+  warn('lens_resource_agrees', 'the observatory declares resources but serves no lens catalogue');
+} else {
+  warn('lens_resource_agrees', 'the observatory serves no lens catalogue (OB4 §1.6 asks for stack://lenses/index.json)');
+}
+if (gav.resources.length)
+  fail('lens_resource_observatory_only', `the gavel server exposes ${gav.resources.length} resource(s); the lens corpus is the observatory's`);
+
 const summary = {
-  observatory: { tools: obs.tools.length, prompts: obs.prompts.map((p) => p.name) },
+  observatory: { tools: obs.tools.length, prompts: obs.prompts.map((p) => p.name), resources: obs.resources.map((r) => r.uri) },
   gavel: { tools: gav.tools.length, prompts: gav.prompts.map((p) => p.name) },
   anchored_indicators: ANCHORED,
   lens_scopes: Object.fromEntries(LENSES.map((l) => [l.id, l.tools])),

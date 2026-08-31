@@ -13,5 +13,23 @@
       "url": "https://mcp.bitcoincreditstack.com/mcp"
     }
   ],
-  "websiteUrl": "https://bitcoincreditstack.com/"
+  "websiteUrl": "https://www.bitcoincreditstack.com/connect",
+  "title": "The Bitcoin Credit Stack",
+  "_meta": {
+    "com.bitcoincreditstack/lenses": {
+      "description": "Read-only presentation procedures, offered as MCP prompts. Each selects tools and frames presentation; none concludes, ranks, or carries a write tool.",
+      "catalogue": "stack://lenses/index.json",
+      "names": [
+        "lens:orientation",
+        "lens:holder",
+        "lens:treasurer",
+        "lens:analyst",
+        "lens:risk"
+      ]
+    },
+    "com.bitcoincreditstack/surface": {
+      "write_tool_count": 0,
+      "verified_on": "2026-08-31"
+    }
+  }
 }

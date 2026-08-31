@@ -44,10 +44,12 @@ async function toolsFor(profileId) {
   const client = new Client({ name: 'ob1-lint', version: '1.0.0' }, { capabilities: {} });
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   const { tools } = await client.listTools();
+  let promptNames = [];
+  try { promptNames = (await client.listPrompts()).prompts.map((p) => p.name); } catch { promptNames = []; }
   const instructions = server.server.getInstructions?.() ?? PROFILES[profileId].instructions;
   await client.close();
   await server.close();
-  return { tools, profile: PROFILES[profileId], instructions };
+  return { tools, promptNames, profile: PROFILES[profileId], instructions };
 }
 
 const obs = await toolsFor('observatory');
@@ -189,6 +191,41 @@ if (!new URL(remoteUrl).hostname.endsWith(nsDomain))
   fail('registry_namespace_matches_host', `remote ${remoteUrl} is not on the namespace domain ${nsDomain}`);
 if ((sj.description || '').length > 100)
   fail('registry_description_cap', `description is ${sj.description.length} chars; the registry caps it at 100`);
+
+// The GAVEL registry entry, checked by the same rules. It was not checked at
+// all until OB4 §1.6 — only the observatory's was — so a namespace or a cap
+// breach on this side would have reached the registry unexamined.
+const gj = JSON.parse(readFileSync(join(ROOT, 'server.json'), 'utf8'));
+const GAVEL_REGISTRY_ID = 'io.thegavel/gavel';
+if (gj.name !== GAVEL_REGISTRY_ID)
+  fail('registry_id_fixed', `server.json name is '${gj.name}', not '${GAVEL_REGISTRY_ID}'`);
+const gavelNs = GAVEL_REGISTRY_ID.split('/')[0].split('.').reverse().join('.');
+const gavelRemote = gj.remotes?.[0]?.url ?? '';
+if (!new URL(gavelRemote).hostname.endsWith(gavelNs))
+  fail('registry_namespace_matches_host', `remote ${gavelRemote} is not on the namespace domain ${gavelNs}`);
+if ((gj.description || '').length > 100)
+  fail('registry_description_cap', `server.json description is ${gj.description.length} chars; the registry caps it at 100`);
+// `title` is capped at 100 too, and both entries now carry one.
+for (const [file, j] of [['server.json', gj], ['server.observatory.json', sj]]) {
+  if (j.title && j.title.length > 100)
+    fail('registry_title_cap', `${file} title is ${j.title.length} chars; the registry caps it at 100`);
+  // §1.6 — the entry names the connect URL. It must be on that property's own
+  // site, not the other one's: a registry entry pointing a reader at the wrong
+  // property is the cross-property leak OB1's split exists to prevent.
+  const host = new URL(j.remotes[0].url).hostname.replace(/^mcp\./, '');
+  if (j.websiteUrl && !new URL(j.websiteUrl).hostname.endsWith(host))
+    fail('registry_connect_same_property', `${file} websiteUrl ${j.websiteUrl} is not on ${host}`);
+}
+// OB4-D1 — the lenses are the observatory's, and the registry must say so.
+if ((gj._meta?.['io.thegavel/surface']?.prompts ?? []).length)
+  fail('registry_lenses_observatory_only', 'server.json advertises prompts; OB4-D1 puts none on the gavel server');
+const declaredLenses = sj._meta?.['com.bitcoincreditstack/lenses']?.names ?? [];
+if (declaredLenses.length !== obs.promptNames.length)
+  fail('registry_lenses_match', `server.observatory.json names ${declaredLenses.length} lenses; the server exposes ${obs.promptNames.length}`);
+for (const n of declaredLenses) {
+  if (!obs.promptNames.includes(n))
+    fail('registry_lenses_match', `server.observatory.json names lens '${n}', which the server does not expose`);
+}
 
 const summary = {
   observatory: { count: obsNames.length, tools: obsNames },
