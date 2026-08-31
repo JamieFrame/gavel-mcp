@@ -1,7 +1,7 @@
 {
   "name": "gavel-mcp-server",
   "version": "0.3.0",
-  "description": "Aletheia MCP server — agent-native interface over the Gavel data product.",
+  "description": "Aletheia MCP server \u2014 agent-native interface over the Gavel data product.",
   "type": "module",
   "main": "dist/http.js",
   "scripts": {
@@ -10,7 +10,10 @@
     "dev": "tsx watch src/http.ts",
     "typecheck": "tsc -p . --noEmit",
     "clean": "rm -rf dist",
-    "check:advertised": "node scripts/check-advertised.mjs"
+    "check:advertised": "node scripts/check-advertised.mjs",
+    "check:profiles": "node scripts/check-profiles.mjs",
+    "check:alignment": "node scripts/check-lens-alignment.mjs",
+    "check": "npm run build && npm run check:profiles && npm run check:alignment"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

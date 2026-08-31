@@ -139,10 +139,38 @@ for (const name of MOVED_FROM_GAVEL) {
     fail('presplit_unchanged', `'${name}' is a moved shim on gavel-presplit; it must still SERVE until cutover`);
 }
 
-// ── §0.4 the disclosure is present, verbatim ────────────────────────────────
-const { OBSERVATORY_DISCLOSURE } = await import('../dist/profiles.js');
-if (!obs.instructions.includes(OBSERVATORY_DISCLOSURE))
-  fail('observatory_disclosure_present', 'the §0.4 disclosure is missing from the observatory instructions');
+// ── §0.4, AS AMENDED — the dataset-level disclosure must be ABSENT ─────────
+//
+// This check used to assert the opposite: that OBSERVATORY_DISCLOSURE appeared
+// verbatim in the observatory instructions. The operator WITHDREW that
+// disclosure on 2026-08-29 and the export went with it, so the lint has been
+// importing `undefined` and reddening on correct code ever since — a guard that
+// fails when canon is obeyed, which is worse than no guard, because the way to
+// make it pass was to put the false sentence back.
+//
+// It is inverted here to enforce what canon actually says
+// (`canonical/two_property_strategy_v1.md` §2 and §5):
+//
+//   §2  Aletheia Analytics did NOT create the Gavel Protocol. Jamie Frame
+//       authored it personally under MIT — Layer 1, not Layer 3. This exact
+//       sentence has been published and withdrawn once already.
+//   §5  The own-account disclosure belongs on the VENUE ROW, never on the
+//       dataset. Aletheia may hold a position at any covered venue; a
+//       dataset-level banner naming one implies a relationship the data does
+//       not establish.
+const CREATED_CLAIM = /aletheia[^.]{0,80}\b(creat|built|develop|author)/i;
+if (CREATED_CLAIM.test(obs.instructions))
+  fail('entity_attribution', 'the observatory instructions claim Aletheia created/authored the Protocol — two_property_strategy_v1 §2 says Layer 1, not Layer 3');
+if (CREATED_CLAIM.test(gav.instructions))
+  fail('entity_attribution', 'the gavel instructions claim Aletheia created/authored the Protocol — §2 says Layer 1, not Layer 3');
+// A dataset-level own-account banner. The permitted place is the venue row's
+// own `disclosure` field, which get_venue passes through untouched.
+if (/own account/i.test(obs.instructions) && !/venue'?s own row|that venue/i.test(obs.instructions))
+  fail('disclosure_on_row_not_dataset', 'the observatory instructions carry an own-account disclosure without scoping it to the venue row (§5)');
+// And the pointer TO the row must still be there — removing the banner must not
+// have removed the reader's route to the fact.
+if (!/disclosure/i.test(obs.instructions))
+  fail('disclosure_on_row_not_dataset', 'the observatory instructions no longer point the reader at the venue row disclosure field (§5)');
 
 // ── registry file sanity — the AD2 100-char trap ────────────────────────────
 const sj = JSON.parse(readFileSync(join(ROOT, 'server.observatory.json'), 'utf8'));

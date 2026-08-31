@@ -65,6 +65,58 @@ import type { Profile } from '../profiles.js';
  * `prepare_*` tool would appear on the observatory the day it was written, and
  * OB1 §0.1 calls a write tool on the observatory a red finding.
  */
+/**
+ * OB4 §1.5 — a rename is not complete until the tool's SELF-DESCRIPTION is
+ * renamed too.
+ *
+ * D-B renames `list_gavel_indicators` -> `list_indicators` on the observatory.
+ * Until this function existed the rename was applied to the NAME only, so the
+ * live observatory shipped a `list_indicators` whose description said *"then
+ * call get_gavel_indicator with an id"* and a `get_indicator` whose `id`
+ * parameter said *"Indicator id from list_gavel_indicators"* — both naming a
+ * tool that does not exist on that server. A model reading the schema to build
+ * its call was being instructed to make an invalid one.
+ *
+ * That is §1.5's asymmetry test failing one level below the lenses: a
+ * presentation the server instructs which is not derivable from the tools in
+ * its own scope. Fixing the two strings by hand would have fixed the instance;
+ * rewriting through the rename map fixes the class, so the next rename cannot
+ * reintroduce it.
+ *
+ * Only whole-word occurrences of a renamed name are rewritten, and only the
+ * human-readable strings — never a value a caller passes back.
+ */
+function applyRenames(text: string, renames: Readonly<Record<string, string>>): string {
+  let out = text;
+  for (const [from, to] of Object.entries(renames)) {
+    out = out.replace(new RegExp(`\\b${from}\\b`, 'g'), to);
+  }
+  return out;
+}
+
+/** Rewrite the description and every parameter description through the map. */
+function renameInConfig(config: unknown, renames: Readonly<Record<string, string>>): unknown {
+  if (!config || typeof config !== 'object' || !Object.keys(renames).length) return config;
+  const c = { ...(config as Record<string, unknown>) };
+  if (typeof c.description === 'string') c.description = applyRenames(c.description, renames);
+  // Zod schemas carry their prose in `.description`; rebuild each field with the
+  // renamed text rather than mutating the shared schema object, which other
+  // profiles in the same process also register from.
+  const schema = c.inputSchema;
+  if (schema && typeof schema === 'object') {
+    const next: Record<string, unknown> = {};
+    for (const [key, field] of Object.entries(schema as Record<string, unknown>)) {
+      const f = field as { description?: string; describe?: (d: string) => unknown };
+      next[key] =
+        typeof f?.description === 'string' && typeof f.describe === 'function'
+          ? f.describe(applyRenames(f.description, renames))
+          : field;
+    }
+    c.inputSchema = next;
+  }
+  return c;
+}
+
 function scopeTo(server: McpServer, profile: Profile): McpServer {
   const allowed = new Set(profile.tools);
   return new Proxy(server, {
@@ -75,7 +127,7 @@ function scopeTo(server: McpServer, profile: Profile): McpServer {
           const exposedName = profile.renames[name] ?? name;
           return (target as unknown as {
             registerTool: (n: string, c: unknown, h: unknown) => unknown;
-          }).registerTool(exposedName, config, handler);
+          }).registerTool(exposedName, renameInConfig(config, profile.renames), handler);
         };
       }
       const value = Reflect.get(target, prop, receiver);

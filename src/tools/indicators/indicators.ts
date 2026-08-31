@@ -18,22 +18,77 @@ import { activeProfile, GAVEL_MCP_HOST, OBSERVATORY_HOST, PROFILES } from '../..
 // surface it mirrors has abandoned. The paid boundary is BULK DELIVERY, which
 // this pair does not offer.
 
+/**
+ * OB4 §1.5 — the catalogue this pair describes DIFFERS BY PROPERTY, so its
+ * self-description has to as well.
+ *
+ * OB4-D10 split the catalogue: the ten indicators anchored on one venue's own
+ * rate are served by that venue's server, and the observatory serves the 23
+ * that are venue-independent. The tool descriptions were written before that
+ * split and kept describing the whole catalogue from both servers. On the
+ * observatory that produced three separate false statements in the payload a
+ * model reads to decide what to call:
+ *
+ *   - "computed from The Gavel Protocol and the Bitcoin chain" — the
+ *     observatory's 23 are venue-independent by construction, and OB1 §0.1
+ *     bars a tool on this server from naming a venue outside its uniform row.
+ *   - "'credit' (Gavel-derived assessments — the yield curve and the Bitcoin
+ *     Credit Complex)" — the yield curve is precisely what D10 relocated.
+ *   - an `id` example of 'yield-curve' — an id THIS SERVER REFUSES with a
+ *     `moved` error. The parameter documentation was offering, as its worked
+ *     example, a call that cannot succeed.
+ *
+ * The rename map (src/tools/index.ts) cannot fix these: they are not old tool
+ * names, they are a description of the wrong catalogue.
+ */
+function onObservatory(): boolean {
+  return activeProfile().id === 'observatory';
+}
+
+/** Example ids drawn from the catalogue this profile actually serves, so the
+ *  worked example is always a call that can succeed. */
+function EXAMPLE_IDS(): string {
+  const ids = catalogueFor(activeProfile().id)
+    .filter((i) => i.live)
+    .slice(0, 3)
+    .map((i) => `'${i.id}'`);
+  return ids.length ? ids.join(', ') : "'tci'";
+}
+
+function SCOPE_SENTENCE(): string {
+  return onObservatory()
+    ? `This server serves the venue-independent indicator set; an indicator ` +
+      `anchored on a single venue's own rate is served by that venue's own MCP ` +
+      `and answers here with a pointer to it.`
+    : `This server serves this protocol's own indicator set, including those ` +
+      `anchored on its rate.`;
+}
+
+function CATALOGUE_DESCRIPTION(): string {
+  const shared =
+    `id, name, family, units, description, and whether the indicator is ` +
+    `currently live on this network.\n\n` +
+    `Three families: 'credit' (credit-market assessments), 'onchain' ` +
+    `(commodity chain metrics such as MVRV and SOPR), and 'market' (external ` +
+    `context — DeFi rates, stablecoin supply, macro).\n\n` +
+    `Use this to discover what is available, then call get_gavel_indicator ` +
+    `with an id. This tool returns a catalogue; it does not rank indicators ` +
+    `or advise which to use.`;
+  return onObservatory()
+    ? `Returns the catalogue of Aletheia indicators measured across the ` +
+      `Bitcoin-collateralised credit markets and the Bitcoin chain: ${shared}\n\n` +
+      `Indicators anchored on a single venue's own rate are not served here; ` +
+      `they are listed as withheld, with the server that serves them.`
+    : `Returns the catalogue of Aletheia indicators computed from The Gavel ` +
+      `Protocol and the Bitcoin chain: ${shared}`;
+}
+
 export function registerIndicatorTools(server: McpServer): void {
   server.registerTool(
     'list_gavel_indicators',
     {
       title: 'Gavel Indicator Catalogue',
-      description:
-        `Returns the catalogue of Aletheia indicators computed from The Gavel ` +
-        `Protocol and the Bitcoin chain: id, name, family, units, description, ` +
-        `and whether the indicator is currently live on this network.\n\n` +
-        `Three families: 'credit' (Gavel-derived assessments — the yield curve ` +
-        `and the Bitcoin Credit Complex), 'onchain' (commodity chain metrics ` +
-        `such as MVRV and SOPR), and 'market' (external context — DeFi rates, ` +
-        `stablecoin supply, macro).\n\n` +
-        `Use this to discover what is available, then call get_gavel_indicator ` +
-        `with an id. This tool returns a catalogue; it does not rank indicators ` +
-        `or advise which to use.`,
+      description: CATALOGUE_DESCRIPTION(),
       inputSchema: {
         family: z
           .enum(['credit', 'onchain', 'market'])
@@ -110,8 +165,8 @@ export function registerIndicatorTools(server: McpServer): void {
       title: 'Get a Gavel Indicator',
       description:
         `Returns the current value of a single Aletheia indicator by id, with ` +
-        `its methodology reference. Call list_gavel_indicators first to ` +
-        `discover valid ids.\n\n` +
+        `its methodology reference. ${SCOPE_SENTENCE()} Call ` +
+        `list_gavel_indicators first to discover valid ids.\n\n` +
         `Optionally returns the historical series instead of the current value ` +
         `(set include_history). History is free and unmetered on the same ` +
         `terms as the current value.\n\n` +
@@ -121,7 +176,9 @@ export function registerIndicatorTools(server: McpServer): void {
       inputSchema: {
         id: z
           .string()
-          .describe(`Indicator id from list_gavel_indicators, e.g. 'tci', 'ccpi', 'yield-curve', 'onchain-latest'.`),
+          .describe(
+            `Indicator id from list_gavel_indicators, e.g. ${EXAMPLE_IDS()}.`
+          ),
         include_history: z
           .boolean()
           .default(false)
