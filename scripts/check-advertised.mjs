@@ -13,6 +13,12 @@
  *      and marketplaceListingFee() — none of which exists on any deployment.
  *      That tool's own description tells agents to consult it *before
  *      constructing a transaction*.
+ *   4. (2026-08-31) Every prepare_* tool returned
+ *      `wallet_agnostic_url: https://thegavel.io/sign?…` and /sign HAD NEVER
+ *      EXISTED. All five blueprint tools handed out a 404 on the only
+ *      wallet-agnostic hand-off this server has, and it went unnoticed because
+ *      nothing here had ever called a URL this server EMITS — only the paths it
+ *      READS. Found when an agent-driven auction was attempted.
  *
  * Three instances across three tools is a systemic gap between what this
  * server claims and what it serves, not three unrelated bugs. Individually
@@ -166,7 +172,41 @@ async function checkContractFunctions() {
   }
 }
 
+/**
+ * The URLs this server HANDS OUT, as opposed to the ones it calls.
+ *
+ * Everything above checks upstream paths and contract functions — things this
+ * server consumes. `wallet_agnostic_url` is different in kind: it is a pointer
+ * this server puts in front of a user, on the last step before they sign. It
+ * was wrong for as long as it had existed, and no check here could see it,
+ * because the whole file was pointed the other way.
+ *
+ * The base URL is called with no query string, which is the right test: the
+ * page must EXIST. Whether it accepts a particular transaction is the page's
+ * own adjudication and deliberately not ours to assert from here.
+ */
+async function checkEmittedUrls() {
+  const { walletAgnosticUrl } = await import('../dist/factory/envelope.js');
+  const sample = walletAgnosticUrl({ to: '0x' + '0'.repeat(40), data: '0x00', value: '0', chain_id: 42161 });
+  const base = new URL(sample);
+  base.search = '';
+  try {
+    const res = await fetch(base.toString(), { redirect: 'follow' });
+    record(
+      'emitted-url',
+      base.toString(),
+      res.status >= 400
+        ? `HTTP ${res.status} — every prepare_* tool hands this to a user before they sign`
+        : `serves (${res.status})`,
+      res.status < 400
+    );
+  } catch (e) {
+    record('emitted-url', base.toString(), `unreachable: ${e.message}`, false);
+  }
+}
+
 // ---------------------------------------------------------------- run
+await checkEmittedUrls();
 await checkDirectPaths();
 await checkIndicatorCatalogue();
 try {
