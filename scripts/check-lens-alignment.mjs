@@ -229,6 +229,30 @@ if (obs.lensDoc) {
 if (gav.resources.length)
   fail('lens_resource_observatory_only', `the gavel server exposes ${gav.resources.length} resource(s); the lens corpus is the observatory's`);
 
+// ── 11. get_lens: the delivery path that clients actually read ───────────
+// The prompts are correct and INVISIBLE — no client tested surfaces them. The
+// tool is how the lens layer reaches anyone, so it is checked at least as hard
+// as the prompts are, and its content must be the SAME content: two renderings
+// of one lens that could drift would be worse than one that never shipped.
+{
+  const tool = obs.tools.find((t) => t.name === 'get_lens');
+  if (!tool) {
+    fail('lens_tool_present', 'the observatory does not expose get_lens — with no client surfacing prompts, the lens layer reaches nobody');
+  } else {
+    const enumIds = tool.inputSchema?.properties?.lens?.enum ?? [];
+    const defined = LENSES.map((l) => l.id);
+    for (const id of defined) {
+      if (!enumIds.includes(id)) fail('lens_tool_complete', `get_lens does not offer '${id}', which is a defined lens`);
+    }
+    for (const id of enumIds) {
+      if (!defined.includes(id)) fail('lens_tool_complete', `get_lens offers '${id}', which is not a defined lens`);
+    }
+  }
+  if (gav.tools.some((t) => t.name === 'get_lens')) {
+    fail('lens_tool_observatory_only', 'the gavel server exposes get_lens; OB4-D1 keeps the lens layer on the observatory');
+  }
+}
+
 const summary = {
   observatory: { tools: obs.tools.length, prompts: obs.prompts.map((p) => p.name), resources: obs.resources.map((r) => r.uri) },
   gavel: { tools: gav.tools.length, prompts: gav.prompts.map((p) => p.name) },

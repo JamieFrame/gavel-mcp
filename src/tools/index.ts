@@ -14,6 +14,7 @@ import { registerFactoryTools } from './factory/prepare.js';
 import { registerETools } from './agent/e-tools.js';
 import { registerVenueTools } from './venues/venues.js';
 import { registerSurfaceTools } from './venues/surface.js';
+import { registerLensTool } from './lenses/lens-tool.js';
 import { registerMovedTools } from './moved.js';
 import type { Profile } from '../profiles.js';
 
@@ -176,6 +177,12 @@ export function registerAllTools(server: McpServer, profile: Profile): void {
 
   // OB1 §1.3 — the observatory's venue registry + criteria payloads.
   registerVenueTools(s);
+
+  // OB4 — the lenses as a TOOL, because no client surfaces MCP prompts.
+  // Registered through the scoped server like everything else, so the
+  // observatory allowlist governs it and it cannot appear on the Gavel server
+  // by accident.
+  registerLensTool(s);
 
   // OB1 §1.2 — the cross-venue market surface. This is where a Stack reader
   // meets Gavel's rate: inside a reading computed over the venue universe,

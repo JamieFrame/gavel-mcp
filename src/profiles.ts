@@ -210,6 +210,10 @@ const OBSERVATORY_TOOLS = [
   'get_credit_state_history',
   'get_market_composition',
   'get_market_flows',
+  // OB4 — the lens layer, served as a tool because no client surfaces MCP
+  // prompts. Observatory only: the lenses are this property's reading
+  // discipline, and OB4-D1 keeps them off the participation server.
+  'get_lens',
   // both-split
   'get_verification_bundle',
 ] as const;
