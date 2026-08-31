@@ -82,7 +82,7 @@ const mentionsIn = (text) => [...new Set(text.match(TOOL_MENTION) ?? [])];
 
 const obs = await surfaceFor('observatory');
 const gav = await surfaceFor('gavel');
-const { LENSES } = await import(join(ROOT, 'dist/prompts/lenses.js'));
+const { LENSES, promptName } = await import(join(ROOT, 'dist/prompts/lenses.js'));
 const { INDICATORS } = await import(join(ROOT, 'dist/tools/indicators/catalogue.js'));
 const ANCHORED = INDICATORS.filter((i) => i.anchoredTo).map((i) => i.id);
 
@@ -134,9 +134,9 @@ for (const lens of LENSES) {
   for (const tool of lens.tools) {
     if (obsExposed.has(tool)) continue;
     if (gavOnly.has(tool)) {
-      fail('lens_scope_crosses_property', `lens:${lens.id} scopes '${tool}', which lives on the GAVEL server — a lens must not reach across the split`);
+      fail('lens_scope_crosses_property', `${promptName(lens.id)} scopes '${tool}', which lives on the GAVEL server — a lens must not reach across the split`);
     } else {
-      fail('lens_scope_resolvable', `lens:${lens.id} scopes '${tool}', which no server exposes`);
+      fail('lens_scope_resolvable', `${promptName(lens.id)} scopes '${tool}', which no server exposes`);
     }
   }
 }
@@ -144,12 +144,12 @@ for (const lens of LENSES) {
 // ── 5. Every tool a lens's TEXT names must be in that lens's own scope ─────
 // The scope list is the promise; the prose is what the model actually follows.
 for (const lens of LENSES) {
-  const text = obs.rendered[`lens:${lens.id}`] ?? '';
-  if (!text) { fail('lens_renders', `lens:${lens.id} rendered empty`); continue; }
+  const text = obs.rendered[promptName(lens.id)] ?? '';
+  if (!text) { fail('lens_renders', `${promptName(lens.id)} rendered empty`); continue; }
   const scope = new Set(lens.tools);
   for (const m of mentionsIn(text)) {
     if (!scope.has(m)) {
-      fail('lens_prose_outside_scope', `lens:${lens.id} names '${m}' in its text but does not carry it in scope`);
+      fail('lens_prose_outside_scope', `${promptName(lens.id)} names '${m}' in its text but does not carry it in scope`);
     }
   }
 }
@@ -158,7 +158,7 @@ for (const lens of LENSES) {
 const WRITE_NAME = /^(prepare_|create_|submit_|send_|sign_|broadcast_|approve_|set_|update_|delete_|write_|execute_)/;
 for (const lens of LENSES) {
   for (const tool of lens.tools) {
-    if (WRITE_NAME.test(tool)) fail('lens_read_only', `lens:${lens.id} scopes write-shaped tool '${tool}'`);
+    if (WRITE_NAME.test(tool)) fail('lens_read_only', `${promptName(lens.id)} scopes write-shaped tool '${tool}'`);
   }
 }
 
@@ -166,10 +166,10 @@ for (const lens of LENSES) {
 // §1.4's warning. D10 made it structural by removing them from this server's
 // catalogue; this asserts the copy did not keep pointing at them anyway.
 for (const lens of LENSES) {
-  const text = obs.rendered[`lens:${lens.id}`] ?? '';
+  const text = obs.rendered[promptName(lens.id)] ?? '';
   for (const a of ANCHORED) {
     if (new RegExp(`\\b${a}\\b`).test(text))
-      fail('lens_no_anchored_indicator', `lens:${lens.id} names anchored indicator '${a}' — one venue's rate presented as market context`);
+      fail('lens_no_anchored_indicator', `${promptName(lens.id)} names anchored indicator '${a}' — one venue's rate presented as market context`);
   }
 }
 
@@ -180,12 +180,12 @@ for (const lens of LENSES) {
 const BANNED = ['recommend', 'should', 'best', 'optimal', 'maximise', 'maximize', 'safest', 'safe'];
 const NEGATED = /\b(no|not|never|nothing|none|without|does not|do not|cannot|neither|nor)\b[^.]{0,80}$/i;
 for (const lens of LENSES) {
-  const text = obs.rendered[`lens:${lens.id}`] ?? '';
+  const text = obs.rendered[promptName(lens.id)] ?? '';
   for (const term of BANNED) {
     for (const m of text.matchAll(new RegExp(`\\b${term}\\w*\\b`, 'gi'))) {
       const before = text.slice(Math.max(0, m.index - 90), m.index);
       if (!NEGATED.test(before)) {
-        warn('lens_editorial_v1_2', `lens:${lens.id} uses '${m[0]}' outside a negation — read it: “…${text.slice(Math.max(0, m.index - 60), m.index + 40).replace(/\n/g, ' ')}…”`);
+        warn('lens_editorial_v1_2', `${promptName(lens.id)} uses '${m[0]}' outside a negation — read it: “…${text.slice(Math.max(0, m.index - 60), m.index + 40).replace(/\n/g, ' ')}…”`);
       }
     }
   }
@@ -194,11 +194,11 @@ for (const lens of LENSES) {
 // ── 9. Structural promises every lens makes ───────────────────────────────
 const { LENSES: L } = { LENSES };
 for (const lens of L) {
-  const text = obs.rendered[`lens:${lens.id}`] ?? '';
-  if (!lens.doesNotDo?.length) fail('lens_states_limits', `lens:${lens.id} names nothing it does not do`);
-  if (!/What this lens does not do/.test(text)) fail('lens_states_limits', `lens:${lens.id} renders no limits section`);
-  if (!/`unknown` is a VALUE/.test(text)) fail('lens_disclosure_verbatim', `lens:${lens.id} is missing the disclosure block`);
-  if (!/Tools in scope/.test(text)) fail('lens_states_scope', `lens:${lens.id} renders no tools-in-scope section`);
+  const text = obs.rendered[promptName(lens.id)] ?? '';
+  if (!lens.doesNotDo?.length) fail('lens_states_limits', `${promptName(lens.id)} names nothing it does not do`);
+  if (!/What this lens does not do/.test(text)) fail('lens_states_limits', `${promptName(lens.id)} renders no limits section`);
+  if (!/`unknown` is a VALUE/.test(text)) fail('lens_disclosure_verbatim', `${promptName(lens.id)} is missing the disclosure block`);
+  if (!/Tools in scope/.test(text)) fail('lens_states_scope', `${promptName(lens.id)} renders no tools-in-scope section`);
 }
 
 // ── 10. The lens catalogue resource agrees with the lenses it describes ───
@@ -242,7 +242,7 @@ else {
   console.log(`observatory: ${obs.tools.length} tools, ${obs.prompts.length} lenses -> ${obs.prompts.map((p) => p.name).join(', ')}`);
   console.log(`gavel:       ${gav.tools.length} tools, ${gav.prompts.length} prompts (OB4-D1: must be 0)`);
   console.log(`anchored (served on gavel, 'moved' on observatory): ${ANCHORED.join(', ')}\n`);
-  for (const l of LENSES) console.log(`  lens:${l.id.padEnd(12)} ${l.tools.length} tools in scope — all resolvable`);
+  for (const l of LENSES) console.log(`  ${promptName(l.id).padEnd(18)} ${l.tools.length} tools in scope — all resolvable`);
   console.log('');
   if (!findings.length) console.log('§1.5 prompt layer: clean — every presentation a lens instructs is derivable from the tools in its scope.');
   else for (const f of findings) console.log(`[${f.severity.toUpperCase()}] ${f.rule}: ${f.detail}`);

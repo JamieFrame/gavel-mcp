@@ -20,12 +20,13 @@
       "description": "Read-only presentation procedures, offered as MCP prompts. Each selects tools and frames presentation; none concludes, ranks, or carries a write tool.",
       "catalogue": "stack://lenses/index.json",
       "names": [
-        "lens:orientation",
-        "lens:holder",
-        "lens:treasurer",
-        "lens:analyst",
-        "lens:risk"
-      ]
+        "lens_orientation",
+        "lens_holder",
+        "lens_treasurer",
+        "lens_analyst",
+        "lens_risk"
+      ],
+      "naming_note": "Underscore, not a colon. The colon form was legal per the spec and invisible in every client tested: prompts surface as user-invocable commands and a colon does not survive that mapping."
     },
     "com.bitcoincreditstack/surface": {
       "write_tool_count": 0,

@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Profile } from '../profiles.js';
-import { LENSES, renderLens } from './lenses.js';
+import { LENSES, renderLens, promptName } from './lenses.js';
 
 /**
  * OB4 §1.2 — register the lens prompts.
@@ -26,7 +26,7 @@ export function registerLensPrompts(server: McpServer, profile: Profile): void {
 
   for (const lens of LENSES) {
     server.registerPrompt(
-      `lens:${lens.id}`,
+      promptName(lens.id),
       { title: lens.title, description: lens.description },
       () => ({
         messages: [

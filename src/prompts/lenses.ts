@@ -161,6 +161,26 @@ export const LENSES: readonly Lens[] = [
   },
 ];
 
+/**
+ * The name a lens is exposed under on the wire.
+ *
+ * ⚠ UNDERSCORE, NOT A COLON. These were `lens:orientation` until 2026-08-31,
+ * and on that form NO CLIENT TESTED EVER SHOWED THEM. Prompts are surfaced as
+ * user-invocable commands — the spec's own illustration is a slash command, and
+ * Claude Code maps them to `/mcp__<server>__<promptName>` — and a colon does not
+ * survive that mapping. The spec constrains `name` only as a "unique
+ * identifier", so the colon was legal and unusable, which is the worst pair:
+ * `prompts/list` answered correctly, every sensor passed, and the picker stayed
+ * empty. The spec's own example is `code_review`.
+ *
+ * Defined ONCE and imported, rather than interpolated at each call site. It was
+ * built by hand in four places — the registration, the catalogue resource, the
+ * alignment sensor and the registry entry — which is the same shape as the
+ * rename defect found earlier today: a name assembled in several places drifts
+ * in some of them.
+ */
+export const promptName = (id: string): string => `lens_${id}`;
+
 /** The full prompt text a client receives for a lens. */
 export function renderLens(lens: Lens): string {
   return [

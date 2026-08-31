@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Profile } from '../profiles.js';
-import { LENSES } from './lenses.js';
+import { LENSES, promptName } from './lenses.js';
 
 /**
  * OB4 §1.6 — the lens catalogue as a resource.
@@ -57,7 +57,7 @@ export function registerLensResources(server: McpServer, profile: Profile): void
                 'A lens is a read-only presentation procedure. It selects tools and frames how their output is presented; it never concludes, never ranks and carries no write tool — this server has none.',
               count: LENSES.length,
               lenses: LENSES.map((l) => ({
-                name: `lens:${l.id}`,
+                name: promptName(l.id),
                 title: l.title,
                 description: l.description,
                 tools: l.tools,
