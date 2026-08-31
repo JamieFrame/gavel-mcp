@@ -80,11 +80,17 @@ for (const name of obsNames) {
 // to be read and ruled on, not auto-reds: a tool that serves one venue's own
 // figures under its own name is exactly the "Gavel-special" the gate asks about,
 // and the disposition table is where that is decided.
+// Every human-readable field, not just `description`: the first pass at this
+// checked description alone and let "Gavel Indicator Catalogue" ship as a TITLE,
+// which is the field a client actually renders in its picker.
 for (const t of obs.tools) {
-  if (/gavel/i.test(t.description || '') && !/venue/i.test(t.description || ''))
+  const prose = [t.title, t.description, JSON.stringify(t.inputSchema ?? {})].filter(Boolean).join(' ');
+  if (/gavel/i.test(t.title || ''))
+    fail('observatory_names_no_venue', `'${t.name}' has the venue in its TITLE ('${t.title}') — the field a client shows in its picker`);
+  if (/gavel/i.test(prose) && !/venue/i.test(prose))
     warn(
       'observatory_names_no_venue',
-      `'${t.name}' description names Gavel with no venue framing — confirm this tool is not a venue-specific surface other venues do not get`
+      `'${t.name}' names Gavel with no venue framing — confirm this tool is not a venue-specific surface other venues do not get`
     );
 }
 

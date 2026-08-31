@@ -40,6 +40,13 @@ import { activeProfile, GAVEL_MCP_HOST, OBSERVATORY_HOST, PROFILES } from '../..
  *
  * The rename map (src/tools/index.ts) cannot fix these: they are not old tool
  * names, they are a description of the wrong catalogue.
+ *
+ * ⚠ `title` is one of them, and it was MISSED on the first pass — the fix went
+ * to `description` and the parameter schemas, and the titles ("Gavel Indicator
+ * Catalogue", "Get a Gavel Indicator") shipped to the live observatory
+ * unchanged. Both sensors missed it too, because both read `description` and
+ * `inputSchema` and neither read `title`. A title is the field a client renders
+ * in a picker, so it is the Gavel-naming a reader is MOST likely to see.
  */
 function onObservatory(): boolean {
   return activeProfile().id === 'observatory';
@@ -87,7 +94,7 @@ export function registerIndicatorTools(server: McpServer): void {
   server.registerTool(
     'list_gavel_indicators',
     {
-      title: 'Gavel Indicator Catalogue',
+      title: onObservatory() ? 'Indicator Catalogue' : 'Gavel Indicator Catalogue',
       description: CATALOGUE_DESCRIPTION(),
       inputSchema: {
         family: z
@@ -162,7 +169,7 @@ export function registerIndicatorTools(server: McpServer): void {
   server.registerTool(
     'get_gavel_indicator',
     {
-      title: 'Get a Gavel Indicator',
+      title: onObservatory() ? 'Get an Indicator' : 'Get a Gavel Indicator',
       description:
         `Returns the current value of a single Aletheia indicator by id, with ` +
         `its methodology reference. ${SCOPE_SENTENCE()} Call ` +

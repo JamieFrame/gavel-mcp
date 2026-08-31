@@ -94,7 +94,9 @@ for (const [id, surface] of Object.entries({ observatory: obs, gavel: gav })) {
     // The `moved` shims name the tool on the OTHER server on purpose — that is
     // what a shim is for, and OB1 §1.5 requires it. Excluded by that reason.
     if (/has moved/i.test(t.description ?? '')) continue;
-    const prose = [t.description ?? '', JSON.stringify(t.inputSchema ?? {})].join(' ');
+    // `title` included: it is the field a client renders, and leaving it out
+    // is how 'Get a Gavel Indicator' survived the first pass of this check.
+    const prose = [t.title ?? '', t.description ?? '', JSON.stringify(t.inputSchema ?? {})].join(' ');
     for (const m of mentionsIn(prose)) {
       if (!exposed.has(m)) {
         fail(
@@ -108,7 +110,7 @@ for (const [id, surface] of Object.entries({ observatory: obs, gavel: gav })) {
 
 // ── 2. An id offered as an example must be one this server serves ──────────
 for (const t of obs.tools) {
-  const prose = [t.description ?? '', JSON.stringify(t.inputSchema ?? {})].join(' ');
+  const prose = [t.title ?? '', t.description ?? '', JSON.stringify(t.inputSchema ?? {})].join(' ');
   for (const a of ANCHORED) {
     if (new RegExp(`'${a}'`).test(prose)) {
       fail(
