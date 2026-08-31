@@ -157,6 +157,73 @@ app.post(
   }
 );
 
+/**
+ * The MCP endpoint's OTHER two methods — 405, never 404.
+ *
+ * Added 2026-08-31 after Cursor could not hold a connection to either server.
+ * Its log is the whole diagnosis:
+ *
+ *     Successfully connected to streamableHttp server
+ *     Client error: Failed to open SSE stream: Not Found
+ *     Detected session termination, re-initializing connection before retry
+ *     ... x5 ...
+ *     Tombstoning streamable HTTP transport after 5 consecutive session
+ *     HTTP 404 responses; automatic retry disabled
+ *
+ * POST worked. The client then issued the GET that opens the server->client
+ * SSE stream, and Express fell through to the catch-all 404 below, because
+ * only POST was ever routed here.
+ *
+ * ── WHY 404 IS THE WORST POSSIBLE ANSWER, AND 405 IS REQUIRED ─────────────
+ *
+ * The transport spec (2025-06-18, "Listening for Messages from the Server"):
+ *
+ *   "The server MUST either return Content-Type: text/event-stream in response
+ *    to this HTTP GET, or else return HTTP 405 Method Not Allowed, indicating
+ *    that the server does not offer an SSE stream at this endpoint."
+ *
+ * And 404 is not a neutral "no". Under "Session Management" it is load-bearing:
+ *
+ *   "The server MAY terminate the session at any time, after which it MUST
+ *    respond to requests containing that session ID with HTTP 404 Not Found."
+ *   "When a client receives HTTP 404 ... it MUST start a new session by sending
+ *    a new InitializeRequest."
+ *
+ * So our 404 told every compliant client "your session is dead, start over".
+ * Cursor obeyed, five times, then tombstoned the transport. The client was
+ * correct and this server was not.
+ *
+ * It stayed invisible because a client that never opens the GET stream never
+ * asks the question — every probe this project runs is a POST, and so the
+ * servers looked healthy from here while being unusable from a client that
+ * follows the spec more completely.
+ *
+ * 405 is the honest answer rather than a workaround: this server is stateless
+ * (sessionIdGenerator: undefined) and has nothing to push, so there is no
+ * server-initiated stream to offer. DELETE gets the same treatment, which the
+ * spec names explicitly: "The server MAY respond to this request with HTTP 405
+ * Method Not Allowed, indicating that the server does not allow clients to
+ * terminate sessions."
+ */
+const mcpMethodNotAllowed = (req: Request, res: Response) => {
+  res
+    .status(405)
+    .set('Allow', 'POST')
+    .json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32000,
+        message:
+          req.method === 'DELETE'
+            ? 'This server is stateless and issues no session id, so there is no session to terminate. Use POST for all MCP messages.'
+            : 'This server does not offer a server-initiated SSE stream at this endpoint. Use POST for all MCP messages.',
+      },
+      id: null,
+    });
+};
+app.get('/mcp', mcpMethodNotAllowed);
+app.delete('/mcp', mcpMethodNotAllowed);
+
 // 404 catch-all so MCP clients exploring the URL space get a structured
 // response rather than the default Express HTML page.
 app.use((req: Request, res: Response) => {
