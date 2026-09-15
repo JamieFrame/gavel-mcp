@@ -57,6 +57,16 @@ export interface IndicatorSpec {
    * The fix that removes this field is a per-venue rate endpoint: with one,
    * these generalise to every venue and stop being anchored at all. Three
    * separate workstreams now want that endpoint.
+   *
+   * RW15 (2026-09-14/15) built the indicator half of that: VRB, DRP, LPI,
+   * CCS, COC and SRCS are now `target − reference` with a `target` venue_id
+   * parameter, and no formula names a venue. The operator admitted "all venues
+   * where the indicators can be consistently and coherently applied"
+   * (2026-09-15): DRP, CCS and LPI now also run for every carded custodial desk
+   * (cefi_<desk>); VRB (needs a lender yield), COC (needs WBTC collateral) and
+   * SRCS (needs a dense series) admit gavel_arbitrum alone. These tools serve
+   * the default target and pass no `target`, so the default IS the anchor for
+   * everything they return, and this field says so.
    */
   anchoredTo?: string;
 }
@@ -174,10 +184,12 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: '/v1/credit/vrb/history',
     units: 'spread (percentage points)',
     description:
-      'The premium Gavel lenders earn over passive variable-rate DeFi lending: ' +
-      'gavel_rate − max(USDC supply APY across Aave, Compound, Morpho) at matched tenor. ' +
-      'The fixed-versus-variable lending premium. Uses supply APY, not borrow APY, because ' +
-      'the lender\'s actual alternative is earning USDC supply yield.',
+      'Target − reference: the target venue\'s fixed-term lender yield (default gavel_arbitrum, ' +
+      'the one venue with such a series) minus the best BASE USDC supply rate — rewards excluded — ' +
+      'of four named pools (Aave v3 Ethereum and Arbitrum, Compound v3 Ethereum and Base), ' +
+      'gate-publishable rows only, both continuously compounded. Positive: the target pays more ' +
+      'than the variable alternative. breaks[] marks where the series moved onto this convention; ' +
+      'earlier rows carry rate_convention legacy_mixed.',
     live: true,
   },
   {
@@ -189,10 +201,14 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: '/v1/credit/lpi/history',
     units: 'spread (percentage points)',
     description:
-      'The excess that leveraged perp exposure commands over Gavel fixed-term collateralised ' +
-      'lending at matched duration: LPI = LCI − gavel_rate. Positive means leverage costs more ' +
-      'than term borrowing; negative (INVERSION) means the derivatives market is bearish while ' +
-      'the term credit market prices stability.',
+      'Target − reference: the target\'s fixed-term rate minus LCI (perp funding), both ' +
+      'continuously compounded, over the SAME N days — LCI_Nd is funding paid over the last N days, ' +
+      'so the target side is its N-day rate QUOTED N days ago (target_quoted_at, pairing_note). A ' +
+      'window whose quote does not reach back N days is an absence. ⚠ The SIGN FLIPPED and the ' +
+      'series was RE-PAIRED at RW15: positive now means the fixed-term loan cost MORE than perp ' +
+      'funding; before the break in breaks[] the series was LCI − today\'s forward rate, and each ' +
+      'row carries its orientation and pairing. regime keeps its meaning (the leverage premium, ' +
+      'LCI − target). Served for gavel_arbitrum; the API also computes it for each carded desk.',
     live: true,
   },
   {
@@ -204,9 +220,13 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: '/v1/credit/drp/history',
     units: 'spread vs matched treasury (percentage points)',
     description:
-      'The spread Gavel rates command over duration-matched US Treasury yields: ' +
-      'DRP = gavel_rate − treasury_yield at the matched tenor. The institutional benchmark — ' +
-      'what is earned in DeFi over the risk-free rate at similar maturity.',
+      'Target − reference: the target\'s fixed-term rate minus the US Treasury bill of the SAME ' +
+      'tenor, both continuously compounded, at 30, 90, 180 and 365 days only. Every other window ' +
+      'is an absence (no bill matches), including 7, 14, 60 and 730 days, which were paired with a ' +
+      'bill or note of a different maturity before the break in breaks[]. Served for ' +
+      'gavel_arbitrum; the API also computes it for each carded desk at its card\'s bill-matching ' +
+      'term, with target_basis_status saying whether the desk\'s compounding basis is established ' +
+      'or assumed.',
     live: true,
   },
   {
@@ -238,10 +258,10 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: '/v1/credit/coc/history',
     units: 'APR (%)',
     description:
-      'The yield a Gavel borrower foregoes by locking WBTC as collateral instead of supplying it ' +
-      'on Aave/Compound/Morpho: COC = max(WBTC supply APY across protocols). Makes the borrower\'s ' +
-      'true all-in cost visible as gavel_rate + COC. Small today (0.004–0.05%) but material if ' +
-      'BTC yield opportunities emerge.',
+      'The BASE WBTC supply yield a borrower forgoes by locking WBTC as collateral — the best of ' +
+      'Aave v3 Ethereum and Arbitrum WBTC, rewards excluded, continuously compounded. ' +
+      'all_in_cost = the target\'s 30d rate (continuously compounded) + COC, each network priced ' +
+      'off its own curve. breaks[] marks the move onto this convention.',
     live: true,
   },
   {
@@ -278,7 +298,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/srcs',
     historyPath: null,
     units: 'correlation / gap',
-    description: 'Correlation between stablecoin liquidity and realised Gavel rates, with the implied liquidity gap.',
+    description: 'Correlation between stablecoin liquidity (SLI) and 14-day changes in the target\'s 30d rate (continuously compounded, BTC-collateral curve only), with the implied liquidity gap.',
     live: true,
   },
   {
@@ -290,7 +310,13 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: '/v1/credit/ccs/history',
     units: 'spread',
     description:
-      'Gavel rates spread against CeFi posted rate cards. Note the CeFi inputs are administered (posted) rates, not cleared trades.',
+      'Target − reference: the target\'s rate minus a custodial desk\'s posted rate at the matched ' +
+      'tenor, both continuously compounded. ⚠ The SIGN FLIPPED at RW15: NEGATIVE now means the ' +
+      'target is cheaper than the desk. Every desk is valued: on the compounding basis its own ' +
+      'pages establish (cefi_basis_status established), or on the stated default — simple ' +
+      'interest paid at the end of the term — marked assumed, with ccs_range_cc giving the spread ' +
+      'across the desk\'s admissible bases. Weigh an assumed value by its range. The CeFi inputs ' +
+      'are administered (posted) rates, not cleared trades.',
     live: true,
   },
   {
