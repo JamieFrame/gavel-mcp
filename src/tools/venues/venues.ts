@@ -204,17 +204,24 @@ export function registerVenueTools(server: McpServer): void {
         `What does credit at this tenor and LTV cost across every venue Aletheia ` +
         `covers? One row per venue in coverage-matrix order — no ranking, no default ` +
         `sort, no "best".`,
+      // ⚠ RW1, 2026-09-11. This schema offered `collateral` and `denomination`,
+      // which the upstream route has never read — a filter that silently does
+      // nothing is a false affordance to a model building its call — and did
+      // not expose `side` or `venues`, which the spec (§4 E5) defines and the
+      // route honours. The inputs below are exactly the ones upstream reads.
       inputSchema: {
         tenor_days: z.number().positive().optional().describe(`Loan term in days to compare at.`),
         ltv: z.number().min(0).max(1).optional().describe(`Loan-to-value as a decimal 0–1, not a percentage.`),
-        collateral: z.string().optional().describe(`Collateral asset symbol, e.g. 'BTC'.`),
-        denomination: z.string().optional().describe(`Loan denomination, e.g. 'USD'.`),
+        side: z.enum(['borrow', 'lend']).optional().describe(`'borrow' (what a borrower pays, the default) or 'lend' (what a capital provider earns).`),
+        venues: z.string().optional().describe(`Comma-separated registry ids to restrict the rows to, e.g. 'aave_v3_ethereum,cefi_ledn'.`),
+        class: z.enum(['algorithmic', 'minted', 'auction', 'posted-card', 'corporate']).optional()
+          .describe(`Restrict to one credit class. The full matrix is ~160 rows; one class is far lighter.`),
       },
     },
-    async ({ tenor_days, ltv, collateral, denomination }) => {
+    async ({ tenor_days, ltv, side, venues, class: cls }) => {
       requireTier('free');
       const data = (await upstreamGet('/v1/venues/compare', {
-        query: { tenor_days, ltv, collateral, denomination },
+        query: { tenor_days, ltv, side, venues, class: cls },
       })) as Record<string, unknown>;
       // Passed through untouched — ordering, comparison_caveat, is_not and the
       // concentration note are built upstream and are the compliance surface.
