@@ -60,11 +60,13 @@ export interface IndicatorSpec {
    *
    * RW15 (2026-09-14/15) built the indicator half of that: VRB, DRP, LPI,
    * CCS, COC and SRCS are now `target − reference` with a `target` venue_id
-   * parameter, and no formula names a venue. But only gavel_arbitrum has a
-   * fixed-term lender-yield series, and which other venues to admit is an open
-   * operator decision (RW15 §7, decision 4) — every other target returns a
-   * structured absence. Until that decision, the default target IS the anchor,
-   * and this field says so.
+   * parameter, and no formula names a venue. The operator admitted "all venues
+   * where the indicators can be consistently and coherently applied"
+   * (2026-09-15): DRP, CCS and LPI now also run for every carded custodial desk
+   * (cefi_<desk>); VRB (needs a lender yield), COC (needs WBTC collateral) and
+   * SRCS (needs a dense series) admit gavel_arbitrum alone. These tools serve
+   * the default target and pass no `target`, so the default IS the anchor for
+   * everything they return, and this field says so.
    */
   anchoredTo?: string;
 }
@@ -200,11 +202,13 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'spread (percentage points)',
     description:
       'Target − reference: the target\'s fixed-term rate minus LCI (perp funding), both ' +
-      'continuously compounded. ⚠ The SIGN FLIPPED at RW15: positive now means the fixed-term ' +
-      'loan costs MORE than perp funding; before the break in breaks[] the series was LCI − target, ' +
-      'and each row carries its orientation. regime keeps its meaning (it describes the leverage ' +
-      'premium, LCI − target). LCI is a trailing average and the target a forward rate at the same N ' +
-      '(tenor_note).',
+      'continuously compounded, over the SAME N days — LCI_Nd is funding paid over the last N days, ' +
+      'so the target side is its N-day rate QUOTED N days ago (target_quoted_at, pairing_note). A ' +
+      'window whose quote does not reach back N days is an absence. ⚠ The SIGN FLIPPED and the ' +
+      'series was RE-PAIRED at RW15: positive now means the fixed-term loan cost MORE than perp ' +
+      'funding; before the break in breaks[] the series was LCI − today\'s forward rate, and each ' +
+      'row carries its orientation and pairing. regime keeps its meaning (the leverage premium, ' +
+      'LCI − target). Served for gavel_arbitrum; the API also computes it for each carded desk.',
     live: true,
   },
   {
@@ -219,7 +223,10 @@ export const INDICATORS: IndicatorSpec[] = [
       'Target − reference: the target\'s fixed-term rate minus the US Treasury bill of the SAME ' +
       'tenor, both continuously compounded, at 30, 90, 180 and 365 days only. Every other window ' +
       'is an absence (no bill matches), including 7, 14, 60 and 730 days, which were paired with a ' +
-      'bill or note of a different maturity before the break in breaks[].',
+      'bill or note of a different maturity before the break in breaks[]. Served for ' +
+      'gavel_arbitrum; the API also computes it for each carded desk at its card\'s bill-matching ' +
+      'term, with target_basis_status saying whether the desk\'s compounding basis is established ' +
+      'or assumed.',
     live: true,
   },
   {
@@ -305,9 +312,11 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'Target − reference: the target\'s rate minus a custodial desk\'s posted rate at the matched ' +
       'tenor, both continuously compounded. ⚠ The SIGN FLIPPED at RW15: NEGATIVE now means the ' +
-      'target is cheaper than the desk. A desk whose own pages do not establish one compounding ' +
-      'basis for its APR carries no value, only absent.ccs_range_cc. The CeFi inputs are ' +
-      'administered (posted) rates, not cleared trades.',
+      'target is cheaper than the desk. Every desk is valued: on the compounding basis its own ' +
+      'pages establish (cefi_basis_status established), or on the stated default — simple ' +
+      'interest paid at the end of the term — marked assumed, with ccs_range_cc giving the spread ' +
+      'across the desk\'s admissible bases. Weigh an assumed value by its range. The CeFi inputs ' +
+      'are administered (posted) rates, not cleared trades.',
     live: true,
   },
   {
