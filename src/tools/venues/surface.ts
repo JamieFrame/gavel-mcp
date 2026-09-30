@@ -47,7 +47,7 @@ const json = (data: unknown) => ({
 });
 
 /** criteria spec version rides in every observatory payload. */
-const CRITERIA_SPEC_VERSION = 'venue_reliability_criteria_v1 (v1.0)';
+const CRITERIA_SPEC_VERSION = 'venue_reliability_criteria_v1 (v1.1)';
 
 const withDisclosure = (data: unknown) => json({
   ...(data as Record<string, unknown>),

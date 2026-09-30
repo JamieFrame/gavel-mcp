@@ -29,7 +29,22 @@ import { requireTier } from '../../tiers.js';
 // ============================================================================
 
 /** venue_reliability_criteria_v1. Rides in every payload (spec §4). */
-const CRITERIA_SPEC_VERSION = 'venue_reliability_criteria_v1 (v1.0)';
+const CRITERIA_SPEC_VERSION = 'venue_reliability_criteria_v1 (v1.1)';
+
+/**
+ * Why an unpopulated cell is unpopulated (criteria v1.1 §0.7, the research floor).
+ * On a venue the upstream row marks `listed`, this dataset has DECIDED not to
+ * research the criteria — the venue is aggregator-sourced and under the floor —
+ * and saying "not researched yet" there would promise work nobody intends.
+ */
+function unresearchedReason(row: VenueRow): string {
+  const t = row.research_tier;
+  if (t?.tier === 'listed') {
+    const floor = typeof t.floor_usd === 'number' ? `$${(t.floor_usd / 1e6).toFixed(0)}m` : 'the';
+    return `below the research floor (criteria v1.1 §0.7): read only through an aggregator, and its 30-day book has not reached ${floor} in the last ${t.window_days ?? 90} days — listed, not researched`;
+  }
+  return 'not researched yet';
+}
 
 /**
  * Criteria spec §1–§3 — which pillar each RW12 attribute column belongs to.
@@ -52,6 +67,7 @@ interface VenueRow {
   attributes_complete?: number | null;
   attributes_total?: number | null;
   coverage?: Record<string, { level?: string | null }> | null;
+  research_tier?: { tier?: string | null; basis?: string | null; floor_usd?: number | null; window_days?: number | null } | null;
   [k: string]: unknown;
 }
 
@@ -67,6 +83,7 @@ const json = (data: unknown) => ({
  */
 function buildPillars(row: VenueRow) {
   const attrs = row.attributes ?? {};
+  const reason = unresearchedReason(row);
   const out: Record<string, Record<string, unknown>> = {};
   for (const [pillar, columns] of Object.entries(PILLARS)) {
     const cells: Record<string, unknown> = {};
@@ -75,7 +92,7 @@ function buildPillars(row: VenueRow) {
       cells[col] =
         cell && cell.value !== null && cell.value !== undefined
           ? { value: cell.value, source: cell.source }
-          : { value: 'unknown', source: null, reason: 'not researched yet' };
+          : { value: 'unknown', source: null, reason };
     }
     out[pillar] = cells;
   }
