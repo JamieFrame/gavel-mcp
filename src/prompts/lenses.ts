@@ -145,7 +145,7 @@ export const LENSES: readonly Lens[] = [
       '',
       '- **Oracle dependency** — none, single, multiple, TWAP. What the position depends on for a price.',
       '- **Liquidation mechanism** — none, threshold, progressive, discretionary. What can end the position other than the borrower.',
-      '- **Custody model** — self-custody, protocol-custodial, third-party. Who can move the collateral.',
+      '- **Custody model** — self-custody, protocol-custodial, third-party, custodial with reuse (the lender may lend, pledge, sell or take title to the collateral), shared key (a multisignature in which the borrower holds a key). Who can move the collateral, and what they may do with it.',
       '- **Recourse** — non-recourse, with recourse, partial. What is owed beyond the collateral.',
       '',
       'Give each cell WITH ITS SOURCE — the contract, filing or documentation that establishes it. Where a cell is `unknown`, present the reason and say whether the gap is this dataset\'s or something the venue does not publish. Those are different findings about a venue and the distinction is often the most useful thing on the row.',

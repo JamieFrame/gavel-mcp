@@ -29,7 +29,7 @@ import { requireTier } from '../../tiers.js';
 // ============================================================================
 
 /** venue_reliability_criteria_v1. Rides in every payload (spec §4). */
-const CRITERIA_SPEC_VERSION = 'venue_reliability_criteria_v1 (v1.1)';
+const CRITERIA_SPEC_VERSION = 'venue_reliability_criteria_v1 (v1.2)';
 
 /**
  * Why an unpopulated cell is unpopulated (criteria v1.1 §0.7, the research floor).
