@@ -326,7 +326,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/intermediation-spread',
     historyPath: '/v1/credit/intermediation-spread/history',
     units: 'spread',
-    description: "The wedge between borrow and lend rates — Gavel's beside everyone else's.",
+    description: "The wedge between borrow and lend rates — Gavel's beside everyone else's. For DeFi venues the spread is served but the two rate legs are withheld (DefiLlama data, not redistributed). Payloads carry a `withheld` block naming each field returned as null and why.",
     live: true,
   },
   {
@@ -336,7 +336,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/capital-stack',
     historyPath: null,
     units: 'APR (%) by layer',
-    description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors.',
+    description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors. The variable DeFi layers are currently withheld (DefiLlama data, not redistributed) and return empty. Payloads carry a `withheld` block naming each field returned as null and why.',
     live: true,
   },
   {
@@ -447,7 +447,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/defi-rates/current',
     historyPath: '/v1/market/defi-rates/history',
     units: 'APR (%)',
-    description: 'Current borrow/supply rates at comparable DeFi venues.',
+    description: 'Which comparable DeFi venues and assets are observed, with their timestamps. The borrow/supply/TVL values are DefiLlama data and are currently withheld (returned as null). Payloads carry a `withheld` block naming each field returned as null and why.',
     live: true,
   },
   {
@@ -457,7 +457,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/rates/comparison',
     historyPath: '/v1/market/rates/comparison/history',
     units: 'APR (%)',
-    description: 'Gavel rates beside CeFi and DeFi comparators at matched tenors.',
+    description: 'Gavel rates beside CeFi, treasury and funding comparators at matched tenors. The DeFi (Aave/Compound/Morpho) columns are DefiLlama data and are currently withheld (returned as null). Payloads carry a `withheld` block naming each field returned as null and why.',
     live: true,
   },
   {
@@ -467,7 +467,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/stablecoins/current',
     historyPath: '/v1/market/stablecoins/history',
     units: 'USD',
-    description: 'Aggregate stablecoin supply, the liquidity backdrop for the lending side.',
+    description: 'Stablecoin market cap and dominance, the liquidity backdrop for the lending side. Supply by issuer and chain is DefiLlama data and is currently withheld (returned as null); issuer and chain coverage is still listed. Payloads carry a `withheld` block naming each field returned as null and why.',
     live: true,
   },
   {
