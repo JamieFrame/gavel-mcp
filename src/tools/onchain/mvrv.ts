@@ -46,7 +46,10 @@ export function registerMvrvTool(server: McpServer): void {
         `coins above or below what was last paid for them — and nothing about ` +
         `what follows from that. This tool returns data; it does not advise, ` +
         `forecast, or characterise the market.\n\n` +
-        `Computed nightly from Aletheia's own full node and UTXO set. ` +
+        `Computed nightly from Aletheia's own full node and UTXO set, valued ` +
+        `with a third-party BTC/USD price series (CoinGecko for the current ` +
+        `price): the supply and each coin's age are Aletheia's, the prices are ` +
+        `not. ` +
         `'mvrv_z_score' is returned alongside it: the same numerator measured ` +
         `in standard deviations of the historical market-cap series.\n\n` +
         `Returns: { value, mvrv_z_score, as_of, inputs: { market_cap_usd, ` +
@@ -80,8 +83,10 @@ export function registerMvrvTool(server: McpServer): void {
         },
         methodology:
           'market_cap_usd / realised_cap_usd. Realised cap values each UTXO at ' +
-          'the spot price when it was created. Computed nightly from Aletheia’s ' +
-          'own Bitcoin full node and UTXO set; no third-party data source.',
+          'the BTC/USD price on the day it was created. The UTXO set and supply ' +
+          'come from Aletheia’s own Bitcoin full node, computed nightly; the ' +
+          'BTC/USD prices (spot_price_usd, and the daily prices realised cap is ' +
+          'valued at) are a third-party price series (CoinGecko for the current price).',
         disclaimer:
           'Informational. Aletheia Analytics SASU operates this interface and ' +
           'data product; the Gavel Protocol is autonomous, permissionless code ' +
