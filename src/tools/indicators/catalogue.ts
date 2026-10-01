@@ -414,9 +414,10 @@ export const INDICATORS: IndicatorSpec[] = [
     name: 'On-chain Indicators (latest)',
     family: 'onchain',
     path: '/v1/onchain/indicators/latest',
-    // CORRECTED 2026-08-26: '/v1/onchain/indicators/history' 404s; the flat
-    // path is the one actually mounted and answers 200 directly.
-    historyPath: '/v1/indicators/history',
+    // 2026-10-01: the route now sits behind namespacing (gavel-indexer, BCS
+    // loose ends), so the namespaced path answers and the flat one 301s to it.
+    // (Until then the flat path was mounted ahead of the rewrite and this 404'd.)
+    historyPath: '/v1/onchain/indicators/history',
     units: 'mixed',
     description:
       'The full commodity on-chain set in one response: MVRV, MVRV-z, SOPR (and 7d/z), realised cap and price, STH/LTH supply and cost basis, circulating supply, spot price.',
@@ -426,13 +427,12 @@ export const INDICATORS: IndicatorSpec[] = [
     id: 'hodl-waves',
     name: 'HODL Waves',
     family: 'onchain',
-    // CORRECTED 2026-08-26. This read '/v1/onchain/indicators/hodl-waves',
-    // which 404s and always has: the namespaced route was never mounted.
-    // The flat path below answers 200 directly - it is not a redirect.
-    // SV4 reported this one as live:true-at-a-404 and it was STILL true today,
-    // which is why the fix ships with scripts/check-advertised.mjs rather than
-    // on its own.
-    path: '/v1/indicators/hodl-waves',
+    // 2026-10-01: namespaced again. The route was mounted ahead of the
+    // namespacing rewrite, which is why this path 404'd and the 2026-08-26
+    // correction pointed at the flat one; it now sits behind the rewrite (and
+    // the property split and rate gate), so the flat path 301s here.
+    // scripts/check-advertised.mjs still guards it.
+    path: '/v1/onchain/indicators/hodl-waves',
     historyPath: null,
     units: 'percent of supply by age band',
     description: 'UTXO supply distribution across twelve age bands, from under a day to over ten years.',
