@@ -54,7 +54,8 @@ export function registerMvrvTool(server: McpServer): void {
         `in standard deviations of the historical market-cap series.\n\n` +
         `Returns: { value, mvrv_z_score, as_of, inputs: { market_cap_usd, ` +
         `realised_cap_usd, realised_price_usd, spot_price_usd }, ` +
-        `methodology, disclaimer }.`,
+        `methodology, attribution, disclaimer }. 'attribution' carries the ` +
+        `source credit for third-party figures; show it with them.`,
       inputSchema: {
         timestamp: z
           .string()
@@ -87,6 +88,9 @@ export function registerMvrvTool(server: McpServer): void {
           'come from Aletheia’s own Bitcoin full node, computed nightly; the ' +
           'BTC/USD prices (spot_price_usd, and the daily prices realised cap is ' +
           'valued at) are a third-party price series (CoinGecko for the current price).',
+        // BCS remediation P4: the upstream's source credit (CoinGecko for the
+        // BTC/USD price) travels with the figures built on it.
+        attribution: (data as { attribution?: unknown }).attribution ?? null,
         disclaimer:
           'Informational. Aletheia Analytics SASU operates this interface and ' +
           'data product; the Gavel Protocol is autonomous, permissionless code ' +
