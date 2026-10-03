@@ -173,7 +173,8 @@ export const INDICATORS: IndicatorSpec[] = [
       'NOT a Gavel rate: sourced from Binance BTCUSDT 8-hour funding, summed over the rolling ' +
       'window and annualised. Positive means longs pay shorts (net long conviction); negative ' +
       'means shorts pay longs. Functions as the zero-duration point of the capital stack.',
-    live: true,
+    live: false,
+    note: 'Retired 2026-10-02 (PV1 G0-2c): Binance perpetual-futures data is not licensed for redistribution. The route still answers, with null values and a `retired` block; the history is retained, not served.',
   },
   {
     id: 'vrb',
@@ -209,7 +210,8 @@ export const INDICATORS: IndicatorSpec[] = [
       'funding; before the break in breaks[] the series was LCI − today\'s forward rate, and each ' +
       'row carries its orientation and pairing. regime keeps its meaning (the leverage premium, ' +
       'LCI − target). Served for gavel_arbitrum; the API also computes it for each carded desk.',
-    live: true,
+    live: false,
+    note: 'Retired 2026-10-02 (PV1 G0-2c) with LCI, its reference leg: Binance perpetual-futures data is not licensed for redistribution. The route still answers, with null values and a `retired` block; the history is retained, not served.',
   },
   {
     id: 'drp',
@@ -247,7 +249,8 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: '/v1/credit/sdr/history',
     units: 'percent',
     description: 'Stablecoin market cap as a share of total crypto market cap.',
-    live: true,
+    live: false,
+    note: 'Retired 2026-10-02 (PV1 G0-2g): total crypto market capitalisation has no root source. The route still answers, with null values and a `retired` block; the history is retained, not served.',
   },
   {
     id: 'coc',
@@ -336,7 +339,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/capital-stack',
     historyPath: null,
     units: 'APR (%) by layer',
-    description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors. The variable DeFi layers are currently withheld (DefiLlama data, not redistributed) and return empty. Payloads carry a `withheld` block naming each field returned as null and why.',
+    description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors. The variable DeFi layers are currently withheld (DefiLlama data, not redistributed) and return empty. The leveraged (perp funding) layer is retired (PV1, 2026-10-02) and returns empty. Payloads carry `withheld` and `retired` blocks naming each field returned empty or null and why.',
     live: true,
   },
   {
@@ -357,9 +360,10 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: null,
     units: 'mixed',
     description:
-      'Fourteen credit indicators in one response: the yield curve (rates, fit and both shape ' +
-      'classifications), tci, tsr, cdr, implied_price, lci, vrb, lpi, drp, sli, sdr, srcs, coc ' +
-      'and ccpi. Cheaper than fetching these individually when building a dashboard. ' +
+      'Eleven credit indicators in one response: the yield curve (rates, fit and both shape ' +
+      'classifications), tci, tsr, cdr, implied_price, vrb, drp, sli, srcs, coc and ccpi. lci, ' +
+      'lpi and sdr are retired (PV1, 2026-10-02): their keys stay, null, named in `retired`. ' +
+      'Cheaper than fetching these individually when building a dashboard. ' +
       'It is NOT the whole catalogue — surface, gls, mrys, ccs, intermediation-spread, ' +
       'capital-stack and benchmark-curves have their own endpoints, and the response carries a ' +
       '_coverage block listing exactly what is and is not included. Check it rather than ' +
@@ -457,7 +461,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/rates/comparison',
     historyPath: '/v1/market/rates/comparison/history',
     units: 'APR (%)',
-    description: 'Gavel rates beside CeFi, treasury and funding comparators at matched tenors. The DeFi (Aave/Compound/Morpho) columns are DefiLlama data and are currently withheld (returned as null). Payloads carry a `withheld` block naming each field returned as null and why.',
+    description: 'Gavel rates beside CeFi and treasury comparators at matched tenors. The DeFi (Aave/Compound/Morpho) columns are DefiLlama data and are currently withheld (returned as null); the BTC funding column is retired (PV1, 2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
     live: true,
   },
   {
@@ -467,7 +471,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/stablecoins/current',
     historyPath: '/v1/market/stablecoins/history',
     units: 'USD',
-    description: 'Stablecoin market cap and dominance, the liquidity backdrop for the lending side. Supply by issuer and chain is DefiLlama data and is currently withheld (returned as null); issuer and chain coverage is still listed. Payloads carry a `withheld` block naming each field returned as null and why.',
+    description: 'Stablecoin market cap, the liquidity backdrop for the lending side. Supply by issuer and chain is DefiLlama data and is currently withheld (returned as null); issuer and chain coverage is still listed. Stablecoin dominance is retired (PV1, 2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
     live: true,
   },
   {
