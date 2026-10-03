@@ -54,7 +54,11 @@ const record = (kind, name, detail, passed) =>
 async function head(path) {
   try {
     const r = await fetch(`${BASE}${path}`, { method: 'GET', redirect: 'follow' });
-    return { status: r.status };
+    // PV1 R1: a retired route answers 200 with a `retired` block (null values and
+    // the reason). Read it, so a deliberate retirement is not graded as drift.
+    let retired = false;
+    try { const j = await r.json(); retired = !!(j && typeof j === 'object' && j.retired); } catch { /* not JSON */ }
+    return { status: r.status, retired };
   } catch (e) {
     return { status: 0, error: String(e?.message ?? e) };
   }
@@ -67,10 +71,12 @@ async function checkIndicatorCatalogue() {
     // and that is worth knowing too.
     const paths = [ind.path, ind.historyPath].filter(Boolean);
     for (const p of paths) {
-      const { status, error } = await head(p);
+      const { status, error, retired } = await head(p);
       const answers = status >= 200 && status < 300;
       if (ind.live && !answers) {
         record('indicator', `${ind.id} ${p}`, `advertised live:true but returned ${error ?? status}`, false);
+      } else if (!ind.live && answers && retired) {
+        record('indicator', `${ind.id} ${p}`, `${status}, retired — answers with the reason, as declared`, true);
       } else if (!ind.live && answers) {
         record('indicator', `${ind.id} ${p}`, `marked live:false but answers 200 — catalogue understates it`, false);
       } else {
