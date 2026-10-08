@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
+import { collateralInput, COLLATERAL_DESCRIPTION, etherAbsent, ETHER_USD_LIMITATION } from './collateral.js';
 
 // ============================================================================
 // The observatory's venue tools — OB1 §1.3.
@@ -118,8 +119,11 @@ export function registerVenueTools(server: McpServer): void {
         `order. All filters are optional and unspecified means no constraint.\n\n` +
         `⚠ A venue's presence is not a statement about it. Coverage 'none' means ` +
         `nothing is ingested yet, which is a declared gap, not an observation about ` +
-        `the venue.`,
+        `the venue.\n\n` +
+        `${COLLATERAL_DESCRIPTION} With collateral: 'eth' only the venues that take ` +
+        `ether as collateral are returned (a venue taking both appears under both).`,
       inputSchema: {
+        collateral: collateralInput,
         venue_type: z
           .string()
           .optional()
@@ -142,15 +146,36 @@ export function registerVenueTools(server: McpServer): void {
           .describe(`Cap the rows returned. Default 50. The response always states the unfiltered total.`),
       },
     },
-    async ({ venue_type, status, chain_id, complete_attributes_only, limit }) => {
+    async ({ collateral, venue_type, status, chain_id, complete_attributes_only, limit }) => {
       requireTier('free');
-      const data = (await upstreamGet('/v1/market/venues', {})) as {
+      // The route lists the bitcoin-scope venues by default; venues that take
+      // only ether (Liquity, …) are outside that scope, so ether reads them all.
+      const data = (await upstreamGet('/v1/market/venues', collateral === 'eth' ? { query: { scope: 'all' } } : {})) as {
         venues?: VenueRow[];
         count?: number;
         [k: string]: unknown;
       };
       const all = data.venues ?? [];
+      // Which venues take the collateral asked for. The registry's own
+      // collateral_set decides where rows carry it (A1); until they do, the
+      // venues of the ether tree are the ones that take ether.
+      let takes: ((v: VenueRow) => boolean) | null = null;
+      let collateralBasis: string | undefined;
+      if (collateral) {
+        if (all.some((v) => Array.isArray(v.collateral_set))) {
+          takes = (v) => Array.isArray(v.collateral_set) && (v.collateral_set as string[]).includes(collateral);
+          collateralBasis = 'the registry row\'s collateral_set';
+        } else if (collateral === 'eth') {
+          const tree = (await upstreamGet('/v1/market/tree', { query: { collateral: 'eth' } })) as { venues?: Record<string, unknown> };
+          const ids = new Set(Object.keys(tree.venues ?? {}));
+          takes = (v) => ids.has(v.venue_id);
+          collateralBasis = 'the venues of the ether tree (/v1/market/tree?collateral=eth); registry rows do not carry collateral_set yet';
+        } else {
+          collateralBasis = 'bitcoin: every registry row, as without the input';
+        }
+      }
       const filtered = all.filter((v) => {
+        if (takes && !takes(v)) return false;
         if (venue_type && v.venue_type !== venue_type) return false;
         if (status && v.status !== status) return false;
         if (chain_id !== undefined && v.chain_id !== chain_id) return false;
@@ -162,9 +187,12 @@ export function registerVenueTools(server: McpServer): void {
       // Everything the envelope carried, minus the row array we are replacing.
       const { venues: _replaced, ...envelope } = data;
       return json({
+        ...(collateral ? { collateral, collateral_basis: collateralBasis } : {}),
         ...envelope,
         criteria_spec_version: CRITERIA_SPEC_VERSION,
-        filters_you_supplied: { venue_type, status, chain_id, complete_attributes_only, limit: cap },
+        filters_you_supplied: collateral
+          ? { collateral, venue_type, status, chain_id, complete_attributes_only, limit: cap }
+          : { venue_type, status, chain_id, complete_attributes_only, limit: cap },
         count_in_registry: all.length,
         count_matching_filters: filtered.length,
         count_returned: rows.length,
@@ -193,20 +221,52 @@ export function registerVenueTools(server: McpServer): void {
         `⚠ 'unknown' is a value, not an omission — a criterion that cannot be ` +
         `established from public sources says so with its reason. A class-specific ` +
         `'not_applicable' and an unresearched 'unknown' are different answers and ` +
-        `are never conflated.`,
+        `are never conflated.\n\n` +
+        `${COLLATERAL_DESCRIPTION} With collateral: 'eth' the criteria come with ` +
+        `the venue's ether figures (the six tiles and books); a venue that does not ` +
+        `take ether says so.`,
       inputSchema: {
         venue_id: z
           .string()
           .describe(`Registry id, e.g. 'aave_v3_arbitrum'. Call list_venues to discover valid ids.`),
+        collateral: collateralInput,
       },
     },
-    async ({ venue_id }) => {
+    async ({ venue_id, collateral }) => {
       requireTier('free');
       const row = (await upstreamGet(`/v1/market/venues/${encodeURIComponent(venue_id)}`, {})) as VenueRow;
+      if (collateral !== 'eth') {
+        return json({
+          ...(collateral === 'btc' ? { collateral: 'btc' } : {}),
+          ...row,
+          criteria_spec_version: CRITERIA_SPEC_VERSION,
+          pillars: buildPillars(row),
+        });
+      }
+      const head = (await upstreamGet('/v1/market/venue-headline', {
+        query: { venue: venue_id, collateral: 'eth' },
+      })) as { venues?: Array<Record<string, unknown>>; [k: string]: unknown };
+      const figures = (head.venues ?? []).find((v) => v.venue_id === venue_id) ?? null;
       return json({
+        collateral: 'eth',
         ...row,
         criteria_spec_version: CRITERIA_SPEC_VERSION,
         pillars: buildPillars(row),
+        ...(figures
+          ? {
+              ether: {
+                as_of: head.as_of,
+                eth_rate: head.eth_rate,
+                figures,
+                usd_limitation: ETHER_USD_LIMITATION,
+              },
+            }
+          : {
+              ether: {
+                absent: 'venue does not take eth',
+                collateral_set: Array.isArray(row.collateral_set) ? row.collateral_set : undefined,
+              },
+            }),
       });
     }
   );
@@ -233,16 +293,28 @@ export function registerVenueTools(server: McpServer): void {
         venues: z.string().optional().describe(`Comma-separated registry ids to restrict the rows to, e.g. 'aave_v3_ethereum,cefi_ledn'.`),
         class: z.enum(['algorithmic', 'minted', 'auction', 'posted-card', 'corporate']).optional()
           .describe(`Restrict to one credit class. The full matrix is ~160 rows; one class is far lighter.`),
+        // ⚠ RW1 above: this input is read. 'eth' returns a structured absence
+        // naming where the ether figures are, never the bitcoin matrix.
+        collateral: collateralInput,
       },
     },
-    async ({ tenor_days, ltv, side, venues, class: cls }) => {
+    async ({ tenor_days, ltv, side, venues, class: cls, collateral }) => {
       requireTier('free');
+      if (collateral === 'eth') {
+        return json({
+          ...etherAbsent(
+            'a tenor and LTV comparison: /v1/venues/compare prices bitcoin-secured credit only',
+            "Each venue's ether rates and LTV: get_venue with collateral: 'eth'; the ether market by class: get_credit_state with collateral: 'eth'.",
+          ),
+          criteria_spec_version: CRITERIA_SPEC_VERSION,
+        });
+      }
       const data = (await upstreamGet('/v1/venues/compare', {
         query: { tenor_days, ltv, side, venues, class: cls },
       })) as Record<string, unknown>;
       // Passed through untouched — ordering, comparison_caveat, is_not and the
       // concentration note are built upstream and are the compliance surface.
-      return json({ ...data, criteria_spec_version: CRITERIA_SPEC_VERSION});
+      return json({ ...(collateral === 'btc' ? { collateral: 'btc' } : {}), ...data, criteria_spec_version: CRITERIA_SPEC_VERSION});
     }
   );
 }
