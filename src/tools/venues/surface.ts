@@ -14,6 +14,7 @@ import { requireTier } from '../../tiers.js';
 //   get_credit_state_history  -> GET /v1/market/credit-state/history
 //   get_market_composition    -> GET /v1/market/composition
 //   get_market_flows          -> GET /v1/market/flows
+//   get_liquidation_map       -> GET /v1/market/liquidation-map(/history)  (HX1 Phase 4, 2026-10-08)
 //
 // ⚠ ONLY get_credit_state IS GENUINELY CROSS-VENUE (15 of 20 venues at the
 // current reading, with the 5 absent ones named). /v1/market/composition and
@@ -146,6 +147,41 @@ export function registerSurfaceTools(server: McpServer): void {
     async () => {
       requireTier('free');
       return withDisclosure(await upstreamGet('/v1/market/flows', {}));
+    }
+  );
+
+  server.registerTool(
+    'get_liquidation_map',
+    {
+      title: 'Where bitcoin-secured debt is liquidated',
+      description:
+        `How much bitcoin-secured dollar debt is liquidated at which bitcoin price, ` +
+        `for the market, a class or a venue? An identity on observed positions: ` +
+        `each bitcoin-only position at the price its OWN venue's rule liquidates ` +
+        `it, summed into $1,000 buckets, with the debt within 10/20/30% of each ` +
+        `venue's own mark, the debt already past its venue's test, and overflow.\n\n` +
+        `It does not forecast what a fall in the price would do, it does not rank ` +
+        `venues (they are listed by name) and it gives no verdict such as "at risk".\n\n` +
+        `⚠ Read coverage and not_bucketed first. Only venues read position by ` +
+        `position are in the map (the pooled venues, Morpho on Ethereum and Base, ` +
+        `Sky); every other venue with debt is named with its reason and is never ` +
+        `scaled up. With history=true the bands come as a daily series: Sky from ` +
+        `2020-05-03, the rest from 2026-10-08 — a step there is coverage, not the market.`,
+      inputSchema: {
+        level: z.enum(['market', 'class', 'venue']).optional().describe('Default market.'),
+        id: z.string().optional().describe('A class id (algorithmic, minted, ...) or a venue id; required below the market.'),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('A day held; default the latest.'),
+        history: z.boolean().optional().describe('Return the bands through time instead of one day\'s buckets.'),
+        from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('With history: the first day.'),
+        to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('With history: the last day.'),
+        as_known_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('With history: the bands as published at the end of that day (UTC).'),
+      },
+    },
+    async ({ level, id, date, history, from, to, as_known_on }) => {
+      requireTier('free');
+      return withDisclosure(history
+        ? await upstreamGet('/v1/market/liquidation-map/history', { query: { level, id, from, to, as_known_on } })
+        : await upstreamGet('/v1/market/liquidation-map', { query: { level, id, date } }));
     }
   );
 }
