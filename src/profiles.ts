@@ -133,6 +133,12 @@ const OBSERVATORY_INSTRUCTIONS = [
   `on this server: nothing here signs, submits, broadcasts or prepares a`,
   `transaction, and no tool takes custody of funds or receives a mandate.`,
   ``,
+  // EC1 Phase 5 (operator 2026-10-08) — listing copy §7.7 paragraph two.
+  `Bitcoin is the default collateral. The same measurements are made for credit`,
+  `secured by ether — ether, staking and restaking tokens, each at its own contract`,
+  `rate — and the two are never added together. Pass collateral: 'eth' on the credit`,
+  `tools to read the ether side; a venue that does not take ether says so.`,
+  ``,
   `Where the operator holds a position at a venue, that is disclosed on that`,
   `venue's own row rather than as a statement about this dataset — read the`,
   `venue's disclosure field.`,
