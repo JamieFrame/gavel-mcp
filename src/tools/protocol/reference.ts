@@ -107,6 +107,7 @@ const IMPORTANT_NOTES = [
   'Before placeBid, the lender must call ERC20.approve(LoanProtocol, repaymentAmount) on the loan token — note: approval covers the BID amount, since the lender pays the lower of repayment vs loanAmount up front.',
   'For marketplace operations involving Position NFTs, the holder must first call setApprovalForAll(ListingService, true) on the relevant PositionNFT contract.',
   'The whitelisted loan tokens are USDC and USDT (USD₮0). WBTC is the only whitelisted collateral. Custom pairs require admin action — see isLoanTokenWhitelisted().',
+  'Known issue KI-3: repayLoan transfers the repayment directly to the current holder of the lender position. On a USDC loan it reverts while USDC refuses that holder (blacklist) or is paused, and after maturity plus the grace period the holder may claim the collateral. USD₮0 does not refuse transfers to a blacklisted recipient. GET /v1/loans/:id/status reports lender_holder, repayment_blocked and repayment_blocked_reasons. https://github.com/JamieFrame/The-Gavel-Protocol/blob/main/docs/known-issues.md#ki-3--repayment-reverts-if-the-loan-token-refuses-transfers-to-the-lender-position-holder',
 ] as const;
 
 export interface ContractAddresses {

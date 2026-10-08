@@ -405,7 +405,10 @@ export function registerFactoryTools(server: McpServer): void {
           `${a.auction_duration_hours} hours, competing to offer you the lowest repayment. ` +
           `You have capped repayment at ${a.max_repayment} ${loanMeta.symbol}, which at ` +
           `${a.loan_duration_days} days is about ${impliedApr.toFixed(2)}% annualised in the worst case — ` +
-          `the winning bid should be better. If you do not repay by maturity, you lose the collateral.`,
+          `the winning bid should be better. If you do not repay by maturity, you lose the collateral.` +
+          (loanMeta.symbol === 'USDC'
+            ? ` On a USDC loan, repayment can also be prevented when USDC refuses to pay the holder of the lender position, or is paused (known issue KI-3: https://github.com/JamieFrame/The-Gavel-Protocol/blob/main/docs/known-issues.md#ki-3--repayment-reverts-if-the-loan-token-refuses-transfers-to-the-lender-position-holder).`
+            : ''),
         parametersYouSupplied: {
           collateral_token: collateralToken,
           collateral_amount: a.collateral_amount,
@@ -453,6 +456,9 @@ export function registerFactoryTools(server: McpServer): void {
         `including the prerequisite approval for the repayment amount.\n\n` +
         `Validates that the loan is live and that you are its borrower. Repay ` +
         `before maturity or the lender may claim your collateral.\n\n` +
+        `The repayment is transferred directly to the current holder of the lender position. ` +
+        `On a USDC loan it reverts if USDC refuses that holder or is paused (known issue KI-3); ` +
+        `the blueprint then carries a warning saying so.\n\n` +
         REGULATORY_NOTICE,
       inputSchema: {
         loan_id: z.number().int().describe(`The loan to repay. See get_user_positions.`),
@@ -487,6 +493,21 @@ export function registerFactoryTools(server: McpServer): void {
       const repayment = toBaseUnits(String(loan.repayment), meta.decimals);
 
       const warnings: string[] = [];
+      // SR2 (KI-3): /v1/loans/:id/status reads the lender-position holder and the loan token live.
+      if (loan.repayment_blocked === true) {
+        const why: Record<string, string> = {
+          holder_blocklisted: `${meta.symbol} refuses transfers to the current holder of the lender position`,
+          holder_is_token_contract: `the lender position is held by the ${meta.symbol} contract itself`,
+          token_paused: `${meta.symbol} transfers are paused by the issuer`,
+        };
+        const reasons = Array.isArray(loan.repayment_blocked_reasons)
+          ? loan.repayment_blocked_reasons.map((r: string) => why[r] ?? r).join('; ')
+          : 'the loan token refuses the transfer';
+        warnings.push(
+          `This repayment would revert now: ${reasons} (holder ${loan.lender_holder ?? 'unknown'}). ` +
+            `The repayment goes directly to that holder. See known issue KI-3: https://github.com/JamieFrame/The-Gavel-Protocol/blob/main/docs/known-issues.md#ki-3--repayment-reverts-if-the-loan-token-refuses-transfers-to-the-lender-position-holder`
+        );
+      }
       const balance = await balanceOf(net, loanToken, borrower);
       if (balance < repayment) {
         warnings.push(
