@@ -345,12 +345,12 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'intermediation-spread',
-    name: 'Intermediation Spread',
-    family: 'credit',
-    path: '/v1/credit/intermediation-spread',
-    historyPath: '/v1/credit/intermediation-spread/history',
-    units: 'spread',
-    description: "The wedge between borrow and lend rates — Gavel's beside everyone else's. For DeFi venues the spread is served but the two rate legs are withheld (DefiLlama data, not redistributed). Payloads carry a `withheld` block naming each field returned as null and why.",
+    name: 'Borrow over lend rate, per class',
+    family: 'market',
+    path: '/v1/market/measure/intermediation-spread',
+    historyPath: '/v1/market/measure/intermediation-spread/history',
+    units: 'percent_cc (points)',
+    description: 'What borrowers pay over what lenders earn, per class, where both legs come from the same venues: pools (from 2022-09-19) and the desks that post both rates (from 2026-10-07). Not at market level, where the two legs come from different classes; not for minted stablecoins (no lender) or auctions (one price). Recast at IX1 Phase 3 (2026-10-09) from a one-venue comparison.',
     live: true,
   },
   {
