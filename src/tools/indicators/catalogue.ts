@@ -524,12 +524,12 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'btc-price',
-    name: 'BTC Spot Price',
+    name: 'BTC Reference Price (on-chain)',
     family: 'market',
-    path: '/v1/market/prices/btc',
-    historyPath: '/v1/market/prices/btc/history',
-    units: 'USD',
-    description: 'Spot BTC price as used across the indicator set.',
+    path: '/v1/onchain/series/price.btc_in_basket',
+    historyPath: '/v1/onchain/series/price.btc_in_basket',
+    units: 'USDBASKET_per_BTC (basket dollars, not fiat)',
+    description: 'Our own daily BTC price, read on chain: the median across bitcoin wrappers (WBTC, cbBTC) of their pools against USDC and USDT, priced in a basket of dollar stablecoins, from 2020-07-13. Not CoinGecko. Each wrapper’s own peg is published separately. Recast at IX1 sitting D (2026-10-09) from a CoinGecko spot price.',
     live: true,
   },
   // CX1 Gate 8 (operator 2026-10-09): three governed indices, descriptive, free with
