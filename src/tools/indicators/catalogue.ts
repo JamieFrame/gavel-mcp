@@ -527,6 +527,88 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'For WBTC, tBTC, kBTC and cdcBTC: bitcoin at the issuer-published reserve addresses, read on our own node, over the token supply. One value per wrapper, never combined, no verdict. Wrappers without a full published address list or a fully read supply are listed with the reason.',
     live: true,
   },
+  // CX1 Gate 8 option A (operator 2026-10-09): the joint credit x on-chain measures, each a named
+  // descriptive series with its methodology on www.bitcoincreditstack.com/indicators/<id>. Not indices.
+  {
+    id: 'collateral-share',
+    name: 'Bitcoin collateral as a share of supply',
+    family: 'market',
+    path: '/v1/market/measure/collateral-share',
+    historyPath: '/v1/market/measure/collateral-share/history',
+    units: 'ratio',
+    description: 'Q2b. The share of all spendable bitcoin posted as collateral against lien-backed debt: the market, each class and the fixed 2022 panel, as read on each date. Coverage steps (venues entering) are named on every value, never smoothed; the chain-linked version is bcsi. Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'holdings-share',
+    name: 'Corporate bitcoin holdings as a share of supply',
+    family: 'market',
+    path: '/v1/market/measure/holdings-share',
+    historyPath: '/v1/market/measure/holdings-share/history',
+    units: 'ratio',
+    description: 'Q2c. The share of spendable bitcoin held by the issuers in the registry, from their filings: steps at filing dates, and holdings, not collateral (no lien). Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'liq-over-realised',
+    name: 'Liquidation price over realised price',
+    family: 'market',
+    path: '/v1/market/measure/liq-over-realised',
+    historyPath: '/v1/market/measure/liq-over-realised/history',
+    units: 'ratio',
+    description: 'Q8. Where the book liquidates as a multiple of the realised price, for the market and the pool and minted classes. Rests on CoinGecko prices for coins created before 2020-07-13: free, attributed use only (licence on every value). Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'debt-over-realised-cap',
+    name: 'Secured debt over realised cap',
+    family: 'market',
+    path: '/v1/market/measure/debt-over-realised-cap',
+    historyPath: '/v1/market/measure/debt-over-realised-cap/history',
+    units: 'ratio',
+    description: 'Q2a. Bitcoin-secured dollar debt over realised cap. Rests on CoinGecko prices for coins created before 2020-07-13: free, attributed use only. Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'borrow-spread',
+    name: 'Borrow spread over the 3-month bill',
+    family: 'market',
+    path: '/v1/market/measure/borrow-spread',
+    historyPath: '/v1/market/measure/borrow-spread/history',
+    units: 'percent_cc',
+    description: 'Q5. The credit tree’s borrow rate minus the 3-month Treasury bill (H.15, continuously compounded), for the market and each class, as read on each date: coverage steps move it. The chain-linked version is bsbs. Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'costbasis-near-liquidation',
+    name: 'Supply whose cost basis sits in the liquidation bands',
+    family: 'market',
+    path: '/v1/market/measure/costbasis-near-liquidation',
+    historyPath: '/v1/market/measure/costbasis-near-liquidation/history',
+    units: 'BTC',
+    description: 'Q1. Bitcoin that last moved at a price within 10, 20 or 30% below the market mark, beside the debt in the same liquidation bands. Some dates rest on CoinGecko prices (licence on every value). Descriptive, not a forecast.',
+    live: true,
+  },
+  {
+    id: 'btc-released-at-fall',
+    name: 'Bitcoin liquidations would release at a fall',
+    family: 'market',
+    path: '/v1/market/measure/btc-released-at-fall',
+    historyPath: '/v1/market/measure/btc-released-at-fall/history',
+    units: 'BTC',
+    description: 'Q7. Bitcoin that liquidations would release if every venue’s own mark fell 10, 20 or 30%, from the positions as they stand, with each venue’s liquidation incentive; absent where an incentive is not yet read (the venues are named). Arithmetic on the book, not a forecast.',
+    live: true,
+  },
+  {
+    id: 'credit-weekly-change',
+    name: 'Weekly change in bitcoin-secured credit, matched venues',
+    family: 'market',
+    path: '/v1/market/measure/credit-weekly-change',
+    historyPath: '/v1/market/measure/credit-weekly-change/history',
+    units: 'ratio',
+    description: 'Q4. The change over 7 days in debt and in collateral across only the venues read on both dates, with and without venues the integrity check flags. The finding built on it (no co-movement with old-coin spending) is published on the site. Descriptive, not a signal.',
+    live: true,
+  },
 ];
 
 export function findIndicator(id: string): IndicatorSpec | undefined {
@@ -542,7 +624,7 @@ export const isAnchored = (spec: IndicatorSpec): boolean => Boolean(spec.anchore
 /** The catalogue a given profile may publish. The observatory publishes only
  *  venue-independent indicators; the Gavel server publishes everything. */
 export function catalogueFor(profileId: string): IndicatorSpec[] {
-  // DISJOINT, and that is the point. The observatory publishes the 26 (23, plus CX1's three indices)
+  // DISJOINT, and that is the point. The observatory publishes the 34 (23, plus CX1's three indices and eight measures)
   // venue-independent indicators; the Gavel server publishes the 10 anchored on
   // its own rate. Neither publishes the other's, so OB1 §0.3's one-tool-one-home
   // rule holds at the catalogue level too: the pair appears on both servers, but
