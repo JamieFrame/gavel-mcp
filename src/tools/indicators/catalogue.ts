@@ -543,7 +543,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/index/bcsi',
     historyPath: '/v1/market/index/bcsi/history',
     units: 'index (100 on 2022-09-19)',
-    description: 'Bitcoin posted as collateral against lien-backed debt, as a share of all spendable bitcoin, chain-linked over the venues read on both consecutive dates so a venue entering the data never moves it. Served with the plain share beside it, the matched coverage, and own_account: the weight of the one venue where the operator trades for its own account (Gavel, included and disclosed). Descriptive, not a signal.',
+    description: 'How much of all bitcoin is pledged against debt, with new venues kept from moving it. Bitcoin posted as collateral across the lien-backed venues read on both consecutive dates, over spendable supply from our own node; chain-linked, 100 on 2022-09-19. The plain share sits beside it: the gap is coverage arriving. Not a measure of leverage or of risk. Its payload carries own_account (Gavel, included and disclosed).',
     live: true,
   },
   {
@@ -553,7 +553,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/index/bsbs',
     historyPath: '/v1/market/index/bsbs/history',
     units: 'percent_cc (points over the 3-month bill)',
-    description: 'What borrowers pay against bitcoin collateral across venues over the 3-month US Treasury bill (H.15, continuously compounded): the plain spread on 2022-09-19, then each step the change in the debt-weighted rate over venues with a rate on both dates, minus the change in the bill. Served with the plain spread beside it and own_account (Gavel, included and disclosed). Not DRP, not a reference rate any contract uses.',
+    description: 'What borrowing against bitcoin costs over Treasury bills, across venues. The dollar-debt-weighted borrow rate over the venues with a rate on both dates, minus the 3-month bill (H.15), continuously compounded; anchored to the plain spread on 2022-09-19. Not a reference rate any contract uses, and not a forecast; desk rates in it are posted, not cleared. Its payload carries own_account (Gavel, included and disclosed).',
     live: true,
   },
   {
@@ -563,7 +563,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/index/wrc',
     historyPath: '/v1/market/index/wrc/history',
     units: 'ratio per wrapper',
-    description: 'For WBTC, tBTC, kBTC and cdcBTC: bitcoin at the issuer-published reserve addresses, read on our own node, over the token supply. One value per wrapper, never combined, no verdict. Wrappers without a full published address list or a fully read supply are listed with the reason.',
+    description: 'Whether each wrapped bitcoin is backed, read on our own node. For WBTC, tBTC, kBTC and cdcBTC: bitcoin at the issuer-published addresses, scanned daily, over the token supply read on chain (or the issuer\'s figure, where marked). One value per wrapper, never combined; not a rating or an audit. Wrappers without a full published list are listed with the reason.',
     live: true,
   },
   // CX1 Gate 8 option A (operator 2026-10-09): the joint credit x on-chain measures, each a named
@@ -635,7 +635,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/measure/btc-released-at-fall',
     historyPath: '/v1/market/measure/btc-released-at-fall/history',
     units: 'BTC',
-    description: 'Q7. Bitcoin that liquidations would release if every venue’s own mark fell 10, 20 or 30%, from the positions as they stand, with each venue’s liquidation incentive; absent where an incentive is not yet read (the venues are named). Arithmetic on the book, not a forecast.',
+    description: 'How much bitcoin liquidations would release if prices fell 10, 20 or 30%, from the positions as they stand: for each bucket within the fall, debt times one plus the venue\'s liquidation incentive, over the liquidation price. Not a forecast: no repayment, top-up or market impact is assumed. Absent where a venue\'s incentive is not yet read, with the venues named.',
     live: true,
   },
   {

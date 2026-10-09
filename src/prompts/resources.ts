@@ -74,4 +74,38 @@ export function registerLensResources(server: McpServer, profile: Profile): void
       ],
     })
   );
+
+  // IX1 Phase 6 (operator, Gate 3 2026-10-09: "publish to all"): the launch note, the same text as the
+  // site's /news page. Static: the figures are as read on its date, and the note says so.
+  server.registerResource(
+    'news-2026-10-09-indices-and-explorer',
+    'stack://news/2026-10-09-indices-and-explorer.md',
+    {
+      title: 'News 2026-10-09: three indices and a new explorer',
+      description: 'The launch note for the governed indices (bcsi, bsbs, wrc) and the explorer; dated, figures as read that day.',
+      mimeType: 'text/markdown',
+    },
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: NEWS_2026_10_09 }] })
+  );
 }
+
+const NEWS_2026_10_09 = `# Three indices and a new explorer for the bitcoin credit market
+
+2026-10-09 - https://www.bitcoincreditstack.com/news/2026-10-09-indices-and-explorer
+
+The Bitcoin Credit Stack now publishes three governed indices, free with full history:
+
+- **Bitcoin Collateral Share Index (bcsi):** how much of all bitcoin is pledged against debt. It is chain-linked, so venues entering our data don't move it. 114.5 on 2026-10-08 (100 = 2022-09-19).
+- **Bitcoin-Secured Borrow Spread (bsbs):** what borrowing against bitcoin costs over 3-month Treasury bills across venues: +0.71 points on 2026-10-07, against a plain spread of +1.92 that venues entering the data have inflated.
+- **Wrapper Reserve Coverage (wrc):** for WBTC, tBTC, kBTC and cdcBTC, the bitcoin at each issuer's published addresses, read on our own node, over the token's supply.
+
+Each has a published methodology, and any change is announced 30 days ahead. Every published value is kept and can be read as known on any date.
+
+The explorer now sets any of these beside the market's own figures and our node's chain series: collateral beside long-term-holder supply, the liquidation map beside cost basis, hashprice beside the borrow rate. Each series is in its own panel and on its own dates, with every point downloadable.
+
+Also published: a null result. On this credit cycle, weeks when bitcoin-secured borrowing grew did not coincide with less spending of old coins; borrowing moved with the price.
+
+All of it is descriptive: no forecasts, no signals, no ranking. Aletheia operates the thegavel.io interface and trades on Gavel for its own account; Gavel is in bcsi and bsbs at 0.0002% weight, disclosed on every value.
+
+Figures as read on 2026-10-09; the current values are on each indicator (get_indicator).
+`;
