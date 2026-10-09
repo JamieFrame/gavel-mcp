@@ -689,6 +689,17 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'The rate borrowers paid by how long their positions stayed open, from positions read one by one (survival over the book). Morpho Blue only today: it widens as other venues\' positions are read one by one. Not a fixed-term curve.',
     live: true,
   },
+  // IX1 Phase 3 (3d, operator 2026-10-09): shown beside the borrow rate, never subtracted from it.
+  {
+    id: 'miner-revenue-share',
+    name: 'Miners’ revenue as a share of supply',
+    family: 'onchain',
+    path: '/v1/market/measure/miner-revenue-share',
+    historyPath: '/v1/market/measure/miner-revenue-share/history',
+    units: 'ratio per year (annualised share of spendable supply)',
+    description: 'What the network paid its miners each day, block subsidy plus fees, times 365, over spendable supply: price-free, from our own node, every day since 2009. Each halving is a step. Set beside the bitcoin-secured borrow rate on the explorer, never subtracted from it: one is a bitcoin share, the other a dollar rate.',
+    live: true,
+  },
 ];
 
 export function findIndicator(id: string): IndicatorSpec | undefined {
