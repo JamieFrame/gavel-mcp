@@ -501,6 +501,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'APR (%)',
     description: 'Gavel rates beside CeFi and treasury comparators at matched tenors. The DeFi (Aave/Compound/Morpho) columns are DefiLlama data and are currently withheld (returned as null); the BTC funding column is retired (PV1, 2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
     live: true,
+    stack: { status: 'merged', on: '2026-10-09', ruling: 'IX1 Phase 3 (operator)', reason: 'Merged: each class’s borrow rate over the 3-month bill is served by borrow-spread, across venues; this indicator set one venue beside desks and treasuries.', successor: 'borrow-spread' },
   },
   {
     id: 'stablecoins',
