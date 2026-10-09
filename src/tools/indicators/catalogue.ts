@@ -442,6 +442,19 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'UTXO supply distribution across twelve age bands, from under a day to over ten years.',
     live: true,
   },
+  {
+    // Miner Metrics v2 Gate 0 (operator, 2026-10-08, MM-D7): name and description copied verbatim from
+    // data/specs/indicators/miner_metrics_v0.md section 3. Served per PH/s per day, BTC (miner.hpx_btc) and USD
+    // (miner.hpx_usd), by the Gate 0 unit ruling; the spec's $/TH/day wording predates it.
+    id: 'hpx',
+    name: 'Hashprice',
+    family: 'onchain',
+    path: '/v1/onchain/series/miner.hpx_btc',
+    historyPath: '/v1/onchain/series/miner.hpx_btc',
+    units: 'BTC per PH/s per day (miner.hpx_btc); USD per PH/s per day as miner.hpx_usd',
+    description: '$/TH/day revenue of the network — the miner’s unit of account',
+    live: true,
+  },
 
   // ── Market context ────────────────────────────────────────────────────────
   {

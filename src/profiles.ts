@@ -207,6 +207,11 @@ const OBSERVATORY_TOOLS = [
   // Indicators — the Aletheia catalogue, renamed off the Gavel-bearing names
   'list_onchain_indicators',
   'get_mvrv',
+  // OC1 Phase 4 (2026-10-09): the chain, miner and price series from the vintage store. Observatory only:
+  // on-chain data moved here (MOVED_FROM_GAVEL), and one tool has one home.
+  'list_chain_series',
+  'get_chain_series',
+  'get_cost_basis',
   'list_gavel_indicators',
   'get_gavel_indicator',
   // The cross-venue market surface — the Stack's own data (§1.2 "surface,
