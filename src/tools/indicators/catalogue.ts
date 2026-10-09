@@ -361,7 +361,7 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: null,
     units: 'APR (%) by layer',
     description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors. The variable DeFi layers are currently withheld (DefiLlama data, not redistributed) and return empty. The leveraged (perp funding) layer is retired (PV1, 2026-10-02) and returns empty. Payloads carry `withheld` and `retired` blocks naming each field returned empty or null and why.',
-    live: true,
+    live: true,
   },
   {
     id: 'benchmark-curves',
