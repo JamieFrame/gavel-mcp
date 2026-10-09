@@ -69,6 +69,18 @@ export interface IndicatorSpec {
    * everything they return, and this field says so.
    */
   anchoredTo?: string;
+  /**
+   * IX1 (2026-10-09) — not published on the Bitcoin Credit Stack. The indicator
+   * stays in this file (the Gavel server and the pre-split surface may still serve
+   * it) and its writer keeps writing; the observatory leaves it out of
+   * list_indicators and answers get_indicator with this block, never "unknown id".
+   *   retired  removed from the Stack's public surfaces (V14: history kept)
+   *   held     computed, published nowhere on the Stack, revisited when its
+   *            condition is met (IX1 treatment HOLD)
+   *   merged   its question is answered by `successor`
+   * Register: aletheia-docs runbooks/…/runbook_IX1_indicator_triage_and_explorer_v1.md §3a.
+   */
+  stack?: { status: 'retired' | 'held' | 'merged'; on: string; ruling: string; reason: string; successor?: string };
 }
 
 export const INDICATORS: IndicatorSpec[] = [
@@ -94,6 +106,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'ratio',
     description: 'Long-tenor lender conviction relative to the short end. A regime signal, not a rate.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: it is computed from one venue\'s book (Gavel\'s), so it measures that venue, not the market (IX-D4).' },
   },
   {
     id: 'tsr',
@@ -104,6 +117,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'ratio',
     description: 'The slope of the curve expressed as a ratio between long and short tenors.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: it is computed from one venue\'s book (Gavel\'s), so it measures that venue, not the market (IX-D4).' },
   },
   {
     id: 'cdr',
@@ -115,6 +129,7 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'The rate at which the market-implied collateral floor decays across the curve, with an implied half-life. A measure of how fast lender confidence falls away with tenor.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: it is computed from one venue\'s book (Gavel\'s), so it measures that venue, not the market (IX-D4).' },
   },
   {
     id: 'ccpi',
@@ -129,6 +144,7 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'Composite of TCI-z, SOPR-z and MVRV-z classifying the credit cycle phase. Combines the credit and on-chain layers.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: a composite score with phase labels, and the Stack publishes no composites or signals (IX-D1, IX-D3).' },
   },
   {
     id: 'implied-price',
@@ -140,6 +156,7 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'The BTC price implied by where lenders are willing to lend against collateral, by tenor. A market-clearing floor, not a forecast.',
     live: true,
+    stack: { status: 'held', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Held: computed from Gavel\'s book alone, which is still predominantly own-account; held, unpublished, until that book is an independent market.' },
   },
   {
     id: 'regime',
@@ -150,6 +167,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'classification',
     description: 'Curve shape classification (NORMAL / FLAT / INVERTED) with the fitted beta coefficients.',
     live: true,
+    stack: { status: 'held', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Held: computed from Gavel\'s book alone, which is still predominantly own-account; held, unpublished, until that book is an independent market.' },
   },
   {
     id: 'surface',
@@ -160,6 +178,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'APR (%) over the tenor x LTV grid',
     description: 'The full two-dimensional rate surface across duration and loan-to-value buckets.',
     live: true,
+    stack: { status: 'held', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Held: computed from Gavel\'s book alone, which is still predominantly own-account; held, unpublished, until that book is an independent market.' },
   },
   {
     id: 'lci',
@@ -240,6 +259,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'index',
     description: 'Stablecoin liquidity conditions on the lending side, with a regime classification.',
     live: true,
+    stack: { status: 'merged', on: '2026-10-09', ruling: 'IX1 sitting D', reason: 'Merged: stablecoin supply growth is shown as the growth view of stablecoins, without regime labels.', successor: 'stablecoins' },
   },
   {
     id: 'sdr',
@@ -302,7 +322,8 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: null,
     units: 'correlation / gap',
     description: 'Correlation between stablecoin liquidity (SLI) and 14-day changes in the target\'s 30d rate (continuously compounded, BTC-collateral curve only), with the implied liquidity gap.',
-    live: true,
+    live: false,
+    note: 'Retired 2026-10-09 (IX1 sitting B): it correlates stablecoin supply with the FOLLOWING 14 days of the rate, so it is forward-looking by construction. History is kept, not served.',
   },
   {
     id: 'ccs',
@@ -341,6 +362,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'APR (%) by layer',
     description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors. The variable DeFi layers are currently withheld (DefiLlama data, not redistributed) and return empty. The leveraged (perp funding) layer is retired (PV1, 2026-10-02) and returns empty. Payloads carry `withheld` and `retired` blocks naming each field returned empty or null and why.',
     live: true,
+    stack: { status: 'held', on: '2026-10-09', ruling: 'IX1 sitting C', reason: 'Held: a tenor-matched stack needs cross-venue term data, which only one venue supplies today; revisited when the desk term ladder exists.' },
   },
   {
     id: 'benchmark-curves',
@@ -349,7 +371,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/benchmark-curves',
     historyPath: null,
     units: 'APR (%) by tenor',
-    description: 'Reference curves (treasury and others) at matched tenors, for spreading Gavel against.',
+    description: 'The reference curves (US Treasury and other benchmarks) at matched tenors, against which the market\'s borrow spreads are measured (bsbs, borrow-spread).',
     live: true,
   },
   {
@@ -369,6 +391,7 @@ export const INDICATORS: IndicatorSpec[] = [
       '_coverage block listing exactly what is and is not included. Check it rather than ' +
       'assuming completeness.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: a bundle of indicators computed from one venue\'s book (IX-D4).' },
   },
   {
     id: 'forward-curve',
@@ -379,6 +402,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'implied forward APR (%)',
     description: 'Forward rates implied by the fitted curve.',
     live: false,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: forwards from one venue\'s fitted curve, and not live on mainnet.' },
     note: 'Derived from v2 protocol data, which is testnet-only until v2 reaches mainnet. Mainnet returns an explicit 404 rather than an empty series.',
   },
   {
@@ -410,6 +434,7 @@ export const INDICATORS: IndicatorSpec[] = [
       'Divergence between the on-chain realised price and the credit-implied collateral floor, ' +
       'with the MVRV ratio and BTC price. Carries `data_maturity`.',
     live: true,
+    stack: { status: 'merged', on: '2026-10-09', ruling: 'IX1 sitting C', reason: 'Merged: its credit-implied floor is read from one venue\'s curve; the cross-venue question (where the book liquidates against the realised price) is liq-over-realised.', successor: 'liq-over-realised' },
   },
 
   // ── Commodity on-chain — free permanently (D4) ────────────────────────────
@@ -452,7 +477,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/onchain/series/miner.hpx_btc',
     historyPath: '/v1/onchain/series/miner.hpx_btc',
     units: 'BTC per PH/s per day (miner.hpx_btc); USD per PH/s per day as miner.hpx_usd',
-    description: '$/TH/day revenue of the network — the miner’s unit of account',
+    description: 'Hashprice: what one PH/s of hashrate earned in a day (subsidy plus fees), in bitcoin and in dollars, from our own node. The miner\'s unit of account.',
     live: true,
   },
 
@@ -466,6 +491,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'APR (%)',
     description: 'Which comparable DeFi venues and assets are observed, with their timestamps. The borrow/supply/TVL values are DefiLlama data and are currently withheld (returned as null). Payloads carry a `withheld` block naming each field returned as null and why.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting D', reason: 'Not published on the Stack: its values are withheld (DefiLlama terms), and every venue\'s rate is in the credit tree and on the venue pages.' },
   },
   {
     id: 'rates-comparison',
@@ -622,6 +648,47 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'Q4. The change over 7 days in debt and in collateral across only the venues read on both dates, with and without venues the integrity check flags. The finding built on it (no co-movement with old-coin spending) is published on the site. Descriptive, not a signal.',
     live: true,
   },
+  // IX1 Phase 2 (operator, Gate 1 2026-10-09): the grouped chain pages (CS1 G0-6) and the holding-period curve.
+  {
+    id: 'spending',
+    name: 'Spending by age',
+    family: 'onchain',
+    path: '/v1/onchain/spending',
+    historyPath: null,
+    units: 'BTC per day by age band; coin-days; days',
+    description: 'Bitcoin spent each day by how long it had been unspent (twelve age bands), with coin-days destroyed and dormancy, from our own node since 2009. The reading is the last point of each series; each series\' history is on get_chain_series.',
+    live: true,
+  },
+  {
+    id: 'mining',
+    name: 'Mining',
+    family: 'onchain',
+    path: '/v1/onchain/mining',
+    historyPath: null,
+    units: 'EH/s; difficulty; BTC per day; blocks and transactions per day',
+    description: 'The network\'s mining each day from our own node: hashrate, difficulty, subsidy and fees, blocks and transactions. The reading is the last point of each series; history is on get_chain_series. Hashprice is hpx.',
+    live: true,
+  },
+  {
+    id: 'cost-basis',
+    name: 'Cost basis',
+    family: 'onchain',
+    path: '/v1/onchain/cost-basis/latest',
+    historyPath: null,
+    units: 'USD per BTC (percentiles); BTC by price bucket',
+    description: 'The price at which each coin of spendable supply was created, as percentiles; the full distribution for a day is get_cost_basis. Coins created before 2020-07-13 are priced from CoinGecko: free, attributed use only.',
+    live: true,
+  },
+  {
+    id: 'holding-period-curve',
+    name: 'Realised holding-period curve',
+    family: 'market',
+    path: '/v1/market/curve',
+    historyPath: '/v1/market/curve/replay',
+    units: 'percent by holding period (1–730 days)',
+    description: 'The rate borrowers paid by how long their positions stayed open, from positions read one by one (survival over the book). Morpho Blue only today: it widens as other venues\' positions are read one by one. Not a fixed-term curve.',
+    live: true,
+  },
 ];
 
 export function findIndicator(id: string): IndicatorSpec | undefined {
@@ -637,7 +704,7 @@ export const isAnchored = (spec: IndicatorSpec): boolean => Boolean(spec.anchore
 /** The catalogue a given profile may publish. The observatory publishes only
  *  venue-independent indicators; the Gavel server publishes everything. */
 export function catalogueFor(profileId: string): IndicatorSpec[] {
-  // DISJOINT, and that is the point. The observatory publishes the 34 (23, plus CX1's three indices and eight measures)
+  // DISJOINT, and that is the point. The observatory publishes the venue-independent indicators the IX1 register keeps (§3a)
   // venue-independent indicators; the Gavel server publishes the 10 anchored on
   // its own rate. Neither publishes the other's, so OB1 §0.3's one-tool-one-home
   // rule holds at the catalogue level too: the pair appears on both servers, but
@@ -650,7 +717,7 @@ export function catalogueFor(profileId: string): IndicatorSpec[] {
   // pointed at the other. It shipped because the destination was named without
   // being called, which is the SV6-D3 discipline ("a recast page is deleted only
   // after its destination renders") applied everywhere this session except here.
-  if (profileId === 'observatory') return INDICATORS.filter((i) => !isAnchored(i));
+  if (profileId === 'observatory') return INDICATORS.filter((i) => !isAnchored(i) && !i.stack); // IX1: not published on the Stack
   if (profileId === 'gavel') return INDICATORS.filter(isAnchored);
   return INDICATORS; // gavel-presplit: the pre-split surface, unchanged.
 }

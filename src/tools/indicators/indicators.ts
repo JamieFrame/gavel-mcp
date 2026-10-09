@@ -241,6 +241,34 @@ export function registerIndicatorTools(server: McpServer): void {
         };
       }
 
+      // IX1 (2026-10-09) — an id the Stack no longer publishes (retired, held or
+      // merged) is answered with its reason and successor, never as unknown.
+      if (spec && spec.stack && activeProfile().id === 'observatory') {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  error: {
+                    code: spec.stack.status === 'merged' ? 'merged' : 'not_published',
+                    message: `'${spec.id}' is not published on the Bitcoin Credit Stack. ${spec.stack.reason}`,
+                    status: spec.stack.status,
+                    since: spec.stack.on,
+                    ruling: spec.stack.ruling,
+                    ...(spec.stack.successor ? { successor: spec.stack.successor } : {}),
+                    retryable: Boolean(spec.stack.successor),
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
       // The mirror of the branch above. Asking the GAVEL server for a
       // venue-independent indicator is equally a `moved`, not an unknown id —
       // otherwise the two catalogues would be disjoint in list_indicators and
