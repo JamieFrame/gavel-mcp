@@ -494,6 +494,39 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'Spot BTC price as used across the indicator set.',
     live: true,
   },
+  // CX1 Gate 8 (operator 2026-10-09): three governed indices, descriptive, free with
+  // history, methodology on www.bitcoincreditstack.com/indicators/<id> and changes
+  // published 30 days ahead. Venue-independent, so observatory-only (not anchored).
+  {
+    id: 'bcsi',
+    name: 'Bitcoin Collateral Share Index',
+    family: 'market',
+    path: '/v1/market/index/bcsi',
+    historyPath: '/v1/market/index/bcsi/history',
+    units: 'index (100 on 2022-09-19)',
+    description: 'Bitcoin posted as collateral against lien-backed debt, as a share of all spendable bitcoin, chain-linked over the venues read on both consecutive dates so a venue entering the data never moves it. Served with the plain share beside it, the matched coverage, and own_account: the weight of the one venue where the operator trades for its own account (Gavel, included and disclosed). Descriptive, not a signal.',
+    live: true,
+  },
+  {
+    id: 'bsbs',
+    name: 'Bitcoin-Secured Borrow Spread',
+    family: 'market',
+    path: '/v1/market/index/bsbs',
+    historyPath: '/v1/market/index/bsbs/history',
+    units: 'percent_cc (points over the 3-month bill)',
+    description: 'What borrowers pay against bitcoin collateral across venues over the 3-month US Treasury bill (H.15, continuously compounded): the plain spread on 2022-09-19, then each step the change in the debt-weighted rate over venues with a rate on both dates, minus the change in the bill. Served with the plain spread beside it and own_account (Gavel, included and disclosed). Not DRP, not a reference rate any contract uses.',
+    live: true,
+  },
+  {
+    id: 'wrc',
+    name: 'Wrapper Reserve Coverage',
+    family: 'market',
+    path: '/v1/market/index/wrc',
+    historyPath: '/v1/market/index/wrc/history',
+    units: 'ratio per wrapper',
+    description: 'For WBTC, tBTC, kBTC and cdcBTC: bitcoin at the issuer-published reserve addresses, read on our own node, over the token supply. One value per wrapper, never combined, no verdict. Wrappers without a full published address list or a fully read supply are listed with the reason.',
+    live: true,
+  },
 ];
 
 export function findIndicator(id: string): IndicatorSpec | undefined {
@@ -509,7 +542,7 @@ export const isAnchored = (spec: IndicatorSpec): boolean => Boolean(spec.anchore
 /** The catalogue a given profile may publish. The observatory publishes only
  *  venue-independent indicators; the Gavel server publishes everything. */
 export function catalogueFor(profileId: string): IndicatorSpec[] {
-  // DISJOINT, and that is the point. The observatory publishes the 23
+  // DISJOINT, and that is the point. The observatory publishes the 26 (23, plus CX1's three indices)
   // venue-independent indicators; the Gavel server publishes the 10 anchored on
   // its own rate. Neither publishes the other's, so OB1 §0.3's one-tool-one-home
   // rule holds at the catalogue level too: the pair appears on both servers, but
