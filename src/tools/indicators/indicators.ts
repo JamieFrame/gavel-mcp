@@ -242,8 +242,11 @@ export function registerIndicatorTools(server: McpServer): void {
       }
 
       // IX1 (2026-10-09) — an id the Stack no longer publishes (retired, held or
-      // merged) is answered with its reason and successor, never as unknown.
-      if (spec && spec.stack && activeProfile().id === 'observatory') {
+      // merged) is answered with its reason and successor, never as unknown. On the
+      // Gavel server a retired or held id gets the same answer (operator, 2026-10-09:
+      // held means published nowhere), ahead of the `moved` branch below, which would
+      // otherwise point to the Stack, where it is not served either.
+      if (spec && spec.stack && (activeProfile().id === 'observatory' || (spec.stack.status !== 'merged' && activeProfile().id === 'gavel'))) {
         return {
           isError: true,
           content: [
@@ -253,7 +256,7 @@ export function registerIndicatorTools(server: McpServer): void {
                 {
                   error: {
                     code: spec.stack.status === 'merged' ? 'merged' : 'not_published',
-                    message: `'${spec.id}' is not published on the Bitcoin Credit Stack. ${spec.stack.reason}`,
+                    message: `'${spec.id}' is not published ${activeProfile().id === 'gavel' ? 'here or on the Bitcoin Credit Stack' : 'on the Bitcoin Credit Stack'}. ${spec.stack.reason}`,
                     status: spec.stack.status,
                     since: spec.stack.on,
                     ruling: spec.stack.ruling,
