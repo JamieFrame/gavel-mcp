@@ -135,6 +135,20 @@ app.post(
           'mcp client connected'
         );
       }
+      // HX1 Phase 7 (usage evidence, operator 2026-10-09): which tools are
+      // called, by tier. The tool's name and the tier only — the same E6 bound
+      // as above: no IP, no key or fragment of one, nothing that ties two calls
+      // together. Stateless, so the client's name is not known here; it is in
+      // its own `mcp_initialize` line. A batch counts each call in it.
+      const calls = Array.isArray(req.body) ? req.body : [req.body];
+      for (const c of calls as Array<{ method?: string; params?: { name?: string } }>) {
+        if (c && c.method === 'tools/call') {
+          logger.info(
+            { event: 'mcp_tool_call', tool: String(c.params?.name ?? 'unknown'), tier: tryGetContext()?.tier ?? 'anonymous' },
+            'mcp tool call'
+          );
+        }
+      }
     } catch {
       // Never let telemetry break a request. A missed count is a missed count;
       // a failed call is a failed product.
