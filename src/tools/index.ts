@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerListOnchainTool } from './discovery/list-onchain.js';
 import { registerYieldCurveTool } from './credit/yield-curve.js';
 import { registerMvrvTool } from './onchain/mvrv.js';
+import { registerChainSeriesTools } from './onchain/series.js';
 import { registerProtocolReferenceTool } from './protocol/reference.js';
 import { registerWalletStatusTool } from './protocol/wallet-status.js';
 import { registerFindAuctionsTool } from './protocol/find-auctions.js';
@@ -149,6 +150,9 @@ export function registerAllTools(server: McpServer, profile: Profile): void {
   // On-chain — LIVE. Reads mvrv from /v1/onchain/indicators/latest. The old
   // /v1/onchain/mvrv path never existed and every call 404'd; corrected 2026-08-26.
   registerMvrvTool(s);
+
+  // On-chain series from the vintage store (OC1 Phase 4, 2026-10-09): /v1/onchain/series, /series/:id, /cost-basis.
+  registerChainSeriesTools(s);
 
   // Protocol metadata
   registerProtocolReferenceTool(s);

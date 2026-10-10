@@ -46,8 +46,10 @@ export function registerMvrvTool(server: McpServer): void {
         `coins above or below what was last paid for them — and nothing about ` +
         `what follows from that. This tool returns data; it does not advise, ` +
         `forecast, or characterise the market.\n\n` +
-        `Computed nightly from Aletheia's own full node and UTXO set, valued ` +
-        `with a third-party BTC/USD price series (CoinGecko for the current ` +
+        `Computed nightly from Aletheia's own full node and UTXO set. Since ` +
+        `2026-10-05 the current price and the creation prices from 2020-07-13 are ` +
+        `Aletheia's own on-chain BTC fixing; coins created before 2020-07-13 are ` +
+        `valued at CoinGecko's daily price (` +
         `price): the supply and each coin's age are Aletheia's, the prices are ` +
         `not. ` +
         `'mvrv_z_score' is returned alongside it: the same numerator measured ` +
@@ -87,7 +89,7 @@ export function registerMvrvTool(server: McpServer): void {
           'the BTC/USD price on the day it was created. The UTXO set and supply ' +
           'come from Aletheia’s own Bitcoin full node, computed nightly; the ' +
           'BTC/USD prices (spot_price_usd, and the daily prices realised cap is ' +
-          'valued at) are a third-party price series (CoinGecko for the current price).',
+          'valued at) are Aletheia’s on-chain BTC fixing from 2020-07-13 (the current price included), and CoinGecko’s daily price for coins created before.',
         // BCS remediation P4: the upstream's source credit (CoinGecko for the
         // BTC/USD price) travels with the figures built on it.
         attribution: (data as { attribution?: unknown }).attribution ?? null,

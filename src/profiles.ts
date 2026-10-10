@@ -133,6 +133,12 @@ const OBSERVATORY_INSTRUCTIONS = [
   `on this server: nothing here signs, submits, broadcasts or prepares a`,
   `transaction, and no tool takes custody of funds or receives a mandate.`,
   ``,
+  // EC1 Phase 5 (operator 2026-10-08) — listing copy §7.7 paragraph two.
+  `Bitcoin is the default collateral. The same measurements are made for credit`,
+  `secured by ether — ether, staking and restaking tokens, each at its own contract`,
+  `rate — and the two are never added together. Pass collateral: 'eth' on the credit`,
+  `tools to read the ether side; a venue that does not take ether says so.`,
+  ``,
   `Where the operator holds a position at a venue, that is disclosed on that`,
   `venue's own row rather than as a statement about this dataset — read the`,
   `venue's disclosure field.`,
@@ -201,6 +207,11 @@ const OBSERVATORY_TOOLS = [
   // Indicators — the Aletheia catalogue, renamed off the Gavel-bearing names
   'list_onchain_indicators',
   'get_mvrv',
+  // OC1 Phase 4 (2026-10-09): the chain, miner and price series from the vintage store. Observatory only:
+  // on-chain data moved here (MOVED_FROM_GAVEL), and one tool has one home.
+  'list_chain_series',
+  'get_chain_series',
+  'get_cost_basis',
   'list_gavel_indicators',
   'get_gavel_indicator',
   // The cross-venue market surface — the Stack's own data (§1.2 "surface,
@@ -210,6 +221,8 @@ const OBSERVATORY_TOOLS = [
   'get_credit_state_history',
   'get_market_composition',
   'get_market_flows',
+  // HX1 Phase 4 — the liquidation map (2026-10-08)
+  'get_liquidation_map',
   // OB4 — the lens layer, served as a tool because no client surfaces MCP
   // prompts. Observatory only: the lenses are this property's reading
   // discipline, and OB4-D1 keeps them off the participation server.

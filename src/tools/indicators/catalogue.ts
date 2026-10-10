@@ -69,6 +69,18 @@ export interface IndicatorSpec {
    * everything they return, and this field says so.
    */
   anchoredTo?: string;
+  /**
+   * IX1 (2026-10-09) — not published on the Bitcoin Credit Stack. The indicator
+   * stays in this file (the Gavel server and the pre-split surface may still serve
+   * it) and its writer keeps writing; the observatory leaves it out of
+   * list_indicators and answers get_indicator with this block, never "unknown id".
+   *   retired  removed from the Stack's public surfaces (V14: history kept)
+   *   held     computed, published nowhere on the Stack, revisited when its
+   *            condition is met (IX1 treatment HOLD)
+   *   merged   its question is answered by `successor`
+   * Register: aletheia-docs runbooks/…/runbook_IX1_indicator_triage_and_explorer_v1.md §3a.
+   */
+  stack?: { status: 'retired' | 'held' | 'merged'; on: string; ruling: string; reason: string; successor?: string };
 }
 
 export const INDICATORS: IndicatorSpec[] = [
@@ -94,6 +106,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'ratio',
     description: 'Long-tenor lender conviction relative to the short end. A regime signal, not a rate.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: it is computed from one venue\'s book (Gavel\'s), so it measures that venue, not the market (IX-D4).' },
   },
   {
     id: 'tsr',
@@ -104,6 +117,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'ratio',
     description: 'The slope of the curve expressed as a ratio between long and short tenors.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: it is computed from one venue\'s book (Gavel\'s), so it measures that venue, not the market (IX-D4).' },
   },
   {
     id: 'cdr',
@@ -115,6 +129,7 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'The rate at which the market-implied collateral floor decays across the curve, with an implied half-life. A measure of how fast lender confidence falls away with tenor.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: it is computed from one venue\'s book (Gavel\'s), so it measures that venue, not the market (IX-D4).' },
   },
   {
     id: 'ccpi',
@@ -129,6 +144,7 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'Composite of TCI-z, SOPR-z and MVRV-z classifying the credit cycle phase. Combines the credit and on-chain layers.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: a composite score with phase labels, and the Stack publishes no composites or signals (IX-D1, IX-D3).' },
   },
   {
     id: 'implied-price',
@@ -140,6 +156,7 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'The BTC price implied by where lenders are willing to lend against collateral, by tenor. A market-clearing floor, not a forecast.',
     live: true,
+    stack: { status: 'held', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Held: computed from Gavel\'s book alone, which is still predominantly own-account; held, unpublished, until that book is an independent market.' },
   },
   {
     id: 'regime',
@@ -150,6 +167,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'classification',
     description: 'Curve shape classification (NORMAL / FLAT / INVERTED) with the fitted beta coefficients.',
     live: true,
+    stack: { status: 'held', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Held: computed from Gavel\'s book alone, which is still predominantly own-account; held, unpublished, until that book is an independent market.' },
   },
   {
     id: 'surface',
@@ -160,6 +178,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'APR (%) over the tenor x LTV grid',
     description: 'The full two-dimensional rate surface across duration and loan-to-value buckets.',
     live: true,
+    stack: { status: 'held', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Held: computed from Gavel\'s book alone, which is still predominantly own-account; held, unpublished, until that book is an independent market.' },
   },
   {
     id: 'lci',
@@ -240,6 +259,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'index',
     description: 'Stablecoin liquidity conditions on the lending side, with a regime classification.',
     live: true,
+    stack: { status: 'merged', on: '2026-10-09', ruling: 'IX1 sitting D', reason: 'Merged: stablecoin supply growth is shown as the growth view of stablecoins, without regime labels.', successor: 'stablecoins' },
   },
   {
     id: 'sdr',
@@ -302,7 +322,8 @@ export const INDICATORS: IndicatorSpec[] = [
     historyPath: null,
     units: 'correlation / gap',
     description: 'Correlation between stablecoin liquidity (SLI) and 14-day changes in the target\'s 30d rate (continuously compounded, BTC-collateral curve only), with the implied liquidity gap.',
-    live: true,
+    live: false,
+    note: 'Retired 2026-10-09 (IX1 sitting B): it correlates stablecoin supply with the FOLLOWING 14 days of the rate, so it is forward-looking by construction. History is kept, not served.',
   },
   {
     id: 'ccs',
@@ -324,12 +345,12 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'intermediation-spread',
-    name: 'Intermediation Spread',
-    family: 'credit',
-    path: '/v1/credit/intermediation-spread',
-    historyPath: '/v1/credit/intermediation-spread/history',
-    units: 'spread',
-    description: "The wedge between borrow and lend rates — Gavel's beside everyone else's. For DeFi venues the spread is served but the two rate legs are withheld (DefiLlama data, not redistributed). Payloads carry a `withheld` block naming each field returned as null and why.",
+    name: 'Borrow over lend rate, per class',
+    family: 'market',
+    path: '/v1/market/measure/intermediation-spread',
+    historyPath: '/v1/market/measure/intermediation-spread/history',
+    units: 'percent_cc (points)',
+    description: 'What borrowers pay over what lenders earn, per class, where both legs come from the same venues: pools (from 2022-09-19) and the desks that post both rates (from 2026-10-07). Not at market level, where the two legs come from different classes; not for minted stablecoins (no lender) or auctions (one price). Recast at IX1 Phase 3 (2026-10-09) from a one-venue comparison.',
     live: true,
   },
   {
@@ -349,7 +370,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/benchmark-curves',
     historyPath: null,
     units: 'APR (%) by tenor',
-    description: 'Reference curves (treasury and others) at matched tenors, for spreading Gavel against.',
+    description: 'The reference curves (US Treasury and other benchmarks) at matched tenors, against which the market\'s borrow spreads are measured (bsbs, borrow-spread).',
     live: true,
   },
   {
@@ -369,6 +390,7 @@ export const INDICATORS: IndicatorSpec[] = [
       '_coverage block listing exactly what is and is not included. Check it rather than ' +
       'assuming completeness.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: a bundle of indicators computed from one venue\'s book (IX-D4).' },
   },
   {
     id: 'forward-curve',
@@ -379,6 +401,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'implied forward APR (%)',
     description: 'Forward rates implied by the fitted curve.',
     live: false,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting A', reason: 'Not published on the Stack: forwards from one venue\'s fitted curve, and not live on mainnet.' },
     note: 'Derived from v2 protocol data, which is testnet-only until v2 reaches mainnet. Mainnet returns an explicit 404 rather than an empty series.',
   },
   {
@@ -410,6 +433,7 @@ export const INDICATORS: IndicatorSpec[] = [
       'Divergence between the on-chain realised price and the credit-implied collateral floor, ' +
       'with the MVRV ratio and BTC price. Carries `data_maturity`.',
     live: true,
+    stack: { status: 'merged', on: '2026-10-09', ruling: 'IX1 sitting C', reason: 'Merged: its credit-implied floor is read from one venue\'s curve; the cross-venue question (where the book liquidates against the realised price) is liq-over-realised.', successor: 'liq-over-realised' },
   },
 
   // ── Commodity on-chain — free permanently (D4) ────────────────────────────
@@ -442,6 +466,19 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'UTXO supply distribution across twelve age bands, from under a day to over ten years.',
     live: true,
   },
+  {
+    // Miner Metrics v2 Gate 0 (operator, 2026-10-08, MM-D7): name and description copied verbatim from
+    // data/specs/indicators/miner_metrics_v0.md section 3. Served per PH/s per day, BTC (miner.hpx_btc) and USD
+    // (miner.hpx_usd), by the Gate 0 unit ruling; the spec's $/TH/day wording predates it.
+    id: 'hpx',
+    name: 'Hashprice',
+    family: 'onchain',
+    path: '/v1/onchain/series/miner.hpx_btc',
+    historyPath: '/v1/onchain/series/miner.hpx_btc',
+    units: 'BTC per PH/s per day (miner.hpx_btc); USD per PH/s per day as miner.hpx_usd',
+    description: 'Hashprice: what one PH/s of hashrate earned in a day (subsidy plus fees), in bitcoin and in dollars, from our own node. The miner\'s unit of account.',
+    live: true,
+  },
 
   // ── Market context ────────────────────────────────────────────────────────
   {
@@ -453,6 +490,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'APR (%)',
     description: 'Which comparable DeFi venues and assets are observed, with their timestamps. The borrow/supply/TVL values are DefiLlama data and are currently withheld (returned as null). Payloads carry a `withheld` block naming each field returned as null and why.',
     live: true,
+    stack: { status: 'retired', on: '2026-10-09', ruling: 'IX1 sitting D', reason: 'Not published on the Stack: its values are withheld (DefiLlama terms), and every venue\'s rate is in the credit tree and on the venue pages.' },
   },
   {
     id: 'rates-comparison',
@@ -463,6 +501,7 @@ export const INDICATORS: IndicatorSpec[] = [
     units: 'APR (%)',
     description: 'Gavel rates beside CeFi and treasury comparators at matched tenors. The DeFi (Aave/Compound/Morpho) columns are DefiLlama data and are currently withheld (returned as null); the BTC funding column is retired (PV1, 2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
     live: true,
+    stack: { status: 'merged', on: '2026-10-09', ruling: 'IX1 Phase 3 (operator)', reason: 'Merged: each class’s borrow rate over the 3-month bill is served by borrow-spread, across venues; this indicator set one venue beside desks and treasuries.', successor: 'borrow-spread' },
   },
   {
     id: 'stablecoins',
@@ -486,12 +525,179 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'btc-price',
-    name: 'BTC Spot Price',
+    name: 'BTC Reference Price (on-chain)',
     family: 'market',
-    path: '/v1/market/prices/btc',
-    historyPath: '/v1/market/prices/btc/history',
-    units: 'USD',
-    description: 'Spot BTC price as used across the indicator set.',
+    path: '/v1/onchain/series/price.btc_in_basket',
+    historyPath: '/v1/onchain/series/price.btc_in_basket',
+    units: 'USDBASKET_per_BTC (basket dollars, not fiat)',
+    description: 'Our own daily BTC price, read on chain: the median across bitcoin wrappers (WBTC, cbBTC) of their pools against USDC and USDT, priced in a basket of dollar stablecoins, from 2020-07-13. Not CoinGecko. Each wrapper’s own peg is published separately. Recast at IX1 sitting D (2026-10-09) from a CoinGecko spot price.',
+    live: true,
+  },
+  // CX1 Gate 8 (operator 2026-10-09): three governed indices, descriptive, free with
+  // history, methodology on www.bitcoincreditstack.com/indicators/<id> and changes
+  // published 30 days ahead. Venue-independent, so observatory-only (not anchored).
+  {
+    id: 'bcsi',
+    name: 'Bitcoin Collateral Share Index',
+    family: 'market',
+    path: '/v1/market/index/bcsi',
+    historyPath: '/v1/market/index/bcsi/history',
+    units: 'index (100 on 2022-09-19)',
+    description: 'How much of all bitcoin is pledged against debt, with new venues kept from moving it. Bitcoin posted as collateral across the lien-backed venues read on both consecutive dates, over spendable supply from our own node; chain-linked, 100 on 2022-09-19. The plain share sits beside it: the gap is coverage arriving. Not a measure of leverage or of risk. Its payload carries own_account (Gavel, included and disclosed).',
+    live: true,
+  },
+  {
+    id: 'bsbs',
+    name: 'Bitcoin-Secured Borrow Spread',
+    family: 'market',
+    path: '/v1/market/index/bsbs',
+    historyPath: '/v1/market/index/bsbs/history',
+    units: 'percent_cc (points over the 3-month bill)',
+    description: 'What borrowing against bitcoin costs over Treasury bills, across venues. The dollar-debt-weighted borrow rate over the venues with a rate on both dates, minus the 3-month bill (H.15), continuously compounded; anchored to the plain spread on 2022-09-19. Not a reference rate any contract uses, and not a forecast; desk rates in it are posted, not cleared. Its payload carries own_account (Gavel, included and disclosed).',
+    live: true,
+  },
+  {
+    id: 'wrc',
+    name: 'Wrapper Reserve Coverage',
+    family: 'market',
+    path: '/v1/market/index/wrc',
+    historyPath: '/v1/market/index/wrc/history',
+    units: 'ratio per wrapper',
+    description: 'Whether each wrapped bitcoin is backed, read on our own node. For WBTC, tBTC, kBTC and cdcBTC: bitcoin at the issuer-published addresses, scanned daily, over the token supply read on chain (or the issuer\'s figure, where marked). One value per wrapper, never combined; not a rating or an audit. Wrappers without a full published list are listed with the reason.',
+    live: true,
+  },
+  // CX1 Gate 8 option A (operator 2026-10-09): the joint credit x on-chain measures, each a named
+  // descriptive series with its methodology on www.bitcoincreditstack.com/indicators/<id>. Not indices.
+  {
+    id: 'collateral-share',
+    name: 'Bitcoin collateral as a share of supply',
+    family: 'market',
+    path: '/v1/market/measure/collateral-share',
+    historyPath: '/v1/market/measure/collateral-share/history',
+    units: 'ratio',
+    description: 'Q2b. The share of all spendable bitcoin posted as collateral against lien-backed debt: the market, each class and the fixed 2022 panel, as read on each date. Coverage steps (venues entering) are named on every value, never smoothed; the chain-linked version is bcsi. Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'holdings-share',
+    name: 'Corporate bitcoin holdings as a share of supply',
+    family: 'market',
+    path: '/v1/market/measure/holdings-share',
+    historyPath: '/v1/market/measure/holdings-share/history',
+    units: 'ratio',
+    description: 'Q2c. The share of spendable bitcoin held by the issuers in the registry, from their filings: steps at filing dates, and holdings, not collateral (no lien). Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'liq-over-realised',
+    name: 'Liquidation price over realised price',
+    family: 'market',
+    path: '/v1/market/measure/liq-over-realised',
+    historyPath: '/v1/market/measure/liq-over-realised/history',
+    units: 'ratio',
+    description: 'Q8. Where the book liquidates as a multiple of the realised price, for the market and the pool and minted classes. Rests on CoinGecko prices for coins created before 2020-07-13: free, attributed use only (licence on every value). Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'debt-over-realised-cap',
+    name: 'Secured debt over realised cap',
+    family: 'market',
+    path: '/v1/market/measure/debt-over-realised-cap',
+    historyPath: '/v1/market/measure/debt-over-realised-cap/history',
+    units: 'ratio',
+    description: 'Q2a. Bitcoin-secured dollar debt over realised cap. Rests on CoinGecko prices for coins created before 2020-07-13: free, attributed use only. Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'borrow-spread',
+    name: 'Borrow spread over the 3-month bill',
+    family: 'market',
+    path: '/v1/market/measure/borrow-spread',
+    historyPath: '/v1/market/measure/borrow-spread/history',
+    units: 'percent_cc',
+    description: 'Q5. The credit tree’s borrow rate minus the 3-month Treasury bill (H.15, continuously compounded), for the market and each class, as read on each date: coverage steps move it. The chain-linked version is bsbs. Descriptive, not an index.',
+    live: true,
+  },
+  {
+    id: 'costbasis-near-liquidation',
+    name: 'Supply whose cost basis sits in the liquidation bands',
+    family: 'market',
+    path: '/v1/market/measure/costbasis-near-liquidation',
+    historyPath: '/v1/market/measure/costbasis-near-liquidation/history',
+    units: 'BTC',
+    description: 'Q1. Bitcoin that last moved at a price within 10, 20 or 30% below the market mark, beside the debt in the same liquidation bands. Some dates rest on CoinGecko prices (licence on every value). Descriptive, not a forecast.',
+    live: true,
+  },
+  {
+    id: 'btc-released-at-fall',
+    name: 'Bitcoin liquidations would release at a fall',
+    family: 'market',
+    path: '/v1/market/measure/btc-released-at-fall',
+    historyPath: '/v1/market/measure/btc-released-at-fall/history',
+    units: 'BTC',
+    description: 'How much bitcoin liquidations would release if prices fell 10, 20 or 30%, from the positions as they stand: for each bucket within the fall, debt times one plus the venue\'s liquidation incentive, over the liquidation price. Not a forecast: no repayment, top-up or market impact is assumed. Absent where a venue\'s incentive is not yet read, with the venues named.',
+    live: true,
+  },
+  {
+    id: 'credit-weekly-change',
+    name: 'Weekly change in bitcoin-secured credit, matched venues',
+    family: 'market',
+    path: '/v1/market/measure/credit-weekly-change',
+    historyPath: '/v1/market/measure/credit-weekly-change/history',
+    units: 'ratio',
+    description: 'Q4. The change over 7 days in debt and in collateral across only the venues read on both dates, with and without venues the integrity check flags. The finding built on it (no co-movement with old-coin spending) is published on the site. Descriptive, not a signal.',
+    live: true,
+  },
+  // IX1 Phase 2 (operator, Gate 1 2026-10-09): the grouped chain pages (CS1 G0-6) and the holding-period curve.
+  {
+    id: 'spending',
+    name: 'Spending by age',
+    family: 'onchain',
+    path: '/v1/onchain/spending',
+    historyPath: null,
+    units: 'BTC per day by age band; coin-days; days',
+    description: 'Bitcoin spent each day by how long it had been unspent (twelve age bands), with coin-days destroyed and dormancy, from our own node since 2009. The reading is the last point of each series; each series\' history is on get_chain_series.',
+    live: true,
+  },
+  {
+    id: 'mining',
+    name: 'Mining',
+    family: 'onchain',
+    path: '/v1/onchain/mining',
+    historyPath: null,
+    units: 'EH/s; difficulty; BTC per day; blocks and transactions per day',
+    description: 'The network\'s mining each day from our own node: hashrate, difficulty, subsidy and fees, blocks and transactions. The reading is the last point of each series; history is on get_chain_series. Hashprice is hpx.',
+    live: true,
+  },
+  {
+    id: 'cost-basis',
+    name: 'Cost basis',
+    family: 'onchain',
+    path: '/v1/onchain/cost-basis/latest',
+    historyPath: null,
+    units: 'USD per BTC (percentiles); BTC by price bucket',
+    description: 'The price at which each coin of spendable supply was created, as percentiles; the full distribution for a day is get_cost_basis. Coins created before 2020-07-13 are priced from CoinGecko: free, attributed use only.',
+    live: true,
+  },
+  {
+    id: 'holding-period-curve',
+    name: 'Realised holding-period curve',
+    family: 'market',
+    path: '/v1/market/curve',
+    historyPath: '/v1/market/curve/replay',
+    units: 'percent by holding period (1–730 days)',
+    description: 'The rate borrowers paid by how long their positions stayed open, from positions read one by one (survival over the book). Morpho Blue only today: it widens as other venues\' positions are read one by one. Not a fixed-term curve.',
+    live: true,
+  },
+  // IX1 Phase 3 (3d, operator 2026-10-09): shown beside the borrow rate, never subtracted from it.
+  {
+    id: 'miner-revenue-share',
+    name: 'Miners’ revenue as a share of supply',
+    family: 'onchain',
+    path: '/v1/market/measure/miner-revenue-share',
+    historyPath: '/v1/market/measure/miner-revenue-share/history',
+    units: 'ratio per year (annualised share of spendable supply)',
+    description: 'What the network paid its miners each day, block subsidy plus fees, times 365, over spendable supply: price-free, from our own node, every day since 2009. Each halving is a step. Set beside the bitcoin-secured borrow rate on the explorer, never subtracted from it: one is a bitcoin share, the other a dollar rate.',
     live: true,
   },
 ];
@@ -509,7 +715,7 @@ export const isAnchored = (spec: IndicatorSpec): boolean => Boolean(spec.anchore
 /** The catalogue a given profile may publish. The observatory publishes only
  *  venue-independent indicators; the Gavel server publishes everything. */
 export function catalogueFor(profileId: string): IndicatorSpec[] {
-  // DISJOINT, and that is the point. The observatory publishes the 23
+  // DISJOINT, and that is the point. The observatory publishes the venue-independent indicators the IX1 register keeps (§3a)
   // venue-independent indicators; the Gavel server publishes the 10 anchored on
   // its own rate. Neither publishes the other's, so OB1 §0.3's one-tool-one-home
   // rule holds at the catalogue level too: the pair appears on both servers, but
@@ -522,7 +728,7 @@ export function catalogueFor(profileId: string): IndicatorSpec[] {
   // pointed at the other. It shipped because the destination was named without
   // being called, which is the SV6-D3 discipline ("a recast page is deleted only
   // after its destination renders") applied everywhere this session except here.
-  if (profileId === 'observatory') return INDICATORS.filter((i) => !isAnchored(i));
+  if (profileId === 'observatory') return INDICATORS.filter((i) => !isAnchored(i) && !i.stack); // IX1: not published on the Stack
   if (profileId === 'gavel') return INDICATORS.filter(isAnchored);
   return INDICATORS; // gavel-presplit: the pre-split surface, unchanged.
 }

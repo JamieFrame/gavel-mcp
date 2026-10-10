@@ -87,7 +87,9 @@ async function checkIndicatorCatalogue() {
 }
 
 // The paths tools call directly, which the catalogue does not cover.
-const DIRECT_PATHS = ['/v1/auctions', '/v1/yield-curve', '/v1/onchain/indicators/latest'];
+const DIRECT_PATHS = ['/v1/auctions', '/v1/yield-curve', '/v1/onchain/indicators/latest',
+  // OC1 Phase 4 (2026-10-09): list_chain_series, get_chain_series, get_cost_basis
+  '/v1/onchain/series', '/v1/onchain/series/chain.cohort.supply_btc', '/v1/onchain/cost-basis?date=2020-01-01'];
 
 async function checkDirectPaths() {
   for (const p of DIRECT_PATHS) {

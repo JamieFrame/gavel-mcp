@@ -61,6 +61,8 @@ export const LENSES: readonly Lens[] = [
       '- How to read `unknown`: it is a value with a reason attached, and the reason distinguishes a gap in this dataset from something the venue does not publish. These are different facts and the dataset never conflates them.',
       '- That coverage is not uniform: `list_venues` reports per-pillar coverage and a criteria-complete count per venue. Read them before comparing two rows.',
       '',
+      '- That three of the indicators are governed indices (bcsi, bsbs, wrc in `list_indicators`): each has a published methodology, and a change to one is announced 30 days before it takes effect.',
+      '',
       'Then, if asked, give the current cross-venue reading from `get_credit_state` with its coverage block.',
     ].join('\n'),
     doesNotDo: [
@@ -74,13 +76,14 @@ export const LENSES: readonly Lens[] = [
     title: 'Holder — the cost of credit against bitcoin you already hold',
     description:
       'For someone holding BTC who is reading the credit market: what borrowing against it costs across venues and tenors, and on what terms.',
-    tools: ['get_credit_state', 'compare_venues', 'get_venue', 'list_venues'],
+    tools: ['get_credit_state', 'compare_venues', 'get_venue', 'list_venues', 'get_indicator'],
     leadsWith: [
       'Lead with the cost of credit and the terms attached to it:',
       '',
       '- The cross-venue reading from `get_credit_state`, with its coverage block — how many venues contribute, and which are named absent.',
       '- Where a comparison is asked for, use `compare_venues` and present the rows in the order returned. Each row carries its rate KIND (discovered, administered, fitted) and its basis; two rates of different kinds are not like-for-like and the labels are what say so.',
       '- The terms that travel with a rate, from `get_venue`: term certainty (fixed or open), rate certainty (fixed at origination or variable), liquidation mechanism, custody model, recourse. A rate without these is half the picture.',
+      '- Over time: the Bitcoin-Secured Borrow Spread (`get_indicator` id `bsbs`), what borrowing against bitcoin costs over 3-month Treasury bills across venues, chain-linked so venues entering the data do not move it. Present it with its plain spread and the disclosure its payload carries.',
       '',
       'Where the reader is weighing borrowing against selling, present the INPUTS the dataset holds — the cost of credit at the tenors it covers, the terms, the collateral treatment. Do not perform the comparison with assumed defaults for the things the dataset does not hold: their tax position, their view on price, their liquidity needs.',
     ].join('\n'),
@@ -124,6 +127,7 @@ export const LENSES: readonly Lens[] = [
       '- For any figure: its as-of date, its observation count, its weighting where one applies, and the coverage it was computed over.',
       '- For any criterion cell: the source that establishes it, and its source kind. A value without a source is not a populated cell and the dataset serves it as null rather than as a value.',
       '- The coverage matrix: which venues contribute to a reading and which are named absent, with the reason. The absences are part of the finding.',
+      '- The governed indices (`get_indicator` ids `bcsi`, `bsbs`, `wrc`): give each with its plain companion where it has one, its matched coverage on the date, and its methodology URL; the gap between an index and its plain series is coverage arriving, not the market moving.',
       '- The criteria spec version the cells were graded against, which travels in the payload.',
       '',
       PROVENANCE,
@@ -139,7 +143,7 @@ export const LENSES: readonly Lens[] = [
     title: 'Risk — what stands behind a position, and what can change under it',
     description:
       'Pillar II, read directly: oracle dependency, liquidation mechanism, custody model and recourse, per venue, each with its source.',
-    tools: ['get_venue', 'list_venues', 'compare_venues'],
+    tools: ['get_venue', 'list_venues', 'compare_venues', 'get_indicator'],
     leadsWith: [
       'Present the Quality pillar cell by cell, for the venues asked about:',
       '',
@@ -151,6 +155,8 @@ export const LENSES: readonly Lens[] = [
       'Give each cell WITH ITS SOURCE — the contract, filing or documentation that establishes it. Where a cell is `unknown`, present the reason and say whether the gap is this dataset\'s or something the venue does not publish. Those are different findings about a venue and the distinction is often the most useful thing on the row.',
       '',
       'These are structural properties, not outcomes. A venue with no liquidation mechanism has not been judged; it has been described.',
+      '',
+      'Where the question is about the collateral itself rather than one venue: Wrapper Reserve Coverage (`get_indicator` id `wrc`), one value per wrapper and never combined; and the bitcoin liquidations would release at a 10, 20 or 30% fall (`btc-released-at-fall`), arithmetic on the book as it stands with its absences named.',
     ].join('\n'),
     doesNotDo: [
       'Does not say any venue is safe, safer, sound, risky or unsafe. It reports what a venue does structurally; the reader judges.',
