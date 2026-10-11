@@ -428,5 +428,313 @@
       "include_history": true,
       "series": "cx.index.bcsi"
     }
+  },
+  {
+    "id": "sq-route-id",
+    "tool": "get_guide",
+    "args": {
+      "question": "SQ-M1"
+    }
+  },
+  {
+    "id": "sq-route-words",
+    "tool": "get_guide",
+    "args": {
+      "question": "liquidated bitcoin price"
+    }
+  },
+  {
+    "id": "sq-route-none",
+    "tool": "get_guide",
+    "args": {
+      "question": "zzzz qqqq"
+    }
+  },
+  {
+    "id": "sq-m1",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.market.collateral_btc",
+        "credit.market.debt_usd",
+        "credit.market.ltv",
+        "credit.market.borrow_rate",
+        "credit.market.lend_rate",
+        "credit.market.liq_price_usd"
+      ],
+      "plan": false
+    }
+  },
+  {
+    "id": "sq-m2",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.market.debt_usd",
+        "credit.market.collateral_btc"
+      ],
+      "from": "2022-09-19"
+    }
+  },
+  {
+    "id": "sq-m3",
+    "tool": "get_liquidation_map",
+    "args": {
+      "level": "market"
+    }
+  },
+  {
+    "id": "sq-m4",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.market.liq_within_10",
+        "credit.market.liq_within_20",
+        "credit.market.liq_within_30"
+      ]
+    }
+  },
+  {
+    "id": "sq-m5",
+    "tool": "get_debt_by_collateral",
+    "args": {
+      "days": 30
+    }
+  },
+  {
+    "id": "sq-m6",
+    "tool": "get_indicator",
+    "args": {
+      "id": "benchmark-curves"
+    }
+  },
+  {
+    "id": "sq-m7",
+    "tool": "get_indicator",
+    "args": {
+      "id": "credit-weekly-change"
+    }
+  },
+  {
+    "id": "sq-c1",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.class.algorithmic.debt_usd",
+        "credit.class.minted.debt_usd",
+        "credit.class.auction.debt_usd",
+        "credit.class.posted-card.debt_usd",
+        "credit.class.corporate.debt_usd"
+      ]
+    }
+  },
+  {
+    "id": "sq-c2",
+    "tool": "compare_venues",
+    "args": {
+      "class": "algorithmic"
+    }
+  },
+  {
+    "id": "sq-c3",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.class.algorithmic.debt_usd",
+        "credit.class.minted.debt_usd"
+      ]
+    }
+  },
+  {
+    "id": "sq-c4",
+    "tool": "get_indicator",
+    "args": {
+      "id": "intermediation-spread"
+    }
+  },
+  {
+    "id": "sq-v1",
+    "tool": "list_venues",
+    "args": {}
+  },
+  {
+    "id": "sq-v2",
+    "tool": "get_venue",
+    "args": {
+      "venue_id": "aave_v3_ethereum"
+    }
+  },
+  {
+    "id": "sq-v3",
+    "tool": "get_venue",
+    "args": {
+      "venue_id": "aave_v3_ethereum",
+      "include": [
+        "headline",
+        "axes"
+      ]
+    }
+  },
+  {
+    "id": "sq-v4",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.venue.aave_v3_ethereum.debt_usd",
+        "credit.venue.aave_v3_ethereum.borrow_rate"
+      ]
+    }
+  },
+  {
+    "id": "sq-v5",
+    "tool": "list_venues",
+    "args": {
+      "collateral": "eth"
+    }
+  },
+  {
+    "id": "sq-v6",
+    "tool": "get_desk_rates",
+    "args": {}
+  },
+  {
+    "id": "sq-i1",
+    "tool": "list_indicators",
+    "args": {}
+  },
+  {
+    "id": "sq-i2",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bsbs",
+      "include_history": true,
+      "from": "2026-01-01"
+    }
+  },
+  {
+    "id": "sq-i3",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bcsi",
+      "include_history": true,
+      "from": "2026-01-01"
+    }
+  },
+  {
+    "id": "sq-i4",
+    "tool": "get_indicator",
+    "args": {
+      "id": "wrc",
+      "include_history": true,
+      "wrapper": "wbtc"
+    }
+  },
+  {
+    "id": "sq-i5",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bsbs",
+      "as_known_on": "2026-10-09"
+    }
+  },
+  {
+    "id": "sq-i6",
+    "tool": "get_indicator",
+    "args": {
+      "id": "collateral-share"
+    }
+  },
+  {
+    "id": "sq-i7",
+    "tool": "get_indicator",
+    "args": {
+      "id": "borrow-spread",
+      "include_history": true,
+      "series": "cx.class.algorithmic.borrow_spread_over_ust_3m",
+      "from": "2026-01-01"
+    }
+  },
+  {
+    "id": "sq-ch1",
+    "tool": "list_series",
+    "args": {
+      "group": "Holders and spending",
+      "limit": 50
+    }
+  },
+  {
+    "id": "sq-ch2",
+    "tool": "get_mvrv",
+    "args": {}
+  },
+  {
+    "id": "sq-ch3",
+    "tool": "get_indicator",
+    "args": {
+      "id": "costbasis-near-liquidation"
+    }
+  },
+  {
+    "id": "sq-ch4",
+    "tool": "get_cost_basis",
+    "args": {
+      "date": "2026-10-01"
+    }
+  },
+  {
+    "id": "sq-ch5",
+    "tool": "get_indicator",
+    "args": {
+      "id": "miner-revenue-share"
+    }
+  },
+  {
+    "id": "sq-co1",
+    "tool": "get_corporate_instruments",
+    "args": {}
+  },
+  {
+    "id": "sq-co2",
+    "tool": "get_indicator",
+    "args": {
+      "id": "holdings-share"
+    }
+  },
+  {
+    "id": "sq-s1",
+    "tool": "get_guide",
+    "args": {}
+  },
+  {
+    "id": "sq-s2",
+    "tool": "get_lens",
+    "args": {
+      "lens": "orientation"
+    }
+  },
+  {
+    "id": "sq-s3",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "cx.index.bsbs",
+        "cx.market.secured.borrow_spread_over_ust_3m"
+      ],
+      "plan": "only"
+    }
+  },
+  {
+    "id": "sq-s4",
+    "tool": "list_series",
+    "args": {
+      "collateral": "eth",
+      "prefix": "credit.market.",
+      "limit": 50
+    }
+  },
+  {
+    "id": "sq-s5",
+    "tool": "get_guide",
+    "args": {}
   }
 ]

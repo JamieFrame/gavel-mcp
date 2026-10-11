@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { QUESTIONS, LENS_QUESTIONS } from '../../content/stack-questions.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { LENSES, renderLens, promptName } from '../../prompts/lenses.js';
 
@@ -118,7 +119,18 @@ export function registerLensTool(server: McpServer): void {
           ],
         };
       }
-      return { content: [{ type: 'text' as const, text: renderLens(found) }] };
+      // MR1 Phase 5: the standard questions this lens's procedure uses, cited by id (the list is get_guide's),
+      // only those answered by a tool in the lens's own scope.
+      const ids = (LENS_QUESTIONS[found.id] ?? []).filter((id) => {
+        const q = QUESTIONS.find((x) => x.id === id);
+        return q && (found.tools as readonly string[]).includes(q.tool);
+      });
+      const cite = ids.length
+        ? '\n\n## Standard questions\n\n' +
+          ids.map((id) => `- ${id}: ${QUESTIONS.find((x) => x.id === id)!.question}`).join('\n') +
+          "\n\nget_guide with question: <id> gives each one's call, meaning, page and limits."
+        : '';
+      return { content: [{ type: 'text' as const, text: renderLens(found) + cite }] };
     }
   );
 }

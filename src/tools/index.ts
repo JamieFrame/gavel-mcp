@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { questionsForTool } from '../content/stack-questions.js';
 
 import { registerListOnchainTool } from './discovery/list-onchain.js';
 import { registerYieldCurveTool } from './credit/yield-curve.js';
@@ -137,6 +138,13 @@ function scopeTo(server: McpServer, profile: Profile): McpServer {
           // refused by name, a failure is one JSON shape and answers are compact. The
           // Gavel profiles are untouched. See src/observatory/wrap.ts.
           if (profile.id === 'observatory') {
+            // MR1 Phase 5 (Gate 5): each tool names the standard questions it answers, from the one list.
+            const sq = questionsForTool(exposedName);
+            if (sq.length && typeof cfg.description === 'string') {
+              cfg = { ...cfg, description: `${cfg.description}
+
+Standard questions this tool answers (get_guide with question): ${sq.join(', ')}.` };
+            }
             const shape = (cfg.inputSchema ?? {}) as ZodRawShape;
             cfg = { ...cfg, inputSchema: strictInput(exposedName, shape) };
             h = wrapHandler(handler as (...a: any[]) => unknown, (m) => applyRenames(m, profile.renames));

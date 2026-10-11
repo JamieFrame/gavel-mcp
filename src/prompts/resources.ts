@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { QUESTIONS } from '../content/stack-questions.js';
 import type { Profile } from '../profiles.js';
 import { LENSES, promptName } from './lenses.js';
 import { guideScope } from '../tools/guide/guide.js';
@@ -87,6 +88,21 @@ export function registerLensResources(server: McpServer, profile: Profile): void
       mimeType: 'text/markdown',
     },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: NEWS_2026_10_09 }] })
+  );
+
+  // MR1 Phase 5 (Gate 5) — the standard questions, as get_guide serves them.
+  server.registerResource(
+    'stack-questions',
+    'stack://questions.json',
+    {
+      title: "The Stack's standard questions",
+      description:
+        'The questions a reader most often asks the Stack, each with the tool and arguments that answer it, what the answer means, the page that shows the same figure, and its limits. The same as get_guide with question.',
+      mimeType: 'application/json',
+    },
+    async (uri) => ({
+      contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify({ count: QUESTIONS.length, questions: QUESTIONS }) }],
+    })
   );
 
   // MR1 Phase 2 — the same scope get_guide returns, as a document a client can read before calling anything.

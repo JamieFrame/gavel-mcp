@@ -5,6 +5,8 @@ import { activeProfile } from '../../profiles.js';
 import { INDICATORS, catalogueFor, isAnchored } from '../indicators/catalogue.js';
 import { LENSES } from '../../prompts/lenses.js';
 import { COMPARE_TIMEOUT_MS } from '../venues/venues.js';
+import { z } from 'zod';
+import { QUESTIONS, questionIndex, findQuestions, SITE as Q_SITE } from '../../content/stack-questions.js';
 
 // ============================================================================
 // get_guide — what this server covers, counted when asked (MR1 Phase 2).
@@ -160,12 +162,26 @@ export function registerGuideTool(server: McpServer): void {
         `when asked, each with a sentence saying what it counts. Also the two venue vocabularies ` +
         `(venue type and credit class), how absences are returned, and where the methodology is.\n\n` +
         `Call this first when you need to say how much the Stack covers. It ranks nothing and ` +
-        `describes no venue's quality.`,
-      inputSchema: {},
+        `describes no venue's quality.
+
+` +
+        `It also routes the Stack's standard questions: with no argument it lists them (id, question, tool); ` +
+        `with question (an id such as 'SQ-M1', or a few words) it returns the matching question whole: the ` +
+        `call that answers it, what the answer means, the page that shows the same figure, and its limits. ` +
+        `The match is a lookup in the published list, never a guess; words that match none return the list.`,
+      inputSchema: {
+        question: z.string().optional().describe(`A standard question's id (e.g. 'SQ-M1') or a few words from it`),
+      },
     },
-    async () => {
+    async ({ question }: { question?: string }) => {
       requireTier('free');
-      return { content: [{ type: 'text' as const, text: JSON.stringify(await scope()) }] };
+      const text = (o: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(o) }] });
+      if (!question) return text({ ...(await scope()), questions: { count: QUESTIONS.length, list: questionIndex(), note: 'Ask get_guide with question: <id> for the call, the meaning, the page and the limits.' } });
+      const { exact, matches } = findQuestions(question);
+      const whole = (q: (typeof QUESTIONS)[number]) => ({ ...q, page_url: `${Q_SITE}${q.page}` });
+      if (exact) return text({ question: whole(exact) });
+      if (matches.length) return text({ asked: question, matches: matches.map(whole) });
+      return text({ asked: question, no_match: 'No standard question has every one of these words; the list follows. The tools still answer questions beyond it.', questions: questionIndex() });
     }
   );
 }
