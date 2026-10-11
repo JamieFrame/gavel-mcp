@@ -370,12 +370,12 @@ export const INDICATORS: IndicatorSpec[] = [
   },
   {
     id: 'benchmark-curves',
-    name: 'Benchmark Curves',
+    name: 'Benchmark Curves (the signed curve)',
     family: 'credit',
     path: '/v1/credit/benchmark-curves',
     historyPath: null,
-    units: 'APR (%) by tenor',
-    description: 'The reference curves (US Treasury and other benchmarks) at matched tenors, against which the market\'s borrow spreads are measured (bsbs, borrow-spread).',
+    units: 'percent_cc on every point (rate_cc), with the native rate and unit beside it',
+    description: "The site's curve chart as one payload. `past`: realised rates by lookback window (an averaging window, not a maturity) for each dollar class of the financing curve, by leg, with the Treasury of that tenor as quoted that long ago. `forward`: contracted rates by maturity: the Treasury curve, the auction curve fitted to Gavel's book (each point flagged `fitted` beyond the longest tenor observed, with the fit's provenance), and the posted CeFi composite (administered, not cleared). Every point carries rate_cc, continuously compounded, so the two halves share one axis; the conversions are stated in `conversions`. Absent legs carry their kind and reason. The Aave and Compound mini curves this route once served are no longer served: their keys stay, empty, named in `replaced`.",
     live: true,
   },
   {
