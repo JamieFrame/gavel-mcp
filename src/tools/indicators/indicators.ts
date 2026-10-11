@@ -228,11 +228,20 @@ export function registerIndicatorTools(server: McpServer): void {
                 .regex(/^\d{4}-\d{2}-\d{2}$/)
                 .optional()
                 .describe(`YYYY-MM-DD: the indicator as published at the end of that day (UTC). Only for indicators kept by vintage.`),
+              // MR1 MR-F09: a measure's sub-series and a wrapper of wrc, with include_history.
+              series: z
+                .string()
+                .optional()
+                .describe(`With include_history, one series of a measure (its \`series[]\` names them), e.g. 'cx.class.algorithmic.borrow_spread_over_ust_3m'. Default: the headline series`),
+              wrapper: z
+                .enum(['wbtc', 'tbtc', 'kbtc', 'cdcbtc'])
+                .optional()
+                .describe(`With include_history on wrc, one wrapper's coverage history`),
             }
           : {}),
       },
     },
-    async ({ id, include_history, from, to, as_known_on }: { id: string; include_history: boolean; from?: string; to?: string; as_known_on?: string }) => {
+    async ({ id, include_history, from, to, as_known_on, series, wrapper }: { id: string; include_history: boolean; from?: string; to?: string; as_known_on?: string; series?: string; wrapper?: string }) => {
       requireTier('free');
 
       const spec = findIndicator(id);
@@ -378,6 +387,17 @@ export function registerIndicatorTools(server: McpServer): void {
         );
       }
 
+      // MR1 MR-F09: series for a measure's history, wrapper for wrc's; anything else is refused by name.
+      if ((series || wrapper) && !include_history) {
+        throw new McpError(ErrorCode.InvalidParams, `series and wrapper select a history: call again with include_history: true.`);
+      }
+      if (series && !/^\/v1\/market\/measure\//.test(spec.historyPath ?? '')) {
+        throw new McpError(ErrorCode.InvalidParams, `'${spec.id}' is not a measure, so it takes no series; get_series reads any series by id.`);
+      }
+      if (wrapper && spec.id !== 'wrc') {
+        throw new McpError(ErrorCode.InvalidParams, `wrapper selects one of wrc's wrappers; '${spec.id}' takes none.`);
+      }
+
       const path = include_history ? spec.historyPath! : spec.path;
       // MR1 MR-F07: some ids read a whole series for their current value (hpx was 779 KB).
       // On the observatory the current value is the latest point, read from a recent window.
@@ -386,7 +406,7 @@ export function registerIndicatorTools(server: McpServer): void {
       let data: Record<string, unknown>;
       try {
         data = await upstreamGet<Record<string, unknown>>(path, {
-          query: include_history ? { from, to, as_known_on } : { ...window, as_known_on },
+          query: include_history ? { from, to, as_known_on, series, wrapper } : { ...window, as_known_on },
         });
       } catch (err) {
         // MR1 MR-F14: a range with no points is an empty series, not a failure.

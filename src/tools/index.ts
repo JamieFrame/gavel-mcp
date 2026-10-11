@@ -4,6 +4,7 @@ import { registerListOnchainTool } from './discovery/list-onchain.js';
 import { registerYieldCurveTool } from './credit/yield-curve.js';
 import { registerMvrvTool } from './onchain/mvrv.js';
 import { registerChainSeriesTools } from './onchain/series.js';
+import { registerSeriesTools } from './series/series-tools.js';
 import { registerProtocolReferenceTool } from './protocol/reference.js';
 import { registerWalletStatusTool } from './protocol/wallet-status.js';
 import { registerFindAuctionsTool } from './protocol/find-auctions.js';
@@ -166,6 +167,10 @@ export function registerAllTools(server: McpServer, profile: Profile): void {
 
   // On-chain series from the vintage store (OC1 Phase 4, 2026-10-09): /v1/onchain/series, /series/:id, /cost-basis.
   registerChainSeriesTools(s);
+
+  // MR1 Phase 4 (Gate 4a, 2026-10-11): the series layer (every series, one catalogue, one fetch, the chart
+  // plan) and the three table tools. Observatory only.
+  registerSeriesTools(s);
 
   // Protocol metadata
   registerProtocolReferenceTool(s);

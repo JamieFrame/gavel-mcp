@@ -236,6 +236,12 @@ const OBSERVATORY_TOOLS = [
   'get_verification_bundle',
   // MR1 Phase 2 (Gate 0 G0-5) — what this server covers, every count read from the data when asked.
   'get_guide',
+  // MR1 Phase 4 (Gate 4a, 2026-10-11) — the series layer and the table tools (disposition §5).
+  'list_series',
+  'get_series',
+  'get_corporate_instruments',
+  'get_desk_rates',
+  'get_debt_by_collateral',
 ] as const;
 
 /** Everything on the catalogue that is not observatory-only. */

@@ -1,0 +1,162 @@
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { upstreamGet } from '../../upstream.js';
+import { requireTier } from '../../tiers.js';
+
+/**
+ * MR1 Phase 4 (operator, Gate 4a 2026-10-11; aletheia-docs data/specs/mcp_tool_disposition_v1.md §5).
+ * The series layer and the three table tools. Each reads one gavel-indexer route and returns it as served:
+ *   list_series                -> GET /v1/series                       (catalogue)
+ *   get_series                 -> GET /v1/series/values                (history; as-known-on with as_known_on)
+ *   get_corporate_instruments  -> GET /v1/market/corporate/instruments (snapshot)
+ *   get_desk_rates             -> GET /v1/market/cefi-rates            (snapshot)
+ *   get_debt_by_collateral     -> GET /v1/market/debt-by-collateral    (snapshot)
+ * The chart plan is the API's (one home, G0-2): panels by unit, two at most, the explorer's refusals in its
+ * words, ether and bitcoin never on one panel, and the /explore link that draws the same chart. No image.
+ * Values are identities on observed data: no forecast, no ranking, no characterisation.
+ */
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const DISCLAIMER =
+  'Informational. Aletheia Analytics SASU operates this interface and data product. No guarantee of ' +
+  'accuracy, and nothing here is a recommendation.';
+const text = (o: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(o, null, 2) }] });
+const GROUPS = ['Cost of credit', 'Size and leverage', 'Liquidation', 'Wrapped bitcoin', 'Holders and spending', 'Miners', 'Context'] as const;
+const date = (what: string) => z.string().regex(DATE, `${what} must be YYYY-MM-DD`);
+
+export function registerSeriesTools(server: McpServer): void {
+  server.registerTool(
+    'list_series',
+    {
+      title: 'Every chartable series (catalogue)',
+      description:
+        `Lists the series the Stack serves, across every dataset: the credit tree at every level (market, ` +
+        `class, family, venue) and figure, for bitcoin and, separately, for ether collateral; the liquidation ` +
+        `map's bands; the credit x on-chain measures and their sub-series; the governed indices; wrapper reserve ` +
+        `coverage; the chain, miner, on-chain price and FX series from Aletheia's own node; the Treasury curve ` +
+        `(H.15); SOFR and the stablecoin total. Each row: id, label, unit, group, collateral, cadence, kinds, ` +
+        `first and last date, licence, the site page that shows it, whether it can be charted (and why not), ` +
+        `and whether the site's explorer draws it.\n\n` +
+        `Paged: 200 rows by default (limit up to 500); pass the returned \`next\` as cursor. Narrow with dataset, ` +
+        `group, collateral, prefix (e.g. 'credit.class.algorithmic.') or q (a word in the id or label). ` +
+        `Then fetch values with get_series.`,
+      inputSchema: {
+        dataset: z.string().optional().describe(`A dataset from the answer's \`datasets\`, e.g. credit_tree, credit_tree_eth, cx, chain_series, macro`),
+        group: z.enum(GROUPS).optional().describe('One of the explorer\'s picker groups'),
+        collateral: z.enum(['btc', 'eth']).optional().describe('Series measured against bitcoin or against ether collateral; never added together'),
+        prefix: z.string().optional().describe(`Series id prefix, e.g. 'credit.venue.aave_v3_ethereum.' or 'cx.market.'`),
+        q: z.string().optional().describe('A word to find in the id or label'),
+        chartable_only: z.boolean().optional().describe('Leave out series that cannot be drawn on a time chart'),
+        limit: z.number().int().min(1).max(500).optional().describe('Rows per page, 1 to 500 (default 200)'),
+        cursor: z.number().int().min(0).optional().describe('The `next` value of the previous page'),
+      },
+    },
+    async ({ dataset, group, collateral, prefix, q, chartable_only, limit, cursor }) => {
+      requireTier('free');
+      const data = await upstreamGet<Record<string, unknown>>('/v1/series', {
+        query: { dataset, group, collateral, prefix, q, chartable: chartable_only ? 'true' : undefined, limit, cursor },
+      });
+      return text({ ...data, disclaimer: DISCLAIMER });
+    }
+  );
+
+  server.registerTool(
+    'get_series',
+    {
+      title: 'Series through time, with a chart plan',
+      description:
+        `Returns 1 to 13 series (ids from list_series), each on its own dates, from Aletheia's vintage store: ` +
+        `every value with its date and kind (an absence is a kind with its reason, never a zero), the unit, ` +
+        `source, limitation and the vintages the values came from. Default window: the last 365 days to \`to\`; ` +
+        `pass \`from\` for the full history. With as_known_on, each series is returned as the store held it at the ` +
+        `end of that day (UTC), so a figure quoted then can be reproduced.\n\n` +
+        `With the data comes a chart plan, as the site's explorer draws: panels by unit, two at most, a series ` +
+        `joining the panel of its exact unit; a third unit is refused in the explorer's words; ether and bitcoin ` +
+        `collateral are never drawn on one panel; each refusal names its reason. The plan carries the ` +
+        `/explore link that draws the same chart on the site, and a text alternative per panel. plan: 'only' ` +
+        `returns the plan without the values; plan: false the values without the plan.\n\n` +
+        `Values resting on CoinGecko prices carry coingecko_share or price_today, and the answer's attribution ` +
+        `names every source to credit: show them with the values. This tool returns data; it does not advise, ` +
+        `forecast or characterise the market.`,
+      inputSchema: {
+        ids: z.array(z.string().min(1)).min(1).max(13).describe(`Series ids from list_series, e.g. ['cx.index.bsbs', 'cx.market.secured.borrow_spread_over_ust_3m']`),
+        from: date('from').optional().describe('First date, YYYY-MM-DD (default: 365 days before `to`)'),
+        to: date('to').optional().describe('Last date, YYYY-MM-DD (default: today)'),
+        as_known_on: date('as_known_on').optional().describe('YYYY-MM-DD: every series as the store held it at the end of that day (UTC)'),
+        plan: z.union([z.boolean(), z.literal('only')]).optional().describe(`true (default): values and the chart plan; false: values only; 'only': the plan only`),
+      },
+    },
+    async ({ ids, from, to, as_known_on, plan }) => {
+      requireTier('free');
+      const data = await upstreamGet<Record<string, unknown>>('/v1/series/values', {
+        query: { ids: ids.join(','), from, to, as_known_on, plan: plan == null ? undefined : String(plan) },
+      });
+      return text({ ...data, disclaimer: DISCLAIMER });
+    }
+  );
+
+  server.registerTool(
+    'get_corporate_instruments',
+    {
+      title: 'Corporate instruments (preferreds and debt)',
+      description:
+        `Lists the instruments of the corporate issuers in the registry (convertible notes, credit facilities, ` +
+        `bonds, perpetual preferreds), one row per instrument, as the site's /instruments pages show them: ` +
+        `terms, seniority, the yield a holder receives where a last regular-session trade prices it, returns, ` +
+        `and the issuer's bitcoin holdings. Corporate lending, not bitcoin-backed credit: a holder lends to the ` +
+        `issuer unsecured, with no lien on its bitcoin. Income in the returns is what the terms accrue, not ` +
+        `what was confirmed paid (returns_convention says so). Prices are IEX's, credited in the answer's ` +
+        `attribution. Returns the route's payload as served.`,
+      inputSchema: {},
+    },
+    async () => {
+      requireTier('free');
+      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/corporate/instruments')), disclaimer: DISCLAIMER });
+    }
+  );
+
+  server.registerTool(
+    'get_desk_rates',
+    {
+      title: 'Posted rates of the custodial desks',
+      description:
+        `Returns the rate cards the custodial lending desks post (bitcoin collateral), one row per product: ` +
+        `the representative APR and its range, term, maximum LTV, custody and liquidation model, and the card's ` +
+        `effective date and source. Administered rates, not market-cleared; a card older than the stated ` +
+        `staleness is marked. Pass desk to read one desk's cards. Returns the route's payload as served.`,
+      inputSchema: {
+        desk: z.string().optional().describe(`A desk id as the payload names it, e.g. 'ledn', 'xapo'`),
+      },
+    },
+    async ({ desk }) => {
+      requireTier('free');
+      const data = await upstreamGet<{ desks?: Array<Record<string, unknown>>; [k: string]: unknown }>('/v1/market/cefi-rates');
+      if (!desk) return text({ ...data, disclaimer: DISCLAIMER });
+      const desks = (data.desks ?? []).filter((d) => String(d.desk ?? d.id ?? '').toLowerCase() === desk.toLowerCase());
+      if (!desks.length) {
+        const known = [...new Set((data.desks ?? []).map((d) => String(d.desk ?? d.id ?? '')))].filter(Boolean).sort();
+        throw new Error(`no desk '${desk}' in the posted cards; desks: ${known.join(', ')}`);
+      }
+      return text({ ...data, count: desks.length, desks, desk_filter: desk, disclaimer: DISCLAIMER });
+    }
+  );
+
+  server.registerTool(
+    'get_debt_by_collateral',
+    {
+      title: 'How the dollar debt is backed',
+      description:
+        `What backs the dollar debt against bitcoin, by collateral and by venue type (pools, isolated markets, ` +
+        `vaults, the auction, corporate, posted cards), as the site's "How these loans are backed" panel shows ` +
+        `it, with each observer named and the collateral rule stated. days (30 to 1500, default 365) sets the ` +
+        `window of the series it carries. Returns the route's payload as served.`,
+      inputSchema: {
+        days: z.number().int().min(30).max(1500).optional().describe('Window in days, 30 to 1500 (default 365)'),
+      },
+    },
+    async ({ days }) => {
+      requireTier('free');
+      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/debt-by-collateral', { query: { days } })), disclaimer: DISCLAIMER });
+    }
+  );
+}

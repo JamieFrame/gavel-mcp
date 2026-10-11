@@ -313,5 +313,120 @@
     "args": {
       "timestamp": "2026-01-01"
     }
+  },
+  {
+    "id": "p4-list-series",
+    "tool": "list_series",
+    "args": {
+      "limit": 5
+    }
+  },
+  {
+    "id": "p4-list-series-class",
+    "tool": "list_series",
+    "args": {
+      "prefix": "credit.class.algorithmic.",
+      "limit": 5
+    }
+  },
+  {
+    "id": "p4-series-bsbs",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "cx.index.bsbs",
+        "cx.market.secured.borrow_spread_over_ust_3m"
+      ]
+    }
+  },
+  {
+    "id": "p4-series-tree-chain",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.class.algorithmic.debt_usd",
+        "credit.class.minted.debt_usd",
+        "chain.cohort.supply_lth_btc"
+      ]
+    }
+  },
+  {
+    "id": "p4-series-eth-refused",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "credit.market.debt_usd",
+        "credit.market.coll_eth.debt_usd"
+      ],
+      "plan": "only"
+    }
+  },
+  {
+    "id": "p4-series-asof",
+    "tool": "get_series",
+    "args": {
+      "ids": [
+        "cx.index.bsbs"
+      ],
+      "as_known_on": "2026-10-09"
+    }
+  },
+  {
+    "id": "p4-instruments",
+    "tool": "get_corporate_instruments",
+    "args": {}
+  },
+  {
+    "id": "p4-desk-rates",
+    "tool": "get_desk_rates",
+    "args": {
+      "desk": "ledn"
+    }
+  },
+  {
+    "id": "p4-debt-by-collateral",
+    "tool": "get_debt_by_collateral",
+    "args": {
+      "days": 30
+    }
+  },
+  {
+    "id": "p4-venue-extras",
+    "tool": "get_venue",
+    "args": {
+      "venue_id": "aave_v3_ethereum",
+      "include": [
+        "axes",
+        "headline"
+      ]
+    }
+  },
+  {
+    "id": "p4-indicator-series",
+    "tool": "get_indicator",
+    "args": {
+      "id": "borrow-spread",
+      "include_history": true,
+      "series": "cx.class.algorithmic.borrow_spread_over_ust_3m",
+      "from": "2026-09-01"
+    }
+  },
+  {
+    "id": "p4-indicator-wrapper",
+    "tool": "get_indicator",
+    "args": {
+      "id": "wrc",
+      "include_history": true,
+      "wrapper": "wbtc"
+    }
+  },
+  {
+    "id": "p4-indicator-series-refused",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bcsi",
+      "include_history": true,
+      "series": "cx.index.bcsi"
+    }
   }
 ]

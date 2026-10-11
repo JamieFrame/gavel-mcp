@@ -300,6 +300,22 @@ export function registerVenueTools(server: McpServer): void {
     }
   );
 
+  // The venue page's extras (MR1 Phase 4): its row of /v1/market/venue-axes and of /v1/market/venue-headline.
+  async function venueExtras(venueId: string, include: Array<'axes' | 'headline'>, collateral?: string) {
+    const out: Record<string, unknown> = {};
+    if (include.includes('axes')) {
+      const a = (await upstreamGet('/v1/market/venue-axes', {})) as { venues?: Array<Record<string, unknown>>; as_of?: unknown; question?: unknown; absent_kinds?: unknown };
+      const mine = (a.venues ?? []).find((v) => v.venue_id === venueId) ?? null;
+      out.axes = mine ? { as_of: a.as_of, question: a.question, absent_kinds: a.absent_kinds, ...mine } : { absent: 'not_read', reason: `no row for ${venueId} on /v1/market/venue-axes` };
+    }
+    if (include.includes('headline')) {
+      const h = (await upstreamGet('/v1/market/venue-headline', { query: { venue: venueId, ...(collateral === 'eth' ? { collateral: 'eth' } : {}) } })) as { venues?: Array<Record<string, unknown>>; as_of?: unknown; question?: unknown; kinds?: unknown; absent_kinds?: unknown };
+      const mine = (h.venues ?? []).find((v) => v.venue_id === venueId) ?? null;
+      out.headline = mine ? { as_of: h.as_of, question: h.question, kinds: h.kinds, absent_kinds: h.absent_kinds, ...mine } : { absent: 'not_read', reason: `no row for ${venueId} on /v1/market/venue-headline` };
+    }
+    return out;
+  }
+
   // ── get_venue ─────────────────────────────────────────────────────────────
   server.registerTool(
     'get_venue',
@@ -326,17 +342,24 @@ export function registerVenueTools(server: McpServer): void {
           .string()
           .describe(`Registry id, e.g. 'aave_v3_arbitrum'. Call list_venues to discover valid ids.`),
         collateral: collateralInput,
+        // MR1 Phase 4 (G0-3): the venue page's extras, behind an argument so the default stays small.
+        include: z
+          .array(z.enum(['axes', 'headline']))
+          .optional()
+          .describe(`Extras the venue page shows: 'axes' (where the venue sits on the market's measured axes) and 'headline' (its six figures as the headline reads them, with the books)`),
       },
     },
-    async ({ venue_id, collateral }) => {
+    async ({ venue_id, collateral, include }) => {
       requireTier('free');
       const row = (await upstreamGet(`/v1/market/venues/${encodeURIComponent(venue_id)}`, {})) as VenueRow;
+      const extras = include?.length ? await venueExtras(venue_id, include, collateral) : null;
       if (collateral !== 'eth') {
         return json({
           ...(collateral === 'btc' ? { collateral: 'btc' } : {}),
           ...row,
           criteria_spec_version: CRITERIA_SPEC_VERSION,
           pillars: buildPillars(row),
+          ...(extras ? { extras } : {}),
         });
       }
       const head = (await upstreamGet('/v1/market/venue-headline', {
@@ -348,6 +371,7 @@ export function registerVenueTools(server: McpServer): void {
         ...row,
         criteria_spec_version: CRITERIA_SPEC_VERSION,
         pillars: buildPillars(row),
+        ...(extras ? { extras } : {}),
         ...(figures
           ? {
               ether: {
