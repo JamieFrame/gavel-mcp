@@ -78,7 +78,10 @@ async function run(endpoint, outFile, callsFile) {
   });
   const results = [];
   let n = 2;
+  // The server allows 60 anonymous calls a minute; a set larger than that is paced so no answer is a rate limit.
+  const pace = Number(process.env.HARNESS_DELAY_MS ?? (calls.length > 55 ? 1100 : 0));
   for (const c of calls) {
+    if (pace) await new Promise((r) => setTimeout(r, pace));
     const t0 = Date.now();
     let r;
     try { r = await rpc(endpoint, 'tools/call', { name: c.tool, arguments: c.args }, n++); }
