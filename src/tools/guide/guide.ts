@@ -4,6 +4,7 @@ import { requireTier } from '../../tiers.js';
 import { activeProfile } from '../../profiles.js';
 import { INDICATORS, catalogueFor, isAnchored } from '../indicators/catalogue.js';
 import { LENSES } from '../../prompts/lenses.js';
+import { COMPARE_TIMEOUT_MS } from '../venues/venues.js';
 
 // ============================================================================
 // get_guide — what this server covers, counted when asked (MR1 Phase 2).
@@ -44,7 +45,7 @@ async function scope(): Promise<Record<string, unknown>> {
 
   const [registry, compare, state, series] = await Promise.all([
     upstreamGet('/v1/market/venues', { query: { scope: 'all' } }) as Promise<{ venues?: Venue[] }>,
-    upstreamGet('/v1/venues/compare', {}) as Promise<{ result?: { rows?: Array<{ venue_id: string; class?: string | null }> } }>,
+    upstreamGet('/v1/venues/compare', { timeoutMs: COMPARE_TIMEOUT_MS }) as Promise<{ result?: { rows?: Array<{ venue_id: string; class?: string | null }> } }>,
     upstreamGet('/v1/market/credit-state', {}) as Promise<{ snapshot_date?: string; coverage?: { venues_in_universe?: number; venues_contributing?: number; venues_absent?: unknown[] } }>,
     upstreamGet('/v1/onchain/series', {}) as Promise<{ count?: number; series?: unknown[] }>,
   ]);

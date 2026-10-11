@@ -106,6 +106,35 @@ function buildPillars(row: VenueRow) {
 
 const CREDIT_CLASSES = ['algorithmic', 'minted', 'auction', 'posted-card', 'corporate'];
 
+/** The comparison route takes several seconds; give it room rather than the default ten. */
+export const COMPARE_TIMEOUT_MS = 30_000;
+
+/**
+ * venue_id -> credit class, from /v1/venues/compare, cached for ten minutes.
+ * MR1 hotfix 2026-10-11: list_venues read the comparison on every call, which put
+ * an ~8 s route behind every venue list and, under load, pushed compare_venues
+ * itself past its timeout. One read per ten minutes, shared, and one in flight.
+ */
+let classCache: { at: number; map: Map<string, string | null> } | null = null;
+let classInFlight: Promise<Map<string, string | null>> | null = null;
+async function creditClasses(): Promise<Map<string, string | null>> {
+  if (classCache && Date.now() - classCache.at < 10 * 60 * 1000) return classCache.map;
+  if (!classInFlight) {
+    classInFlight = (async () => {
+      try {
+        const cmp = (await upstreamGet('/v1/venues/compare', { timeoutMs: COMPARE_TIMEOUT_MS })) as { result?: { rows?: Array<{ venue_id: string; class?: string | null }> } };
+        const map = new Map<string, string | null>();
+        for (const r of cmp.result?.rows ?? []) map.set(r.venue_id, r.class ?? null);
+        classCache = { at: Date.now(), map };
+        return map;
+      } finally {
+        classInFlight = null;
+      }
+    })();
+  }
+  return classInFlight;
+}
+
 /** The compact row (MR1 G0-9): who the venue is, how it is built, its class, and how far it is researched. */
 function compactRow(v: VenueRow, classOf: Map<string, string | null>) {
   const coverage = v.coverage
@@ -212,12 +241,9 @@ export function registerVenueTools(server: McpServer): void {
       if (status && !served('status').includes(status)) {
         throw new McpError(ErrorCode.InvalidParams, `'${status}' is not a registry status. Statuses served: ${served('status').join(', ')}.`);
       }
-      // The credit class is the comparison's, the one every Stack page uses; read it there.
-      const classOf = new Map<string, string | null>();
-      if (cls || (detail ?? 'compact') === 'compact') {
-        const cmp = (await upstreamGet('/v1/venues/compare', {})) as { result?: { rows?: Array<{ venue_id: string; class?: string | null }> } };
-        for (const r of cmp.result?.rows ?? []) classOf.set(r.venue_id, r.class ?? null);
-      }
+      // The credit class is the comparison's, the one every Stack page uses; read it there,
+      // cached (the comparison takes several seconds and a venue's class changes rarely).
+      const classOf = cls || (detail ?? 'compact') === 'compact' ? await creditClasses() : new Map<string, string | null>();
       // Which venues take the collateral asked for. The registry's own
       // collateral_set decides where rows carry it (A1); until they do, the
       // venues of the ether tree are the ones that take ether.
@@ -381,6 +407,7 @@ export function registerVenueTools(server: McpServer): void {
       }
       const data = (await upstreamGet('/v1/venues/compare', {
         query: { tenor_days, ltv, side, venues, class: cls },
+        timeoutMs: COMPARE_TIMEOUT_MS,
       })) as Record<string, unknown>;
       // MR1 MR-F06: a venue id that is not in the registry is named, never answered as
       // "insufficient data" for the venues that are.
