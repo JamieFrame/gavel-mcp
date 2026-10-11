@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { activeProfile } from '../../profiles.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
 
@@ -64,8 +65,10 @@ export function registerMvrvTool(server: McpServer): void {
           .optional()
           .describe(
             `ISO 8601 date. Currently ignored: the upstream serves the latest ` +
-              `computed row only. Historical MVRV is available through ` +
-              `get_gavel_indicator with include_history.`
+              `computed row only. ` +
+              (activeProfile().id === 'observatory'
+                ? `Historical MVRV, from 2009: get_chain_series with id 'chain.cohort.mvrv'.`
+                : `Historical MVRV is available through get_gavel_indicator with include_history.`)
           ),
       },
     },
@@ -93,11 +96,15 @@ export function registerMvrvTool(server: McpServer): void {
         // BCS remediation P4: the upstream's source credit (CoinGecko for the
         // BTC/USD price) travels with the figures built on it.
         attribution: (data as { attribution?: unknown }).attribution ?? null,
+        // MR1 H-09: on the Stack the disclaimer names no protocol (OB1 §0.1).
         disclaimer:
-          'Informational. Aletheia Analytics SASU operates this interface and ' +
-          'data product; the Gavel Protocol is autonomous, permissionless code ' +
-          'with no operating entity. No guarantee of accuracy, and nothing here ' +
-          'is a recommendation.',
+          activeProfile().id === 'observatory'
+            ? 'Informational. Aletheia Analytics SASU operates this interface and data product. ' +
+              'No guarantee of accuracy, and nothing here is a recommendation.'
+            : 'Informational. Aletheia Analytics SASU operates this interface and ' +
+              'data product; the Gavel Protocol is autonomous, permissionless code ' +
+              'with no operating entity. No guarantee of accuracy, and nothing here ' +
+              'is a recommendation.',
       };
 
       return {

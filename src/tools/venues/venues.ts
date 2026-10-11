@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
 import { collateralInput, COLLATERAL_DESCRIPTION, etherAbsent, ETHER_USD_LIMITATION } from './collateral.js';
@@ -103,6 +104,30 @@ function buildPillars(row: VenueRow) {
   return out;
 }
 
+const CREDIT_CLASSES = ['algorithmic', 'minted', 'auction', 'posted-card', 'corporate'];
+
+/** The compact row (MR1 G0-9): who the venue is, how it is built, its class, and how far it is researched. */
+function compactRow(v: VenueRow, classOf: Map<string, string | null>) {
+  const coverage = v.coverage
+    ? Object.fromEntries(Object.entries(v.coverage).map(([pillar, c]) => [pillar, c?.level ?? null]))
+    : null;
+  return {
+    venue_id: v.venue_id,
+    display_name: v.display_name ?? null,
+    venue_type: v.venue_type ?? null,
+    credit_class: classOf.has(v.venue_id) ? classOf.get(v.venue_id) : null,
+    status: v.status ?? null,
+    scope: v.scope ?? null,
+    collateral_set: v.collateral_set ?? null,
+    chain_id: v.chain_id ?? null,
+    family_id: v.family_id ?? null,
+    attributes_complete: v.attributes_complete ?? null,
+    attributes_total: v.attributes_total ?? null,
+    coverage,
+    page: `https://www.bitcoincreditstack.com/venues/${v.venue_id}`,
+  };
+}
+
 export function registerVenueTools(server: McpServer): void {
   // ── list_venues ───────────────────────────────────────────────────────────
   server.registerTool(
@@ -112,9 +137,14 @@ export function registerVenueTools(server: McpServer): void {
       description:
         `Which credit venues does this dataset cover, and what is known about each? ` +
         `Returns the registry rows matching the filters you supply.\n\n` +
-        `One row per venue across four classes — on-chain protocols, CeFi desks, the ` +
-        `corporate layer, and auction venues — each carrying its coverage state per ` +
-        `pillar and how many of its criteria cells have been researched. Does not ` +
+        `One row per venue, each with its coverage state per pillar and how many of ` +
+        `its criteria cells have been researched. Two vocabularies, never mixed: a ` +
+        `venue TYPE says how the venue is built (an on-chain pool, an isolated or CDP ` +
+        `market, a custodial desk, a broker, a corporate issuer, an auction), and a ` +
+        `credit CLASS says how its rate is set (algorithmic, minted, posted-card, ` +
+        `auction, corporate) — the classes the Stack's pages use. Filter by either. ` +
+        `Rows are compact by default; detail: 'full' returns every registry field ` +
+        `and the semantics blocks. get_guide counts the venues of each type and class. Does not ` +
         `rank, score or order by any rate: rows are returned in the registry's own ` +
         `order. All filters are optional and unspecified means no constraint.\n\n` +
         `⚠ A venue's presence is not a statement about it. Coverage 'none' means ` +
@@ -127,16 +157,20 @@ export function registerVenueTools(server: McpServer): void {
         venue_type: z
           .string()
           .optional()
-          .describe(`Restrict to one class, e.g. 'onchain_pooled', 'cefi_desk', 'corporate_debt', 'auction'.`),
+          .describe(`Restrict to one venue type, e.g. 'onchain_pooled', 'onchain_isolated', 'onchain_cdp', 'cefi_desk', 'broker', 'corporate_debt', 'auction'. A value the registry does not serve is refused with the ones it does.`),
+        class: z
+          .enum(['algorithmic', 'minted', 'auction', 'posted-card', 'corporate'])
+          .optional()
+          .describe(`Restrict to one credit class, as the Stack's pages and compare_venues use them.`),
         status: z
           .string()
           .optional()
-          .describe(`Restrict by registry status: 'live', 'ingesting', 'registered', 'unresolved', 'defunct'.`),
+          .describe(`Restrict by registry status, e.g. 'live', 'ingesting', 'registered', 'defunct'. A value the registry does not serve is refused with the ones it does.`),
         chain_id: z.number().int().optional().describe(`Restrict to venues on one EVM chain id.`),
         complete_attributes_only: z
           .boolean()
           .optional()
-          .describe(`Only venues whose criteria cells are fully researched (8 of 8). Default false.`),
+          .describe(`Only venues with every criteria cell researched. Default false.`),
         limit: z
           .number()
           .int()
@@ -144,9 +178,16 @@ export function registerVenueTools(server: McpServer): void {
           .max(200)
           .optional()
           .describe(`Cap the rows returned. Default 50. The response always states the unfiltered total.`),
+        detail: z
+          .enum(['compact', 'full'])
+          .optional()
+          .describe(`'compact' (the default): one short row per venue. 'full': every registry field, with the semantics blocks.`),
       },
     },
-    async ({ collateral, venue_type, status, chain_id, complete_attributes_only, limit }) => {
+    async ({ collateral, venue_type, class: cls, status, chain_id, complete_attributes_only, limit, detail }: {
+      collateral?: 'btc' | 'eth'; venue_type?: string; class?: string; status?: string; chain_id?: number;
+      complete_attributes_only?: boolean; limit?: number; detail?: 'compact' | 'full';
+    }) => {
       requireTier('free');
       // The route lists the bitcoin-scope venues by default; venues that take
       // only ether (Liquity, …) are outside that scope, so ether reads them all.
@@ -156,6 +197,27 @@ export function registerVenueTools(server: McpServer): void {
         [k: string]: unknown;
       };
       const all = data.venues ?? [];
+      // MR1 H-03 / MR-F04: a filter value the registry does not serve is refused, never
+      // answered with zero rows; a credit-class word given as a venue type is pointed at `class`.
+      const served = (field: 'venue_type' | 'status') => [...new Set(all.map((v) => v[field]).filter(Boolean) as string[])].sort();
+      if (venue_type && !served('venue_type').includes(venue_type)) {
+        const isClass = CREDIT_CLASSES.includes(venue_type);
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `'${venue_type}' is not a venue type in the registry.` +
+            (isClass ? ` It is a credit class: pass class: '${venue_type}'.` : '') +
+            ` Venue types served: ${served('venue_type').join(', ')}.`
+        );
+      }
+      if (status && !served('status').includes(status)) {
+        throw new McpError(ErrorCode.InvalidParams, `'${status}' is not a registry status. Statuses served: ${served('status').join(', ')}.`);
+      }
+      // The credit class is the comparison's, the one every Stack page uses; read it there.
+      const classOf = new Map<string, string | null>();
+      if (cls || (detail ?? 'compact') === 'compact') {
+        const cmp = (await upstreamGet('/v1/venues/compare', {})) as { result?: { rows?: Array<{ venue_id: string; class?: string | null }> } };
+        for (const r of cmp.result?.rows ?? []) classOf.set(r.venue_id, r.class ?? null);
+      }
       // Which venues take the collateral asked for. The registry's own
       // collateral_set decides where rows carry it (A1); until they do, the
       // venues of the ether tree are the ones that take ether.
@@ -177,22 +239,30 @@ export function registerVenueTools(server: McpServer): void {
       const filtered = all.filter((v) => {
         if (takes && !takes(v)) return false;
         if (venue_type && v.venue_type !== venue_type) return false;
+        if (cls && classOf.get(v.venue_id) !== cls) return false;
         if (status && v.status !== status) return false;
         if (chain_id !== undefined && v.chain_id !== chain_id) return false;
         if (complete_attributes_only && v.attributes_complete !== v.attributes_total) return false;
         return true;
       });
       const cap = limit ?? 50;
-      const rows = filtered.slice(0, cap);
-      // Everything the envelope carried, minus the row array we are replacing.
-      const { venues: _replaced, ...envelope } = data;
+      const full = detail === 'full';
+      const rows = filtered.slice(0, cap).map((v) => (full ? v : compactRow(v, classOf)));
+      // Everything the envelope carried, minus the row array we are replacing. The compact
+      // answer keeps the counts and drops the long semantics blocks, and says which.
+      const { venues: _replaced, ...whole } = data;
+      const dropped = full ? [] : Object.keys(whole).filter((k) => k.endsWith('_semantics') || k === 'families');
+      const envelope = Object.fromEntries(Object.entries(whole).filter(([k]) => !dropped.includes(k)));
       return json({
         ...(collateral ? { collateral, collateral_basis: collateralBasis } : {}),
         ...envelope,
         criteria_spec_version: CRITERIA_SPEC_VERSION,
+        detail: full ? 'full' : 'compact',
+        ...(dropped.length ? { omitted_in_compact: dropped } : {}),
+        ...(full ? {} : { credit_class_basis: "the class each venue has in compare_venues; a venue outside that bitcoin comparison (one that takes only ether) has none, so null" }),
         filters_you_supplied: collateral
-          ? { collateral, venue_type, status, chain_id, complete_attributes_only, limit: cap }
-          : { venue_type, status, chain_id, complete_attributes_only, limit: cap },
+          ? { collateral, venue_type, class: cls, status, chain_id, complete_attributes_only, limit: cap }
+          : { venue_type, class: cls, status, chain_id, complete_attributes_only, limit: cap },
         count_in_registry: all.length,
         count_matching_filters: filtered.length,
         count_returned: rows.length,
@@ -292,7 +362,7 @@ export function registerVenueTools(server: McpServer): void {
         side: z.enum(['borrow', 'lend']).optional().describe(`'borrow' (what a borrower pays, the default) or 'lend' (what a capital provider earns).`),
         venues: z.string().optional().describe(`Comma-separated registry ids to restrict the rows to, e.g. 'aave_v3_ethereum,cefi_ledn'.`),
         class: z.enum(['algorithmic', 'minted', 'auction', 'posted-card', 'corporate']).optional()
-          .describe(`Restrict to one credit class. The full matrix is ~160 rows; one class is far lighter.`),
+          .describe(`Restrict to one credit class. The whole matrix is every venue in the registry; one class is a fraction of it.`),
         // ⚠ RW1 above: this input is read. 'eth' returns a structured absence
         // naming where the ether figures are, never the bitcoin matrix.
         collateral: collateralInput,
@@ -312,9 +382,22 @@ export function registerVenueTools(server: McpServer): void {
       const data = (await upstreamGet('/v1/venues/compare', {
         query: { tenor_days, ltv, side, venues, class: cls },
       })) as Record<string, unknown>;
+      // MR1 MR-F06: a venue id that is not in the registry is named, never answered as
+      // "insufficient data" for the venues that are.
+      const asked = (venues ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+      const rowsIn = ((data.result as { rows?: Array<{ venue_id: string }> } | undefined)?.rows ?? []).map((r) => r.venue_id);
+      const unknown = asked.filter((v) => !rowsIn.includes(v));
+      if (asked.length && unknown.length === asked.length) {
+        throw new McpError(ErrorCode.InvalidParams, `No venue in the registry has the id ${unknown.map((u) => `'${u}'`).join(', ')}. list_venues gives the ids.`);
+      }
       // Passed through untouched — ordering, comparison_caveat, is_not and the
       // concentration note are built upstream and are the compliance surface.
-      return json({ ...(collateral === 'btc' ? { collateral: 'btc' } : {}), ...data, criteria_spec_version: CRITERIA_SPEC_VERSION});
+      return json({
+        ...(collateral === 'btc' ? { collateral: 'btc' } : {}),
+        ...data,
+        ...(unknown.length ? { unknown_venue_ids: unknown } : {}),
+        criteria_spec_version: CRITERIA_SPEC_VERSION,
+      });
     }
   );
 }

@@ -1,0 +1,1693 @@
+{
+  "endpoint": "https://mcp.bitcoincreditstack.com/mcp",
+  "read_at": "2026-10-11T13:10:43.806Z",
+  "server": {
+    "name": "bitcoin-credit-stack-mcp",
+    "version": "0.1.0"
+  },
+  "instructions_chars": 1838,
+  "tool_count": 17,
+  "tools": [
+    {
+      "name": "list_onchain_indicators",
+      "args": {},
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 321
+    },
+    {
+      "name": "get_mvrv",
+      "args": {
+        "timestamp": "string"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 1175
+    },
+    {
+      "name": "list_chain_series",
+      "args": {},
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 780
+    },
+    {
+      "name": "get_chain_series",
+      "args": {
+        "id": "string",
+        "from": "string",
+        "to": "string",
+        "as_known_on": "string"
+      },
+      "required": [
+        "id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 786
+    },
+    {
+      "name": "get_cost_basis",
+      "args": {
+        "date": "string",
+        "ratio": "number"
+      },
+      "required": [
+        "date"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 750
+    },
+    {
+      "name": "list_indicators",
+      "args": {
+        "family": "enum(credit|onchain|market)",
+        "live_only": "boolean"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 704
+    },
+    {
+      "name": "get_indicator",
+      "args": {
+        "id": "string",
+        "include_history": "boolean",
+        "from": "string",
+        "to": "string"
+      },
+      "required": [
+        "id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 690
+    },
+    {
+      "name": "get_verification_bundle",
+      "args": {
+        "network": "enum(arbitrum-one|arbitrum-sepolia)"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 792
+    },
+    {
+      "name": "list_venues",
+      "args": {
+        "collateral": "enum(btc|eth)",
+        "venue_type": "string",
+        "status": "string",
+        "chain_id": "integer",
+        "complete_attributes_only": "boolean",
+        "limit": "integer"
+      },
+      "required": [],
+      "counts_in_text": [
+        "(8"
+      ],
+      "urls_in_text": [],
+      "description_chars": 973
+    },
+    {
+      "name": "get_venue",
+      "args": {
+        "venue_id": "string",
+        "collateral": "enum(btc|eth)"
+      },
+      "required": [
+        "venue_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 1031
+    },
+    {
+      "name": "compare_venues",
+      "args": {
+        "tenor_days": "number",
+        "ltv": "number",
+        "side": "enum(borrow|lend)",
+        "venues": "string",
+        "class": "enum(algorithmic|minted|auction|posted-card|corporate)",
+        "collateral": "enum(btc|eth)"
+      },
+      "required": [],
+      "counts_in_text": [
+        "~160"
+      ],
+      "urls_in_text": [],
+      "description_chars": 164
+    },
+    {
+      "name": "get_lens",
+      "args": {
+        "lens": "enum(orientation|holder|treasurer|analyst|risk)"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 644
+    },
+    {
+      "name": "get_credit_state",
+      "args": {
+        "collateral": "enum(btc|eth)"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 1027
+    },
+    {
+      "name": "get_credit_state_history",
+      "args": {
+        "days": "integer",
+        "collateral": "enum(btc|eth)"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 818
+    },
+    {
+      "name": "get_market_composition",
+      "args": {
+        "collateral": "enum(btc|eth)"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 967
+    },
+    {
+      "name": "get_market_flows",
+      "args": {},
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 586
+    },
+    {
+      "name": "get_liquidation_map",
+      "args": {
+        "level": "enum(market|class|venue)",
+        "id": "string",
+        "date": "string",
+        "history": "boolean",
+        "from": "string",
+        "to": "string",
+        "as_known_on": "string"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 878
+    }
+  ],
+  "results": [
+    {
+      "id": "onchain-list",
+      "tool": "list_onchain_indicators",
+      "args": {},
+      "ms": 137,
+      "bytes": 471,
+      "outcome": "answer",
+      "top_keys": [
+        "tools"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "mvrv",
+      "tool": "get_mvrv",
+      "args": {},
+      "ms": 141,
+      "bytes": 1374,
+      "outcome": "answer",
+      "top_keys": [
+        "value",
+        "mvrv_z_score",
+        "as_of",
+        "inputs",
+        "methodology",
+        "attribution",
+        "disclaimer"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    },
+    {
+      "id": "series-list",
+      "tool": "list_chain_series",
+      "args": {},
+      "ms": 392,
+      "bytes": 40055,
+      "outcome": "answer",
+      "top_keys": [
+        "count",
+        "series",
+        "note",
+        "disclaimer"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "series-mvrv-month",
+      "tool": "get_chain_series",
+      "args": {
+        "id": "chain.cohort.mvrv",
+        "from": "2026-09-01",
+        "to": "2026-09-30"
+      },
+      "ms": 147,
+      "bytes": 6949,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "dataset",
+        "unit",
+        "source",
+        "limitation",
+        "points",
+        "licence",
+        "vintage",
+        "disclaimer"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    },
+    {
+      "id": "series-bad-id",
+      "tool": "get_chain_series",
+      "args": {
+        "id": "chain.nope"
+      },
+      "ms": 137,
+      "bytes": 163,
+      "outcome": "tool_error",
+      "error_text": "MCP error -32603: Upstream returned 400: Bad Request",
+      "top_keys": null,
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "cost-basis",
+      "tool": "get_cost_basis",
+      "args": {
+        "date": "2026-10-01"
+      },
+      "ms": 2217,
+      "bytes": 83372,
+      "outcome": "answer",
+      "top_keys": [
+        "date",
+        "ratio",
+        "unit",
+        "buckets",
+        "limitation",
+        "licence",
+        "disclaimer"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    },
+    {
+      "id": "indicators-list",
+      "tool": "list_indicators",
+      "args": {},
+      "ms": 261,
+      "bytes": 15445,
+      "outcome": "answer",
+      "top_keys": [
+        "indicators",
+        "count",
+        "total_in_catalogue",
+        "filter_echo",
+        "notes",
+        "not_served_here"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://mcp.thegavel.io/mcp"
+      ]
+    },
+    {
+      "id": "ind-bsbs",
+      "tool": "get_indicator",
+      "args": {
+        "id": "bsbs"
+      },
+      "ms": 156,
+      "bytes": 4313,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/indicators/bsbs",
+        "https://www.federalreserve.gov/releases/h15/",
+        "https://docs.thegavel.io/methodology/bsbs"
+      ]
+    },
+    {
+      "id": "ind-bsbs-history-recent",
+      "tool": "get_indicator",
+      "args": {
+        "id": "bsbs",
+        "include_history": true,
+        "from": "2026-09-01"
+      },
+      "ms": 141,
+      "bytes": 9706,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/indicators/bsbs",
+        "https://www.federalreserve.gov/releases/h15/",
+        "https://docs.thegavel.io/methodology/bsbs"
+      ]
+    },
+    {
+      "id": "ind-bsbs-future-from",
+      "tool": "get_indicator",
+      "args": {
+        "id": "bsbs",
+        "include_history": true,
+        "from": "2026-12-01"
+      },
+      "ms": 137,
+      "bytes": 236,
+      "outcome": "tool_error",
+      "error_text": "MCP error -32600: Upstream resource not found: /v1/market/index/bsbs/history. The indicator or endpoint may not be live yet.",
+      "top_keys": null,
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "ind-hpx-current",
+      "tool": "get_indicator",
+      "args": {
+        "id": "hpx"
+      },
+      "ms": 707,
+      "bytes": 779078,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://docs.thegavel.io/methodology/hpx"
+      ]
+    },
+    {
+      "id": "ind-lci-history",
+      "tool": "get_indicator",
+      "args": {
+        "id": "lci",
+        "include_history": true
+      },
+      "ms": 135,
+      "bytes": 457,
+      "outcome": "tool_error",
+      "error_text": "MCP error -32600: Indicator 'lci' (Leverage Conviction Index) is not live on this network. Retired 2026-10-02 (PV1 G0-2c): Binance perpetual-futures data is not licensed for redistribution. The route still answers, with null values and a `retired` block; the history is retained, not served. No value is available; this is not a transient error.",
+      "top_keys": null,
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "ind-hodl-waves",
+      "tool": "get_indicator",
+      "args": {
+        "id": "hodl-waves"
+      },
+      "ms": 135,
+      "bytes": 1962,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://docs.thegavel.io/methodology/hodl-waves"
+      ]
+    },
+    {
+      "id": "ind-released",
+      "tool": "get_indicator",
+      "args": {
+        "id": "btc-released-at-fall"
+      },
+      "ms": 286,
+      "bytes": 5416,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 3,
+      "absent_kinds": {
+        "absent:incentive_unread": 3
+      },
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/indicators/btc-released-at-fall",
+        "https://docs.thegavel.io/methodology/btc-released-at-fall"
+      ]
+    },
+    {
+      "id": "ind-unknown",
+      "tool": "get_indicator",
+      "args": {
+        "id": "no-such-indicator"
+      },
+      "ms": 135,
+      "bytes": 809,
+      "outcome": "tool_error",
+      "error_text": "MCP error -32602: Unknown indicator id 'no-such-indicator'. Valid ids: yield-curve, tci, tsr, cdr, ccpi, implied-price, regime, surface, lci, vrb, lpi, drp, sli, sdr, coc, gls, mrys, srcs, ccs, intermediation-spread, capital-stack, benchmark-curves, complex, forward-curve, hrcs, rpid, onchain-latest, hodl-waves, hpx, defi-rates, rates-comparison, stablecoins, macro, btc-price, bcsi, bsbs, wrc, col",
+      "top_keys": null,
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "ind-eth",
+      "tool": "get_indicator",
+      "args": {
+        "id": "bsbs",
+        "collateral": "eth"
+      },
+      "ms": 155,
+      "bytes": 4314,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/indicators/bsbs",
+        "https://www.federalreserve.gov/releases/h15/",
+        "https://docs.thegavel.io/methodology/bsbs"
+      ]
+    },
+    {
+      "id": "bundle",
+      "tool": "get_verification_bundle",
+      "args": {},
+      "ms": 140,
+      "bytes": 20439,
+      "outcome": "answer",
+      "top_keys": [
+        "as_of",
+        "network",
+        "chain_id",
+        "checked_at_block",
+        "source",
+        "contracts",
+        "upgradeability",
+        "oracle_dependencies",
+        "fee_parameters",
+        "audit",
+        "invariant_suite",
+        "promises",
+        "erc8004",
+        "disclaimer",
+        "stale_after",
+        "served_from_cache"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://github.com/JamieFrame/The-Gavel-Protocol",
+        "https://arbiscan.io/address/0xfdaf4f783a29b55186ab6152f317c8998ad72fda#code",
+        "https://arbiscan.io/address/0xFCDd6Ef75638D8D19ad634004C234Ad18751fEf2#code",
+        "https://arbiscan.io/address/0xf97cd596ce454cf854abf9975c1add3591e8befa#code",
+        "https://arbiscan.io/address/0xAD6Edb72409605a51dc6C990A09829616178A8f4#code",
+        "https://arbiscan.io/address/0xc03e7a7934807aac5759b73f0d1c1270ce166a82#code",
+        "https://arbiscan.io/address/0x22B2C327Ed73da9e32a3eEB9DcBaa9AEBD8BD0d8#code",
+        "https://arbiscan.io/address/0xd02e03340e46e9417511dd6d327acd6f48827958#code",
+        "https://arbiscan.io/address/0x506e414c7D39639B2E9E318C46eD378AD51147eb#code",
+        "https://arbiscan.io/address/0xb7b8316a3bb7ee37c95e93c9b72192654b92a5b0#code",
+        "https://arbiscan.io/address/0x9A1728C87ac0456cCd882b5D5637e856be0fEec8#code",
+        "https://arbiscan.io/address/0xd94f7f02c64629f7d4f6d7836b8d1f82bedeb2a7#code",
+        "https://arbiscan.io/address/0x43fD6Fda249820D98BC34733D4B5c896c613C674#code",
+        "https://github.com/JamieFrame/The-Gavel-Protocol/blob/main/docs/audit/2026-04-15-Sherlock-Collaborative-Audit.pdf"
+      ]
+    },
+    {
+      "id": "venues-default",
+      "tool": "list_venues",
+      "args": {},
+      "ms": 988,
+      "bytes": 662596,
+      "outcome": "answer",
+      "top_keys": [
+        "coverage_semantics",
+        "attribute_semantics",
+        "agent_access_semantics",
+        "research_tier_semantics",
+        "research_tier_unavailable",
+        "loan_currency_semantics",
+        "loan_currency_unavailable",
+        "by_research_tier",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "resolved_at",
+        "scope_semantics",
+        "scope",
+        "outside_scope_count",
+        "count",
+        "by_status",
+        "family_semantics",
+        "families",
+        "families_unavailable",
+        "filters_you_supplied",
+        "count_in_registry",
+        "count_matching_filters",
+        "count_returned",
+        "truncated",
+        "ordering",
+        "is_not",
+        "venues"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://mcp.aave.com/"
+      ]
+    },
+    {
+      "id": "venues-type-cefi",
+      "tool": "list_venues",
+      "args": {
+        "venue_type": "cefi_desk"
+      },
+      "ms": 573,
+      "bytes": 301664,
+      "outcome": "answer",
+      "top_keys": [
+        "coverage_semantics",
+        "attribute_semantics",
+        "agent_access_semantics",
+        "research_tier_semantics",
+        "research_tier_unavailable",
+        "loan_currency_semantics",
+        "loan_currency_unavailable",
+        "by_research_tier",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "resolved_at",
+        "scope_semantics",
+        "scope",
+        "outside_scope_count",
+        "count",
+        "by_status",
+        "family_semantics",
+        "families",
+        "families_unavailable",
+        "filters_you_supplied",
+        "count_in_registry",
+        "count_matching_filters",
+        "count_returned",
+        "truncated",
+        "ordering",
+        "is_not",
+        "venues"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://archlending.com",
+        "https://archlending.com,",
+        "https://web.archive.org/web/20220120220831/https://help.blockfi.com/hc/en-us/articles/360048862712-Prices-dropped-what-is-the-loan-margin-process-",
+        "https://web.archive.org/web/20220613004806/https://blockfi.com/crypto-loans",
+        "https://web.archive.org/web/20221111025013/https://blockfi.com/loan-rates",
+        "https://storage.courtlistener.com/recap/gov.uscourts.njb.1094078/gov.uscourts.njb.1094078.17.0_2.pdf",
+        "https://www.sec.gov/files/litigation/admin/2022/33-11029.pdf,",
+        "https://blockfi.com/crypto-loans/",
+        "https://www.cantor.com",
+        "http://www.bitgo.com/",
+        "https://coinmarketcap.com/",
+        "https://storage.courtlistener.com/recap/gov.uscourts.nysb.312902/gov.uscourts.nysb.312902.393.0.pdf",
+        "https://storage.courtlistener.com/recap/gov.uscourts.nysb.312902/gov.uscourts.nysb.312902.23.0.pdf",
+        "https://web.archive.org/web/20220613062153/https://celsius.network/crypto-loans",
+        "https://www.nysb.uscourts.gov/sites/default/files/opinions/324763_32_opinion.pdf,",
+        "https://celsius.network/crypto-loans",
+        "https://www.coinbase.com/borrow",
+        "https://storage.courtlistener.com/recap/gov.uscourts.deb.183348/gov.uscourts.deb.183348.91.1.pdf",
+        "http://web.archive.org/web/20200807220557/https://mycred.io/borrow/?utm_source=nomics&utm_medium=&utm_campaign=crypto_product_guides",
+        "https://storage.courtlistener.com/recap/gov.uscourts.deb.183348/gov.uscourts.deb.183348.89.0.pdf",
+        "https://cases.stretto.com/public/x117/10695/PLEADINGS/1069504102180000000042.pdf,",
+        "https://www.figure.com/crypto-backed-loan/crypto-loan-calculator/",
+        "https://www.figure.com/crypto-backed-loan/",
+        "https://www.sec.gov/Archives/edgar/data/1859392/000185939226000091/glxy-20260630.htm,",
+        "https://storage.courtlistener.com/recap/gov.uscourts.nysb.314889/gov.uscourts.nysb.314889.658.0.pdf",
+        "https://storage.courtlistener.com/recap/gov.uscourts.nysb.314889/gov.uscourts.nysb.314889.17.0.pdf",
+        "https://ag.ny.gov/sites/default/files/decisions/us-bankruptcycourt-s-ny-v-genesis-global.pdf",
+        "https://ag.ny.gov/sites/default/files/2024-02/genesis-amended-complaint.pdf,",
+        "https://www.elitigation.sg/gd/s/2024_SGHC_257",
+        "https://www.hodlnaut.com/hnap0001",
+        "https://www.hodlnaut.com/tos",
+        "https://www.hodlnaut.com/",
+        "https://www.hodlnaut.com/hnap0001,",
+        "https://www.ledn.io/borrowing",
+        "https://www.ledn.io/borrowing,",
+        "https://help.ledn.io/hc/en-us/articles/28283204866583-How-Do-I-Open-a-Dollar-Loan",
+        "https://www.ledn.io/private-wealth,",
+        "https://www.milo.io/crypto-loan/",
+        "https://www.milo.io/faq/,",
+        "https://nexo.com/borrow",
+        "https://nexo.com/en-us/borrow,",
+        "https://nexo.com/borrow/bitcoin",
+        "https://saltlending.com",
+        "https://saltlending.com/personal/,",
+        "https://saltlending.com,",
+        "https://saltlending.com/rates-and-fees/",
+        "https://strike.me/en/lending/",
+        "https://strike.me/blog/announcing-bitcoin-backed-loans/,",
+        "https://assets.ctfassets.net/vyse88cgwfbl/2kYf7r64h3tzwiu6F0CbUB/2997abd2f11ecea74a21528048b50707/Opinion___Report_-_Tether_International_Financial_Figure_30-06-2026.pdf,",
+        "https://www.theblock.co/post/235212/tether-issued-11-6-billion-of-loans-between-2019-and-may-2021",
+        "https://www.theblock.co/post/252273/tether-stablecoin-lending",
+        "https://twoprime.com/bitcoin-backed-lending-guide,",
+        "https://www.sec.gov/Archives/edgar/data/1964789/000110465925085775/tm2524762d1_8k.htm",
+        "https://www.sec.gov/Archives/edgar/data/827876/000119312526338382/clsk-20260630.htm",
+        "https://www.sec.gov/Archives/edgar/data/1507605/000150760526000022/mara-20260630.htm",
+        "https://twoprime.com/bitcoin-backed-lending-guide",
+        "https://www.sec.gov/Archives/edgar/data/1889123/000119312526344668/fld-20260630.htm",
+        "https://twoprime.com/lending",
+        "https://twoprime.com/resources/news/two-prime-q3-2025-loan-volume,",
+        "https://twoprime.com/trust-and-transparency,",
+        "https://twoprime.com/resources/news/two-prime-q3-2025-loan-volume",
+        "https://www.sec.gov/Archives/edgar/data/1819989/000181998926000028/cifr-20260331.htm",
+        "https://twoprime.com/resources/news/empery-digital-100m-credit-facility-two-prime",
+        "https://www.unchained.com/loans",
+        "https://unchained.com/loans,",
+        "https://support.vauld.com/en/articles/9479333-affidavits",
+        "https://vauld.intercom-attachments-1.com/i/o/1083932745/c52b38cb130bebd4e7c9b659/2022_07_08+-+1st+Affidavit+of+Darshan+Bathija.pdf",
+        "http://web.archive.org/web/20220707150348/https://support.vauld.com/en/articles/4758081-what-are-the-process-and-terms-of-a-loan",
+        "http://web.archive.org/web/20220705054147/https://www.vauld.com/878-es2017.a6735339536977b35b4a.js",
+        "https://support.vauld.com/en/articles/9479348-notice-and-scheme-documentation",
+        "https://vauld.intercom-attachments-1.com/i/o/1083936435/4fb6dda58e7d911046ec22ff/5%29+2023_08_10+-+Order+of+Court+3682_2023+%28SUM+1914%29+%28encl+Scheme%29.pdf",
+        "https://support.vauld.com/en/articles/6382973-faqs-on-vauld-group-restructuring-as-of-31-july-22,",
+        "https://storage.courtlistener.com/recap/gov.uscourts.nysb.312840/gov.uscourts.nysb.312840.15.0.pdf",
+        "https://cases.stretto.com/public/x193/11753/PLEADINGS/1175307062280000000036.pdf,",
+        "https://www.xapobank.com/en/banking/borrow",
+        "https://www.xapobank.com/en/banking/borrow,"
+      ]
+    },
+    {
+      "id": "venues-type-class-word",
+      "tool": "list_venues",
+      "args": {
+        "venue_type": "algorithmic"
+      },
+      "ms": 311,
+      "bytes": 44059,
+      "outcome": "answer",
+      "top_keys": [
+        "coverage_semantics",
+        "attribute_semantics",
+        "agent_access_semantics",
+        "research_tier_semantics",
+        "research_tier_unavailable",
+        "loan_currency_semantics",
+        "loan_currency_unavailable",
+        "by_research_tier",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "resolved_at",
+        "scope_semantics",
+        "scope",
+        "outside_scope_count",
+        "count",
+        "by_status",
+        "family_semantics",
+        "families",
+        "families_unavailable",
+        "filters_you_supplied",
+        "count_in_registry",
+        "count_matching_filters",
+        "count_returned",
+        "truncated",
+        "ordering",
+        "is_not",
+        "venues"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "venues-eth",
+      "tool": "list_venues",
+      "args": {
+        "collateral": "eth",
+        "limit": 5
+      },
+      "ms": 329,
+      "bytes": 112839,
+      "outcome": "answer",
+      "top_keys": [
+        "collateral",
+        "collateral_basis",
+        "coverage_semantics",
+        "attribute_semantics",
+        "agent_access_semantics",
+        "research_tier_semantics",
+        "research_tier_unavailable",
+        "loan_currency_semantics",
+        "loan_currency_unavailable",
+        "by_research_tier",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "resolved_at",
+        "scope_semantics",
+        "scope",
+        "outside_scope_count",
+        "count",
+        "by_status",
+        "family_semantics",
+        "families",
+        "families_unavailable",
+        "filters_you_supplied",
+        "count_in_registry",
+        "count_matching_filters",
+        "count_returned",
+        "truncated",
+        "ordering",
+        "is_not",
+        "venues"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://mcp.aave.com/"
+      ]
+    },
+    {
+      "id": "venue-gavel",
+      "tool": "get_venue",
+      "args": {
+        "venue_id": "gavel_arbitrum"
+      },
+      "ms": 197,
+      "bytes": 21717,
+      "outcome": "answer",
+      "top_keys": [
+        "coverage_semantics",
+        "attribute_semantics",
+        "research_tier_semantics",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "venue_id",
+        "display_name",
+        "operator",
+        "venue_type",
+        "chain_id",
+        "family_id",
+        "deployment",
+        "agent_access",
+        "rate_mechanism",
+        "source_type",
+        "status",
+        "first_block",
+        "first_date",
+        "backfill_horizon",
+        "coverage",
+        "validation_note",
+        "terminal_date",
+        "terminal_event",
+        "disclosure",
+        "notes",
+        "market_count",
+        "resolved_at",
+        "attributes",
+        "attributes_complete",
+        "attributes_established",
+        "attributes_total",
+        "scope_semantics",
+        "scope",
+        "scope_src",
+        "collateral_set",
+        "collateral_set_src",
+        "research_tier",
+        "loan_currency_semantics",
+        "loan_currency",
+        "loan_currency_unavailable",
+        "backing_chain",
+        "contracts",
+        "markets",
+        "metadata",
+        "pillars"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://mcp.thegavel.io/mcp",
+        "https://www.thegavel.io/llms.txt"
+      ]
+    },
+    {
+      "id": "venue-ledn-eth",
+      "tool": "get_venue",
+      "args": {
+        "venue_id": "cefi_ledn",
+        "collateral": "eth"
+      },
+      "ms": 203,
+      "bytes": 21971,
+      "outcome": "answer",
+      "top_keys": [
+        "collateral",
+        "coverage_semantics",
+        "attribute_semantics",
+        "research_tier_semantics",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "venue_id",
+        "display_name",
+        "operator",
+        "venue_type",
+        "chain_id",
+        "family_id",
+        "deployment",
+        "agent_access",
+        "rate_mechanism",
+        "source_type",
+        "status",
+        "first_block",
+        "first_date",
+        "backfill_horizon",
+        "coverage",
+        "validation_note",
+        "terminal_date",
+        "terminal_event",
+        "disclosure",
+        "notes",
+        "market_count",
+        "resolved_at",
+        "attributes",
+        "attributes_complete",
+        "attributes_established",
+        "attributes_total",
+        "scope_semantics",
+        "scope",
+        "scope_src",
+        "collateral_set",
+        "collateral_set_src",
+        "research_tier",
+        "loan_currency_semantics",
+        "loan_currency",
+        "loan_currency_unavailable",
+        "backing_chain",
+        "contracts",
+        "markets",
+        "metadata",
+        "pillars",
+        "ether"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.ledn.io/borrowing",
+        "https://www.ledn.io/borrowing,",
+        "https://help.ledn.io/hc/en-us/articles/28283204866583-How-Do-I-Open-a-Dollar-Loan",
+        "https://www.ledn.io/private-wealth,"
+      ]
+    },
+    {
+      "id": "venue-unknown",
+      "tool": "get_venue",
+      "args": {
+        "venue_id": "no_such_venue"
+      },
+      "ms": 140,
+      "bytes": 238,
+      "outcome": "tool_error",
+      "error_text": "MCP error -32600: Upstream resource not found: /v1/market/venues/no_such_venue. The indicator or endpoint may not be live yet.",
+      "top_keys": null,
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "compare-minted",
+      "tool": "compare_venues",
+      "args": {
+        "class": "minted"
+      },
+      "ms": 3914,
+      "bytes": 13767,
+      "outcome": "answer",
+      "top_keys": [
+        "schema_version",
+        "endpoint",
+        "as_of",
+        "stale_after",
+        "delay",
+        "request",
+        "result",
+        "status",
+        "provenance",
+        "disclaimer",
+        "links",
+        "attribution",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/methodology",
+        "https://api.bitcoincreditstack.com/v1/openapi.json",
+        "https://www.iex.io/legal/hist-data-terms"
+      ]
+    },
+    {
+      "id": "compare-unknown-venue",
+      "tool": "compare_venues",
+      "args": {
+        "venues": "no_such_venue"
+      },
+      "ms": 4095,
+      "bytes": 8843,
+      "outcome": "answer",
+      "top_keys": [
+        "schema_version",
+        "endpoint",
+        "as_of",
+        "stale_after",
+        "delay",
+        "request",
+        "result",
+        "status",
+        "provenance",
+        "disclaimer",
+        "links",
+        "attribution",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/methodology",
+        "https://api.bitcoincreditstack.com/v1/openapi.json",
+        "https://www.iex.io/legal/hist-data-terms"
+      ]
+    },
+    {
+      "id": "compare-eth",
+      "tool": "compare_venues",
+      "args": {
+        "collateral": "eth"
+      },
+      "ms": 497,
+      "bytes": 489,
+      "outcome": "answer",
+      "top_keys": [
+        "collateral",
+        "absent",
+        "instead",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "lens-index",
+      "tool": "get_lens",
+      "args": {},
+      "ms": 135,
+      "bytes": 5362,
+      "outcome": "answer",
+      "top_keys": [
+        "about",
+        "count",
+        "lenses",
+        "absent_by_design"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "state",
+      "tool": "get_credit_state",
+      "args": {},
+      "ms": 1547,
+      "bytes": 779226,
+      "outcome": "answer",
+      "top_keys": [
+        "snapshot_date",
+        "curve",
+        "quantity",
+        "valuation",
+        "other_denominations",
+        "coverage",
+        "btc_price_ref",
+        "read_at",
+        "collateral_mix",
+        "quality",
+        "attribution",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    },
+    {
+      "id": "state-eth",
+      "tool": "get_credit_state",
+      "args": {
+        "collateral": "eth"
+      },
+      "ms": 513,
+      "bytes": 105265,
+      "outcome": "answer",
+      "top_keys": [
+        "collateral",
+        "as_of",
+        "eth_price_ref",
+        "question",
+        "levels",
+        "rules",
+        "rates",
+        "outside",
+        "outside_secured",
+        "attribution",
+        "market",
+        "market_secured",
+        "classes",
+        "lower_levels",
+        "usd_limitation",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    },
+    {
+      "id": "state-history-7",
+      "tool": "get_credit_state_history",
+      "args": {
+        "days": 7
+      },
+      "ms": 692,
+      "bytes": 411768,
+      "outcome": "answer",
+      "top_keys": [
+        "curve",
+        "count",
+        "series_starts",
+        "note",
+        "days",
+        "attribution",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    },
+    {
+      "id": "composition",
+      "tool": "get_market_composition",
+      "args": {},
+      "ms": 385,
+      "bytes": 94776,
+      "outcome": "answer",
+      "top_keys": [
+        "scope",
+        "rtd",
+        "rrr",
+        "lir",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "flows",
+      "tool": "get_market_flows",
+      "args": {},
+      "ms": 144,
+      "bytes": 3013,
+      "outcome": "answer",
+      "top_keys": [
+        "scope",
+        "latest",
+        "trailing_30d",
+        "since_inception",
+        "coverage",
+        "validation",
+        "note",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "flows-eth",
+      "tool": "get_market_flows",
+      "args": {
+        "collateral": "eth"
+      },
+      "ms": 141,
+      "bytes": 3013,
+      "outcome": "answer",
+      "top_keys": [
+        "scope",
+        "latest",
+        "trailing_30d",
+        "since_inception",
+        "coverage",
+        "validation",
+        "note",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "liq-market",
+      "tool": "get_liquidation_map",
+      "args": {
+        "level": "market"
+      },
+      "ms": 160,
+      "bytes": 91476,
+      "outcome": "answer",
+      "top_keys": [
+        "node",
+        "date",
+        "collateral",
+        "question",
+        "bands",
+        "liquidatable",
+        "overflow",
+        "mixed",
+        "buckets",
+        "bucket_width_usd",
+        "coverage",
+        "venues",
+        "not_bucketed",
+        "order",
+        "note",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "liq-eth",
+      "tool": "get_liquidation_map",
+      "args": {
+        "level": "market",
+        "collateral": "eth"
+      },
+      "ms": 149,
+      "bytes": 91476,
+      "outcome": "answer",
+      "top_keys": [
+        "node",
+        "date",
+        "collateral",
+        "question",
+        "bands",
+        "liquidatable",
+        "overflow",
+        "mixed",
+        "buckets",
+        "bucket_width_usd",
+        "coverage",
+        "venues",
+        "not_bucketed",
+        "order",
+        "note",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "liq-ako-no-history",
+      "tool": "get_liquidation_map",
+      "args": {
+        "level": "market",
+        "as_known_on": "2026-10-09"
+      },
+      "ms": 150,
+      "bytes": 91476,
+      "outcome": "answer",
+      "top_keys": [
+        "node",
+        "date",
+        "collateral",
+        "question",
+        "bands",
+        "liquidatable",
+        "overflow",
+        "mixed",
+        "buckets",
+        "bucket_width_usd",
+        "coverage",
+        "venues",
+        "not_bucketed",
+        "order",
+        "note",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "guide",
+      "tool": "get_guide",
+      "args": {},
+      "ms": 134,
+      "bytes": 154,
+      "outcome": "tool_error",
+      "error_text": "MCP error -32602: Tool get_guide not found",
+      "top_keys": null,
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "venues-class-minted",
+      "tool": "list_venues",
+      "args": {
+        "class": "minted"
+      },
+      "ms": 449,
+      "bytes": 662596,
+      "outcome": "answer",
+      "top_keys": [
+        "coverage_semantics",
+        "attribute_semantics",
+        "agent_access_semantics",
+        "research_tier_semantics",
+        "research_tier_unavailable",
+        "loan_currency_semantics",
+        "loan_currency_unavailable",
+        "by_research_tier",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "resolved_at",
+        "scope_semantics",
+        "scope",
+        "outside_scope_count",
+        "count",
+        "by_status",
+        "family_semantics",
+        "families",
+        "families_unavailable",
+        "filters_you_supplied",
+        "count_in_registry",
+        "count_matching_filters",
+        "count_returned",
+        "truncated",
+        "ordering",
+        "is_not",
+        "venues"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://mcp.aave.com/"
+      ]
+    },
+    {
+      "id": "venues-full-3",
+      "tool": "list_venues",
+      "args": {
+        "detail": "full",
+        "limit": 3
+      },
+      "ms": 304,
+      "bytes": 78727,
+      "outcome": "answer",
+      "top_keys": [
+        "coverage_semantics",
+        "attribute_semantics",
+        "agent_access_semantics",
+        "research_tier_semantics",
+        "research_tier_unavailable",
+        "loan_currency_semantics",
+        "loan_currency_unavailable",
+        "by_research_tier",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "resolved_at",
+        "scope_semantics",
+        "scope",
+        "outside_scope_count",
+        "count",
+        "by_status",
+        "family_semantics",
+        "families",
+        "families_unavailable",
+        "filters_you_supplied",
+        "count_in_registry",
+        "count_matching_filters",
+        "count_returned",
+        "truncated",
+        "ordering",
+        "is_not",
+        "venues"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "venues-status-bad",
+      "tool": "list_venues",
+      "args": {
+        "status": "active"
+      },
+      "ms": 311,
+      "bytes": 44050,
+      "outcome": "answer",
+      "top_keys": [
+        "coverage_semantics",
+        "attribute_semantics",
+        "agent_access_semantics",
+        "research_tier_semantics",
+        "research_tier_unavailable",
+        "loan_currency_semantics",
+        "loan_currency_unavailable",
+        "by_research_tier",
+        "criteria_spec_version",
+        "backing_chain_semantics",
+        "backing_chain_inputs",
+        "resolved_at",
+        "scope_semantics",
+        "scope",
+        "outside_scope_count",
+        "count",
+        "by_status",
+        "family_semantics",
+        "families",
+        "families_unavailable",
+        "filters_you_supplied",
+        "count_in_registry",
+        "count_matching_filters",
+        "count_returned",
+        "truncated",
+        "ordering",
+        "is_not",
+        "venues"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "state-with-mix-history",
+      "tool": "get_credit_state",
+      "args": {
+        "collateral_mix_history": true
+      },
+      "ms": 1490,
+      "bytes": 779226,
+      "outcome": "answer",
+      "top_keys": [
+        "snapshot_date",
+        "curve",
+        "quantity",
+        "valuation",
+        "other_denominations",
+        "coverage",
+        "btc_price_ref",
+        "read_at",
+        "collateral_mix",
+        "quality",
+        "attribution",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    },
+    {
+      "id": "ind-bsbs-ako",
+      "tool": "get_indicator",
+      "args": {
+        "id": "bsbs",
+        "as_known_on": "2026-10-09"
+      },
+      "ms": 149,
+      "bytes": 4314,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/indicators/bsbs",
+        "https://www.federalreserve.gov/releases/h15/",
+        "https://docs.thegavel.io/methodology/bsbs"
+      ]
+    },
+    {
+      "id": "ind-capital-stack-ako",
+      "tool": "get_indicator",
+      "args": {
+        "id": "capital-stack",
+        "as_known_on": "2026-10-09"
+      },
+      "ms": 154,
+      "bytes": 4871,
+      "outcome": "answer",
+      "top_keys": [
+        "id",
+        "name",
+        "family",
+        "units",
+        "description",
+        "series",
+        "data",
+        "methodology",
+        "source_path"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.federalreserve.gov/releases/h15/",
+        "https://docs.thegavel.io/methodology/capital-stack"
+      ]
+    },
+    {
+      "id": "compare-mixed-venues",
+      "tool": "compare_venues",
+      "args": {
+        "venues": "cefi_ledn,no_such_venue"
+      },
+      "ms": 4213,
+      "bytes": 10703,
+      "outcome": "answer",
+      "top_keys": [
+        "schema_version",
+        "endpoint",
+        "as_of",
+        "stale_after",
+        "delay",
+        "request",
+        "result",
+        "status",
+        "provenance",
+        "disclaimer",
+        "links",
+        "attribution",
+        "criteria_spec_version"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.bitcoincreditstack.com/methodology",
+        "https://api.bitcoincreditstack.com/v1/openapi.json",
+        "https://www.iex.io/legal/hist-data-terms"
+      ]
+    },
+    {
+      "id": "mvrv-timestamp",
+      "tool": "get_mvrv",
+      "args": {
+        "timestamp": "2026-01-01"
+      },
+      "ms": 405,
+      "bytes": 1375,
+      "outcome": "answer",
+      "top_keys": [
+        "value",
+        "mvrv_z_score",
+        "as_of",
+        "inputs",
+        "methodology",
+        "attribution",
+        "disclaimer"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": [
+        "https://www.coingecko.com"
+      ]
+    }
+  ]
+}

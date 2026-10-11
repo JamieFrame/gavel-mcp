@@ -157,6 +157,11 @@ const OBSERVATORY_INSTRUCTIONS = [
   `distributions report what was observed with the sample size, and do not`,
   `forecast a fill, a rate, a time-to-fill or a return. A reader weighs the`,
   `criteria; this server does not weigh them for the reader.`,
+  ``,
+  // MR1 Phase 2 (copy pack §7.7, paragraph six).
+  `What this server covers, and how much of it, is counted from the data when`,
+  `asked: call get_guide. An argument a tool does not take is refused by name,`,
+  `never ignored, and a failure answers as { error: { code, message, retryable } }.`,
 ].join('\n');
 
 /** The Gavel server's instructions — unchanged from copy pack §2.2, plus the
@@ -229,6 +234,8 @@ const OBSERVATORY_TOOLS = [
   'get_lens',
   // both-split
   'get_verification_bundle',
+  // MR1 Phase 2 (Gate 0 G0-5) — what this server covers, every count read from the data when asked.
+  'get_guide',
 ] as const;
 
 /** Everything on the catalogue that is not observatory-only. */
@@ -335,7 +342,8 @@ export const PROFILES: Record<ProfileId, Profile> = {
   observatory: {
     id: 'observatory',
     serverName: 'bitcoin-credit-stack-mcp',
-    serverVersion: '0.1.0',
+    // MR1 Phase 2: get_guide, strict arguments, one error shape (server.observatory.json agrees).
+    serverVersion: '0.2.0',
     logService: 'bitcoin-credit-stack-mcp',
     instructions: OBSERVATORY_INSTRUCTIONS,
     tools: OBSERVATORY_TOOLS,

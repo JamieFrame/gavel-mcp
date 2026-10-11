@@ -1,0 +1,317 @@
+[
+  {
+    "id": "onchain-list",
+    "tool": "list_onchain_indicators",
+    "args": {}
+  },
+  {
+    "id": "mvrv",
+    "tool": "get_mvrv",
+    "args": {}
+  },
+  {
+    "id": "series-list",
+    "tool": "list_chain_series",
+    "args": {}
+  },
+  {
+    "id": "series-mvrv-month",
+    "tool": "get_chain_series",
+    "args": {
+      "id": "chain.cohort.mvrv",
+      "from": "2026-09-01",
+      "to": "2026-09-30"
+    }
+  },
+  {
+    "id": "series-bad-id",
+    "tool": "get_chain_series",
+    "args": {
+      "id": "chain.nope"
+    }
+  },
+  {
+    "id": "cost-basis",
+    "tool": "get_cost_basis",
+    "args": {
+      "date": "2026-10-01"
+    }
+  },
+  {
+    "id": "indicators-list",
+    "tool": "list_indicators",
+    "args": {}
+  },
+  {
+    "id": "ind-bsbs",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bsbs"
+    }
+  },
+  {
+    "id": "ind-bsbs-history-recent",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bsbs",
+      "include_history": true,
+      "from": "2026-09-01"
+    }
+  },
+  {
+    "id": "ind-bsbs-future-from",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bsbs",
+      "include_history": true,
+      "from": "2026-12-01"
+    }
+  },
+  {
+    "id": "ind-hpx-current",
+    "tool": "get_indicator",
+    "args": {
+      "id": "hpx"
+    }
+  },
+  {
+    "id": "ind-lci-history",
+    "tool": "get_indicator",
+    "args": {
+      "id": "lci",
+      "include_history": true
+    }
+  },
+  {
+    "id": "ind-hodl-waves",
+    "tool": "get_indicator",
+    "args": {
+      "id": "hodl-waves"
+    }
+  },
+  {
+    "id": "ind-released",
+    "tool": "get_indicator",
+    "args": {
+      "id": "btc-released-at-fall"
+    }
+  },
+  {
+    "id": "ind-unknown",
+    "tool": "get_indicator",
+    "args": {
+      "id": "no-such-indicator"
+    }
+  },
+  {
+    "id": "ind-eth",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bsbs",
+      "collateral": "eth"
+    }
+  },
+  {
+    "id": "bundle",
+    "tool": "get_verification_bundle",
+    "args": {}
+  },
+  {
+    "id": "venues-default",
+    "tool": "list_venues",
+    "args": {}
+  },
+  {
+    "id": "venues-type-cefi",
+    "tool": "list_venues",
+    "args": {
+      "venue_type": "cefi_desk"
+    }
+  },
+  {
+    "id": "venues-type-class-word",
+    "tool": "list_venues",
+    "args": {
+      "venue_type": "algorithmic"
+    }
+  },
+  {
+    "id": "venues-eth",
+    "tool": "list_venues",
+    "args": {
+      "collateral": "eth",
+      "limit": 5
+    }
+  },
+  {
+    "id": "venue-gavel",
+    "tool": "get_venue",
+    "args": {
+      "venue_id": "gavel_arbitrum"
+    }
+  },
+  {
+    "id": "venue-ledn-eth",
+    "tool": "get_venue",
+    "args": {
+      "venue_id": "cefi_ledn",
+      "collateral": "eth"
+    }
+  },
+  {
+    "id": "venue-unknown",
+    "tool": "get_venue",
+    "args": {
+      "venue_id": "no_such_venue"
+    }
+  },
+  {
+    "id": "compare-minted",
+    "tool": "compare_venues",
+    "args": {
+      "class": "minted"
+    }
+  },
+  {
+    "id": "compare-unknown-venue",
+    "tool": "compare_venues",
+    "args": {
+      "venues": "no_such_venue"
+    }
+  },
+  {
+    "id": "compare-eth",
+    "tool": "compare_venues",
+    "args": {
+      "collateral": "eth"
+    }
+  },
+  {
+    "id": "lens-index",
+    "tool": "get_lens",
+    "args": {}
+  },
+  {
+    "id": "state",
+    "tool": "get_credit_state",
+    "args": {}
+  },
+  {
+    "id": "state-eth",
+    "tool": "get_credit_state",
+    "args": {
+      "collateral": "eth"
+    }
+  },
+  {
+    "id": "state-history-7",
+    "tool": "get_credit_state_history",
+    "args": {
+      "days": 7
+    }
+  },
+  {
+    "id": "composition",
+    "tool": "get_market_composition",
+    "args": {}
+  },
+  {
+    "id": "flows",
+    "tool": "get_market_flows",
+    "args": {}
+  },
+  {
+    "id": "flows-eth",
+    "tool": "get_market_flows",
+    "args": {
+      "collateral": "eth"
+    }
+  },
+  {
+    "id": "liq-market",
+    "tool": "get_liquidation_map",
+    "args": {
+      "level": "market"
+    }
+  },
+  {
+    "id": "liq-eth",
+    "tool": "get_liquidation_map",
+    "args": {
+      "level": "market",
+      "collateral": "eth"
+    }
+  },
+  {
+    "id": "liq-ako-no-history",
+    "tool": "get_liquidation_map",
+    "args": {
+      "level": "market",
+      "as_known_on": "2026-10-09"
+    }
+  },
+  {
+    "id": "guide",
+    "tool": "get_guide",
+    "args": {}
+  },
+  {
+    "id": "venues-class-minted",
+    "tool": "list_venues",
+    "args": {
+      "class": "minted"
+    }
+  },
+  {
+    "id": "venues-full-3",
+    "tool": "list_venues",
+    "args": {
+      "detail": "full",
+      "limit": 3
+    }
+  },
+  {
+    "id": "venues-status-bad",
+    "tool": "list_venues",
+    "args": {
+      "status": "active"
+    }
+  },
+  {
+    "id": "state-with-mix-history",
+    "tool": "get_credit_state",
+    "args": {
+      "collateral_mix_history": true
+    }
+  },
+  {
+    "id": "ind-bsbs-ako",
+    "tool": "get_indicator",
+    "args": {
+      "id": "bsbs",
+      "as_known_on": "2026-10-09"
+    }
+  },
+  {
+    "id": "ind-capital-stack-ako",
+    "tool": "get_indicator",
+    "args": {
+      "id": "capital-stack",
+      "as_known_on": "2026-10-09"
+    }
+  },
+  {
+    "id": "compare-mixed-venues",
+    "tool": "compare_venues",
+    "args": {
+      "venues": "cefi_ledn,no_such_venue"
+    }
+  },
+  {
+    "id": "mvrv-timestamp",
+    "tool": "get_mvrv",
+    "args": {
+      "timestamp": "2026-01-01"
+    }
+  }
+]

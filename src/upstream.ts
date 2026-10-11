@@ -57,6 +57,37 @@ export interface UpstreamGetOptions {
   network?: GavelNetwork;
 }
 
+/** What the API said about a failed request: its status, the path, and its own message. */
+export interface UpstreamFailure {
+  status: number;
+  path: string;
+  detail: string | null;
+}
+
+function withUpstream(err: McpError, upstream: UpstreamFailure): McpError {
+  return Object.assign(err, { upstream });
+}
+
+/** The failure an McpError carries from the API, if it came from one. */
+export function upstreamFailureOf(err: unknown): UpstreamFailure | null {
+  const u = (err as { upstream?: UpstreamFailure } | null)?.upstream;
+  return u && typeof u.status === 'number' ? u : null;
+}
+
+/** The API's error bodies are `{error: {message}}`, `{error: "..."}` or `{message}`. */
+async function errorDetail(res: Response): Promise<string | null> {
+  try {
+    const body = (await res.json()) as { error?: unknown; message?: unknown };
+    const e = body?.error;
+    if (e && typeof e === 'object' && typeof (e as { message?: unknown }).message === 'string') return (e as { message: string }).message;
+    if (typeof e === 'string') return e;
+    if (typeof body?.message === 'string') return body.message;
+  } catch {
+    /* not JSON */
+  }
+  return null;
+}
+
 /**
  * GET a JSON resource from the Aletheia data product. This is the only
  * function MCP tools should use to reach upstream data — keeps the
@@ -102,26 +133,32 @@ export async function upstreamGet<T = unknown>(
       'upstream call complete'
     );
 
+    // MR1 Phase 2: every failure below also carries the API's own words about it
+    // (`upstream`, read by the observatory's error shape in src/observatory/wrap.ts).
+    // The messages themselves are unchanged, so the Gavel profile answers as before.
+    const fail = async (code: ErrorCode, message: string): Promise<never> => {
+      throw withUpstream(new McpError(code, message), { status: res.status, path, detail: await errorDetail(res) });
+    };
     if (res.status === 404) {
-      throw new McpError(
+      await fail(
         ErrorCode.InvalidRequest,
         `Upstream resource not found: ${path}. The indicator or endpoint may not be live yet.`
       );
     }
     if (res.status === 401 || res.status === 403) {
-      throw new McpError(
+      await fail(
         ErrorCode.InvalidRequest,
         `Upstream rejected the request (${res.status}). Verify your API key tier covers this endpoint.`
       );
     }
     if (res.status === 429) {
-      throw new McpError(
+      await fail(
         ErrorCode.InvalidRequest,
         `Upstream rate limit hit. Slow down or upgrade your tier.`
       );
     }
     if (!res.ok) {
-      throw new McpError(
+      await fail(
         ErrorCode.InternalError,
         `Upstream returned ${res.status}: ${res.statusText || 'unknown error'}`
       );
@@ -132,9 +169,9 @@ export async function upstreamGet<T = unknown>(
   } catch (err) {
     if (err instanceof McpError) throw err;
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new McpError(
-        ErrorCode.InternalError,
-        `Upstream request timed out after ${timeoutMs}ms: ${path}`
+      throw withUpstream(
+        new McpError(ErrorCode.InternalError, `Upstream request timed out after ${timeoutMs}ms: ${path}`),
+        { status: 504, path, detail: `no answer within ${timeoutMs / 1000} seconds` }
       );
     }
     const msg = err instanceof Error ? err.message : String(err);

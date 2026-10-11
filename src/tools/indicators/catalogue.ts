@@ -81,6 +81,11 @@ export interface IndicatorSpec {
    * Register: aletheia-docs runbooks/…/runbook_IX1_indicator_triage_and_explorer_v1.md §3a.
    */
   stack?: { status: 'retired' | 'held' | 'merged'; on: string; ruling: string; reason: string; successor?: string };
+  /**
+   * MR1 H-08 — where the history is when this id does not serve one itself, in a
+   * sentence a reader can act on. `has_history` stays false for this id.
+   */
+  historyElsewhere?: string;
 }
 
 export const INDICATORS: IndicatorSpec[] = [
@@ -462,6 +467,10 @@ export const INDICATORS: IndicatorSpec[] = [
     // scripts/check-advertised.mjs still guards it.
     path: '/v1/onchain/indicators/hodl-waves',
     historyPath: null,
+    // MR1 H-08: this id serves one day; the bands through time are chain series.
+    historyElsewhere:
+      'The twelve age bands through time are chain series, from 2009: chain.cohort.supply_age.<band>_btc ' +
+      '(for example chain.cohort.supply_age.over_10y_btc), read with get_chain_series; list_chain_series lists them.',
     units: 'percent of supply by age band',
     description: 'UTXO supply distribution across twelve age bands, from under a day to over ten years.',
     live: true,

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
 import { collateralInput, COLLATERAL_DESCRIPTION, etherAbsent, etherTreeTop, ETHER_USD_LIMITATION } from './collateral.js';
@@ -74,17 +75,36 @@ export function registerSurfaceTools(server: McpServer): void {
         `contributed are counted separately as unavailable.\n\n` +
         `${COLLATERAL_DESCRIPTION} With collateral: 'eth' this returns the ether ` +
         `market: the same six figures at market and class level, books per loan ` +
-        `currency (ether lent against ether is its own book, outside the headline).`,
-      inputSchema: { collateral: collateralInput },
+        `currency (ether lent against ether is its own book, outside the headline).\n\n` +
+        `The collateral mix's daily history by wrapper is long; it is left out unless ` +
+        `collateral_mix_history is true.`,
+      inputSchema: {
+        collateral: collateralInput,
+        collateral_mix_history: z.boolean().optional()
+          .describe(`Include the collateral mix's daily history by wrapper (bitcoin only). Default false: the mix as it stands, without its history.`),
+      },
     },
-    async ({ collateral }) => {
+    async ({ collateral, collateral_mix_history }: { collateral?: 'btc' | 'eth'; collateral_mix_history?: boolean }) => {
       requireTier('free');
       if (collateral === 'eth') {
+        if (collateral_mix_history) {
+          throw new McpError(ErrorCode.InvalidParams, 'collateral_mix_history is a bitcoin series: the wrappers are bitcoin wrappers. Omit it with collateral: \'eth\'.');
+        }
         const tree = (await upstreamGet('/v1/market/tree', { query: { collateral: 'eth' } })) as Record<string, unknown>;
         return withDisclosure(etherTreeTop(tree));
       }
-      const data = await upstreamGet('/v1/market/credit-state', {});
-      return withDisclosure(collateral === 'btc' ? { collateral: 'btc', ...(data as Record<string, unknown>) } : data);
+      const data = (await upstreamGet('/v1/market/credit-state', {})) as Record<string, any>;
+      // MR1 G0-9: bounded by default. The history is 386 KB of a 396 KB reading.
+      if (!collateral_mix_history && data.collateral_mix && typeof data.collateral_mix === 'object') {
+        const { history, history_eras, ...mix } = data.collateral_mix;
+        data.collateral_mix = {
+          ...mix,
+          history_omitted: Array.isArray(history)
+            ? `${history.length} daily points and their eras; call again with collateral_mix_history: true to include them`
+            : undefined,
+        };
+      }
+      return withDisclosure(collateral === 'btc' ? { collateral: 'btc', ...data } : data);
     }
   );
 
@@ -102,8 +122,8 @@ export function registerSurfaceTools(server: McpServer): void {
         `⚠ Coverage is not constant through the series. A move in a figure may be ` +
         `a move in the market or a venue entering or leaving observation — the ` +
         `per-point coverage is what distinguishes them.\n\n` +
-        `${COLLATERAL_DESCRIPTION} The ether series starts on 2026-10-08 and runs ` +
-        `forward; earlier ether history is not back-filled yet.`,
+        `${COLLATERAL_DESCRIPTION} The ether series is being back-filled family by ` +
+        `family; its first date is stated in the answer.`,
       inputSchema: {
         days: z.number().int().min(1).max(3650).optional()
           .describe(`How many days of history. Default 365, capped at 3650.`),
@@ -125,11 +145,13 @@ export function registerSurfaceTools(server: McpServer): void {
           ...hist,
           points,
           days: window,
-          history_starts: '2026-10-08 (forward only; back-fill family by family later, each with its own check)',
+          // MR1: read from the data rather than typed (the ether history is back-filled family by family, EH1).
+          first_date_served: (hist.points ?? []).map((p) => p.date).filter(Boolean).sort()[0] ?? null,
           usd_limitation: ETHER_USD_LIMITATION,
         });
       }
-      const data = await upstreamGet('/v1/market/credit-state/history', { query: { days } });
+      // MR1 MR-F02: the route reads `limit` (points), not `days`; `days` reached it and did nothing.
+      const data = await upstreamGet('/v1/market/credit-state/history', { query: { limit: days ?? 365 } });
       return withDisclosure(collateral === 'btc' ? { collateral: 'btc', ...(data as Record<string, unknown>) } : data);
     }
   );
@@ -147,8 +169,7 @@ export function registerSurfaceTools(server: McpServer): void {
         `or instrument types and no judgement about which composition is ` +
         `preferable.\n\n` +
         `⚠ The scope block names the contributing venues and states why the ` +
-        `others are absent — Aave v3 is mid-backfill, Compound v3 and Sky are not ` +
-        `yet ingested. Read it before quoting any share. A percentage from this ` +
+        `others are absent. Read it before quoting any share. A percentage from this ` +
         `tool describes one venue family, not Bitcoin-collateralised credit.\n\n` +
         `${COLLATERAL_DESCRIPTION} No ether composition series is served yet; ` +
         `with collateral: 'eth' this says so and points to the ether figures.`,
@@ -216,8 +237,16 @@ export function registerSurfaceTools(server: McpServer): void {
         as_known_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('With history: the bands as published at the end of that day (UTC).'),
       },
     },
-    async ({ level, id, date, history, from, to, as_known_on }) => {
+    async ({ level, id, date, history, from, to, as_known_on }: { level?: 'market' | 'class' | 'venue'; id?: string; date?: string; history?: boolean; from?: string; to?: string; as_known_on?: string }) => {
       requireTier('free');
+      // MR1 MR-F01: an argument that only applies to the other mode is refused, never ignored.
+      const historyOnly = Object.entries({ from, to, as_known_on }).filter(([, v]) => v != null).map(([k]) => k);
+      if (!history && historyOnly.length) {
+        throw new McpError(ErrorCode.InvalidParams, `${historyOnly.join(', ')} ${historyOnly.length > 1 ? 'apply' : 'applies'} only with history: true. One day's buckets take date.`);
+      }
+      if (history && date) {
+        throw new McpError(ErrorCode.InvalidParams, 'date applies to one day\'s buckets; with history: true use from and to.');
+      }
       return withDisclosure(history
         ? await upstreamGet('/v1/market/liquidation-map/history', { query: { level, id, from, to, as_known_on } })
         : await upstreamGet('/v1/market/liquidation-map', { query: { level, id, date } }));

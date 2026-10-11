@@ -16,8 +16,11 @@ import { registerETools } from './agent/e-tools.js';
 import { registerVenueTools } from './venues/venues.js';
 import { registerSurfaceTools } from './venues/surface.js';
 import { registerLensTool } from './lenses/lens-tool.js';
+import { registerGuideTool } from './guide/guide.js';
 import { registerMovedTools } from './moved.js';
 import type { Profile } from '../profiles.js';
+import type { ZodRawShape } from 'zod';
+import { strictInput, wrapHandler } from '../observatory/wrap.js';
 
 /**
  * Registers every tool in the catalog. Discovery tools are registered first
@@ -127,9 +130,19 @@ function scopeTo(server: McpServer, profile: Profile): McpServer {
         return (name: string, config: unknown, handler: unknown) => {
           if (!allowed.has(name)) return undefined;
           const exposedName = profile.renames[name] ?? name;
+          let cfg = renameInConfig(config, profile.renames) as Record<string, unknown>;
+          let h = handler;
+          // MR1 Phase 2 (MR-D4): on the observatory an argument a tool does not take is
+          // refused by name, a failure is one JSON shape and answers are compact. The
+          // Gavel profiles are untouched. See src/observatory/wrap.ts.
+          if (profile.id === 'observatory') {
+            const shape = (cfg.inputSchema ?? {}) as ZodRawShape;
+            cfg = { ...cfg, inputSchema: strictInput(exposedName, shape) };
+            h = wrapHandler(handler as (...a: any[]) => unknown, (m) => applyRenames(m, profile.renames));
+          }
           return (target as unknown as {
             registerTool: (n: string, c: unknown, h: unknown) => unknown;
-          }).registerTool(exposedName, renameInConfig(config, profile.renames), handler);
+          }).registerTool(exposedName, cfg, h);
         };
       }
       const value = Reflect.get(target, prop, receiver);
@@ -187,6 +200,9 @@ export function registerAllTools(server: McpServer, profile: Profile): void {
   // observatory allowlist governs it and it cannot appear on the Gavel server
   // by accident.
   registerLensTool(s);
+
+  // MR1 Phase 2 — what this server covers, counted when asked (observatory only).
+  registerGuideTool(s);
 
   // OB1 §1.2 — the cross-venue market surface. This is where a Stack reader
   // meets Gavel's rate: inside a reading computed over the venue universe,

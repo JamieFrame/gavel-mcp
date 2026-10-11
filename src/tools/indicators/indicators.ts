@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { upstreamGet } from '../../upstream.js';
+import { upstreamGet, upstreamFailureOf } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
 import { INDICATORS, INDICATOR_IDS, findIndicator, catalogueFor, isAnchored } from './catalogue.js';
 import { activeProfile, GAVEL_MCP_HOST, OBSERVATORY_HOST, PROFILES } from '../../profiles.js';
@@ -50,6 +50,11 @@ import { activeProfile, GAVEL_MCP_HOST, OBSERVATORY_HOST, PROFILES } from '../..
  */
 function onObservatory(): boolean {
   return activeProfile().id === 'observatory';
+}
+
+/** Kept by vintage in the store, so readable as known on a past date (series_contract §3). */
+function isVintaged(i: { path: string }): boolean {
+  return /^\/v1\/(market\/(measure|index)|onchain\/series)\//.test(i.path);
 }
 
 /** Example ids drawn from the catalogue this profile actually serves, so the
@@ -131,7 +136,10 @@ export function registerIndicatorTools(server: McpServer): void {
           units: i.units,
           description: i.description,
           live: i.live,
-          has_history: i.historyPath !== null,
+          // MR1 H-08: a retired id refuses its history, so it does not have one here.
+          has_history: i.historyPath !== null && i.live,
+          ...(i.historyElsewhere ? { history_elsewhere: i.historyElsewhere } : {}),
+          ...(onObservatory() ? { as_known_on: isVintaged(i) } : {}),
           ...(i.note ? { note: i.note } : {}),
         })),
         count: matches.length,
@@ -151,13 +159,21 @@ export function registerIndicatorTools(server: McpServer): void {
                   'These measure one venue against the market rather than the market itself — ' +
                   "for example drp is that venue's rate minus the matched treasury yield, and no " +
                   'equivalent exists for any other venue. Publishing them here would give one venue ' +
-                  'an indicator namespace the other 161 do not have. They are served by that ' +
+                  'an indicator namespace no other venue in the registry has. They are served by that ' +
                   "venue's own MCP.",
                 served_by: GAVEL_MCP_HOST,
                 will_return_here_when:
                   'a per-venue rate endpoint exists, at which point each generalises to every ' +
                   'venue and stops being anchored to one.',
               },
+              // MR1 MR-F05: the ids this server no longer publishes are named too, with why.
+              not_published: INDICATORS.filter((i) => !isAnchored(i) && i.stack).map((i) => ({
+                id: i.id,
+                status: i.stack!.status,
+                since: i.stack!.on,
+                reason: i.stack!.reason,
+                ...(i.stack!.successor ? { successor: i.stack!.successor } : {}),
+              })),
             }
           : {}),
       };
@@ -179,7 +195,12 @@ export function registerIndicatorTools(server: McpServer): void {
         `terms as the current value.\n\n` +
         `This is descriptive data; no recommendation is provided. An indicator ` +
         `that has no reading on this network says so explicitly rather than ` +
-        `returning a null or a zero that could be mistaken for a value.`,
+        `returning a null or a zero that could be mistaken for a value.` +
+        (onObservatory()
+          ? `\n\nWith as_known_on, an indicator kept by vintage (list_indicators marks it as_known_on: true) ` +
+            `is returned as it was published at the end of that day (UTC), so a figure quoted then can be ` +
+            `reproduced. An indicator recomputed when asked has no past vintage and refuses as_known_on.`
+          : ''),
       inputSchema: {
         id: z
           .string()
@@ -198,9 +219,18 @@ export function registerIndicatorTools(server: McpServer): void {
           .string()
           .optional()
           .describe(`History end, ISO 8601 date. Only meaningful with include_history.`),
+        ...(onObservatory()
+          ? {
+              as_known_on: z
+                .string()
+                .regex(/^\d{4}-\d{2}-\d{2}$/)
+                .optional()
+                .describe(`YYYY-MM-DD: the indicator as published at the end of that day (UTC). Only for indicators kept by vintage.`),
+            }
+          : {}),
       },
     },
-    async ({ id, include_history, from, to }) => {
+    async ({ id, include_history, from, to, as_known_on }: { id: string; include_history: boolean; from?: string; to?: string; as_known_on?: string }) => {
       requireTier('free');
 
       const spec = findIndicator(id);
@@ -310,9 +340,11 @@ export function registerIndicatorTools(server: McpServer): void {
       }
 
       if (!spec) {
+        // MR1 H-10: on the observatory, name only the ids this server serves.
+        const valid = onObservatory() ? catalogueFor('observatory').filter((i) => i.live).map((i) => i.id) : INDICATOR_IDS;
         throw new McpError(
           ErrorCode.InvalidParams,
-          `Unknown indicator id '${id}'. Valid ids: ${INDICATOR_IDS.join(', ')}. ` +
+          `Unknown indicator id '${id}'. Valid ids: ${valid.join(', ')}. ` +
             `Call list_gavel_indicators for the catalogue with descriptions.`
         );
       }
@@ -335,10 +367,38 @@ export function registerIndicatorTools(server: McpServer): void {
         );
       }
 
+      if (as_known_on && !isVintaged(spec)) {
+        const can = catalogueFor('observatory').filter((i) => i.live && isVintaged(i)).map((i) => i.id);
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `'${spec.id}' is recomputed when asked and is not kept by vintage, so it cannot be read as known ` +
+            `on a past date. Indicators that can: ${can.join(', ')}.`
+        );
+      }
+
       const path = include_history ? spec.historyPath! : spec.path;
-      const data = await upstreamGet<Record<string, unknown>>(path, {
-        query: include_history ? { from, to } : undefined,
-      });
+      // MR1 MR-F07: some ids read a whole series for their current value (hpx was 779 KB).
+      // On the observatory the current value is the latest point, read from a recent window.
+      const currentOfSeries = onObservatory() && !include_history && spec.path === spec.historyPath && path.startsWith('/v1/onchain/series/');
+      const window = currentOfSeries ? { from: new Date(Date.now() - 45 * 86_400_000).toISOString().slice(0, 10) } : {};
+      let data: Record<string, unknown>;
+      try {
+        data = await upstreamGet<Record<string, unknown>>(path, {
+          query: include_history ? { from, to, as_known_on } : { ...window, as_known_on },
+        });
+      } catch (err) {
+        // MR1 MR-F14: a range with no points is an empty series, not a failure.
+        const up = upstreamFailureOf(err);
+        if (onObservatory() && include_history && (from || to) && up?.status === 404) {
+          data = { points: [], empty_range: { from: from ?? null, to: to ?? null, note: up.detail ?? 'no values in that window' } };
+        } else {
+          throw err;
+        }
+      }
+      if (currentOfSeries && Array.isArray(data.points)) {
+        const pts = data.points as unknown[];
+        data = { ...data, points: pts.slice(-1), current: 'the latest point of the series; include_history for the series itself' };
+      }
 
       const shaped = {
         id: spec.id,
@@ -347,8 +407,12 @@ export function registerIndicatorTools(server: McpServer): void {
         units: spec.units,
         description: spec.description,
         series: include_history ? 'history' : 'current',
+        ...(as_known_on ? { as_known_on } : {}),
         data,
-        methodology: `https://docs.thegavel.io/methodology/${spec.id}`,
+        // MR1 H-09: on the Stack, the method is the Stack's own indicator page.
+        methodology: onObservatory()
+          ? `https://www.bitcoincreditstack.com/indicators/${spec.id}`
+          : `https://docs.thegavel.io/methodology/${spec.id}`,
         source_path: path,
       };
 

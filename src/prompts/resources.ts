@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Profile } from '../profiles.js';
 import { LENSES, promptName } from './lenses.js';
+import { guideScope } from '../tools/guide/guide.js';
 
 /**
  * OB4 §1.6 — the lens catalogue as a resource.
@@ -86,6 +87,21 @@ export function registerLensResources(server: McpServer, profile: Profile): void
       mimeType: 'text/markdown',
     },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: NEWS_2026_10_09 }] })
+  );
+
+  // MR1 Phase 2 — the same scope get_guide returns, as a document a client can read before calling anything.
+  server.registerResource(
+    'stack-scope',
+    'stack://scope.json',
+    {
+      title: 'What this server covers',
+      description:
+        'The tools, venues, indicators, series and lenses this server covers, each count read from the data when read and each with what it counts. The same as the get_guide tool.',
+      mimeType: 'application/json',
+    },
+    async (uri) => ({
+      contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await guideScope()) }],
+    })
   );
 }
 

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { activeProfile } from '../../profiles.js';
 import { upstreamGet } from '../../upstream.js';
 import { requireTier } from '../../tiers.js';
 
@@ -134,6 +135,13 @@ export function registerETools(server: McpServer): void {
     {
       title: 'Verification bundle',
       description:
+        // MR1 MR-F13: on the Stack this is one venue's contracts, mirrored as a source for
+        // that venue's quality criteria (disposition row 6, both-split); it says so.
+        (activeProfile().id === 'observatory'
+          ? `Covers one venue's contracts only: the registry's auction venue (venue_id 'gavel_arbitrum'), ` +
+            `the one venue whose deployed contracts this dataset checks itself. It is served here as a ` +
+            `source for that venue's quality criteria; no other venue has a bundle yet.\n\n`
+          : ``) +
         `What can be checked about the contracts, and what did the last check ` +
         `return? Observations with their block heights; the verdict is the ` +
         `reader's.\n\n` +
