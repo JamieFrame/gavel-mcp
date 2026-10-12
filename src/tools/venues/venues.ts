@@ -300,20 +300,40 @@ export function registerVenueTools(server: McpServer): void {
     }
   );
 
+  // MN1 G1-8 (F14, operator 2026-10-12): a source credit the API attaches must reach the
+  // answer. Picking keys out of a route's payload dropped its `attribution`, so every
+  // payload read here hands its credits on, merged once into the answer.
+  type Credited = { attribution?: unknown };
+  function creditsOf(...payloads: Array<Credited | null | undefined>): { attribution?: unknown[] } {
+    const seen = new Set<string>();
+    const list: unknown[] = [];
+    for (const p of payloads) {
+      if (!p || !Array.isArray(p.attribution)) continue;
+      for (const a of p.attribution) {
+        const k = JSON.stringify(a);
+        if (!seen.has(k)) { seen.add(k); list.push(a); }
+      }
+    }
+    return list.length ? { attribution: list } : {};
+  }
+
   // The venue page's extras (MR1 Phase 4): its row of /v1/market/venue-axes and of /v1/market/venue-headline.
   async function venueExtras(venueId: string, include: Array<'axes' | 'headline'>, collateral?: string) {
     const out: Record<string, unknown> = {};
+    const read: Credited[] = [];
     if (include.includes('axes')) {
-      const a = (await upstreamGet('/v1/market/venue-axes', {})) as { venues?: Array<Record<string, unknown>>; as_of?: unknown; question?: unknown; absent_kinds?: unknown };
+      const a = (await upstreamGet('/v1/market/venue-axes', {})) as Credited & { venues?: Array<Record<string, unknown>>; as_of?: unknown; question?: unknown; absent_kinds?: unknown };
+      read.push(a);
       const mine = (a.venues ?? []).find((v) => v.venue_id === venueId) ?? null;
       out.axes = mine ? { as_of: a.as_of, question: a.question, absent_kinds: a.absent_kinds, ...mine } : { absent: 'not_read', reason: `no row for ${venueId} on /v1/market/venue-axes` };
     }
     if (include.includes('headline')) {
-      const h = (await upstreamGet('/v1/market/venue-headline', { query: { venue: venueId, ...(collateral === 'eth' ? { collateral: 'eth' } : {}) } })) as { venues?: Array<Record<string, unknown>>; as_of?: unknown; question?: unknown; kinds?: unknown; absent_kinds?: unknown };
+      const h = (await upstreamGet('/v1/market/venue-headline', { query: { venue: venueId, ...(collateral === 'eth' ? { collateral: 'eth' } : {}) } })) as Credited & { venues?: Array<Record<string, unknown>>; as_of?: unknown; question?: unknown; kinds?: unknown; absent_kinds?: unknown; withheld?: unknown };
+      read.push(h);
       const mine = (h.venues ?? []).find((v) => v.venue_id === venueId) ?? null;
-      out.headline = mine ? { as_of: h.as_of, question: h.question, kinds: h.kinds, absent_kinds: h.absent_kinds, ...mine } : { absent: 'not_read', reason: `no row for ${venueId} on /v1/market/venue-headline` };
+      out.headline = mine ? { as_of: h.as_of, question: h.question, kinds: h.kinds, absent_kinds: h.absent_kinds, ...(h.withheld ? { withheld: h.withheld } : {}), ...mine } : { absent: 'not_read', reason: `no row for ${venueId} on /v1/market/venue-headline` };
     }
-    return out;
+    return { out, read };
   }
 
   // ── get_venue ─────────────────────────────────────────────────────────────
@@ -352,7 +372,8 @@ export function registerVenueTools(server: McpServer): void {
     async ({ venue_id, collateral, include }) => {
       requireTier('free');
       const row = (await upstreamGet(`/v1/market/venues/${encodeURIComponent(venue_id)}`, {})) as VenueRow;
-      const extras = include?.length ? await venueExtras(venue_id, include, collateral) : null;
+      const ex = include?.length ? await venueExtras(venue_id, include, collateral) : null;
+      const extras = ex ? ex.out : null;
       if (collateral !== 'eth') {
         return json({
           ...(collateral === 'btc' ? { collateral: 'btc' } : {}),
@@ -360,6 +381,7 @@ export function registerVenueTools(server: McpServer): void {
           criteria_spec_version: CRITERIA_SPEC_VERSION,
           pillars: buildPillars(row),
           ...(extras ? { extras } : {}),
+          ...creditsOf(row as Credited, ...(ex ? ex.read : [])),
         });
       }
       const head = (await upstreamGet('/v1/market/venue-headline', {
@@ -372,6 +394,7 @@ export function registerVenueTools(server: McpServer): void {
         criteria_spec_version: CRITERIA_SPEC_VERSION,
         pillars: buildPillars(row),
         ...(extras ? { extras } : {}),
+        ...creditsOf(row as Credited, head as Credited, ...(ex ? ex.read : [])),
         ...(figures
           ? {
               ether: {
