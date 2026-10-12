@@ -28,6 +28,9 @@
  *
  * Exit 0 = everything advertised answers. Exit 1 = at least one does not.
  *
+ * Its other half is scripts/check-surface.mjs (MR1 Phase 7): this file calls what the server
+ * CONSUMES; that one calls the server itself, as a client does, and checks what it SERVES.
+ *
  * Usage:  node scripts/check-advertised.mjs [--json]
  * Env:    GAVEL_API_BASE_URL (required), MAINNET_RPC_URL (optional)
  */

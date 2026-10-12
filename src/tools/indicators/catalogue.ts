@@ -355,7 +355,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/measure/intermediation-spread',
     historyPath: '/v1/market/measure/intermediation-spread/history',
     units: 'percent_cc (points)',
-    description: 'What borrowers pay over what lenders earn, per class, where both legs come from the same venues: pools (from 2022-09-19) and the desks that post both rates (from 2026-10-07). Not at market level, where the two legs come from different classes; not for minted stablecoins (no lender) or auctions (one price). Recast at IX1 Phase 3 (2026-10-09) from a one-venue comparison.',
+    description: 'What borrowers pay over what lenders earn, per class, where both legs come from the same venues: pools (from 2022-09-19) and the desks that post both rates (from 2026-10-07). Not at market level, where the two legs come from different classes; not for minted stablecoins (no lender) or auctions (one price). Recast on 2026-10-09 from a one-venue comparison.',
     live: true,
   },
   {
@@ -365,7 +365,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/credit/capital-stack',
     historyPath: null,
     units: '% a year as each source quotes it, by layer: Treasury bond-equivalent, the auction and posted cards APR (the signed curve, benchmark-curves, serves every layer continuously compounded)',
-    description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors. The variable DeFi layers are currently withheld (DefiLlama data, not redistributed) and return empty. The leveraged (perp funding) layer is retired (PV1, 2026-10-02) and returns empty. Payloads carry `withheld` and `retired` blocks naming each field returned empty or null and why.',
+    description: 'The Bitcoin Credit Stack: risk-free, CeFi, DeFi and Gavel layers side by side at matched tenors. The variable DeFi layers are currently withheld (DefiLlama data, not redistributed) and return empty. The leveraged (perp funding) layer is retired (2026-10-02) and returns empty. Payloads carry `withheld` and `retired` blocks naming each field returned empty or null and why.',
     live: true,
   },
   {
@@ -388,7 +388,7 @@ export const INDICATORS: IndicatorSpec[] = [
     description:
       'Eleven credit indicators in one response: the yield curve (rates, fit and both shape ' +
       'classifications), tci, tsr, cdr, implied_price, vrb, drp, sli, srcs, coc and ccpi. lci, ' +
-      'lpi and sdr are retired (PV1, 2026-10-02): their keys stay, null, named in `retired`. ' +
+      'lpi and sdr are retired (2026-10-02): their keys stay, null, named in `retired`. ' +
       'Cheaper than fetching these individually when building a dashboard. ' +
       'It is NOT the whole catalogue — surface, gls, mrys, ccs, intermediation-spread, ' +
       'capital-stack and benchmark-curves have their own endpoints, and the response carries a ' +
@@ -508,7 +508,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/rates/comparison',
     historyPath: '/v1/market/rates/comparison/history',
     units: 'APR (%)',
-    description: 'Gavel rates beside CeFi and treasury comparators at matched tenors. The DeFi (Aave/Compound/Morpho) columns are DefiLlama data and are currently withheld (returned as null); the BTC funding column is retired (PV1, 2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
+    description: 'Gavel rates beside CeFi and treasury comparators at matched tenors. The DeFi (Aave/Compound/Morpho) columns are DefiLlama data and are currently withheld (returned as null); the BTC funding column is retired (2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
     live: true,
     stack: { status: 'merged', on: '2026-10-09', ruling: 'IX1 Phase 3 (operator)', reason: 'Merged: each class’s borrow rate over the 3-month bill is served by borrow-spread, across venues; this indicator set one venue beside desks and treasuries.', successor: 'borrow-spread' },
   },
@@ -519,7 +519,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/stablecoins/current',
     historyPath: '/v1/market/stablecoins/history',
     units: 'USD',
-    description: 'Stablecoin market cap, the liquidity backdrop for the lending side. Supply by issuer and chain is DefiLlama data and is currently withheld (returned as null); issuer and chain coverage is still listed. Stablecoin dominance is retired (PV1, 2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
+    description: 'Stablecoin market cap, the liquidity backdrop for the lending side. Supply by issuer and chain is DefiLlama data and is currently withheld (returned as null); issuer and chain coverage is still listed. Stablecoin dominance is retired (2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
     live: true,
   },
   {
@@ -539,7 +539,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/onchain/series/price.btc_in_basket',
     historyPath: '/v1/onchain/series/price.btc_in_basket',
     units: 'USDBASKET_per_BTC (basket dollars, not fiat)',
-    description: 'Our own daily BTC price, read on chain: the median across bitcoin wrappers (WBTC, cbBTC) of their pools against USDC and USDT, priced in a basket of dollar stablecoins, from 2020-07-13. Not CoinGecko. Each wrapper’s own peg is published separately. Recast at IX1 sitting D (2026-10-09) from a CoinGecko spot price.',
+    description: 'Our own daily BTC price, read on chain: the median across bitcoin wrappers (WBTC, cbBTC) of their pools against USDC and USDT, priced in a basket of dollar stablecoins, from 2020-07-13. Not CoinGecko. Each wrapper’s own peg is published separately. Recast on 2026-10-09 from a CoinGecko spot price.',
     live: true,
   },
   // CX1 Gate 8 (operator 2026-10-09): three governed indices, descriptive, free with

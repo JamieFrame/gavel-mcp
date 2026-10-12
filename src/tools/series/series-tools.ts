@@ -37,7 +37,7 @@ export function registerSeriesTools(server: McpServer): void {
         `(H.15); SOFR and the stablecoin total. Each row: id, label, unit, group, collateral, cadence, kinds, ` +
         `first and last date, licence, the site page that shows it, whether it can be charted (and why not), ` +
         `and whether the site's explorer draws it.\n\n` +
-        `Paged: 200 rows by default (limit up to 500); pass the returned \`next\` as cursor. Narrow with dataset, ` +
+        `Paged: 100 rows by default (limit up to 500); pass the returned \`next\` as cursor. Narrow with dataset, ` +
         `group, collateral, prefix (e.g. 'credit.class.algorithmic.') or q (a word in the id or label). ` +
         `Then fetch values with get_series.`,
       inputSchema: {
@@ -47,14 +47,14 @@ export function registerSeriesTools(server: McpServer): void {
         prefix: z.string().optional().describe(`Series id prefix, e.g. 'credit.venue.aave_v3_ethereum.' or 'cx.market.'`),
         q: z.string().optional().describe('A word to find in the id or label'),
         chartable_only: z.boolean().optional().describe('Leave out series that cannot be drawn on a time chart'),
-        limit: z.number().int().min(1).max(500).optional().describe('Rows per page, 1 to 500 (default 200)'),
+        limit: z.number().int().min(1).max(500).optional().describe('Rows per page, 1 to 500 (default 100)'),
         cursor: z.number().int().min(0).optional().describe('The `next` value of the previous page'),
       },
     },
     async ({ dataset, group, collateral, prefix, q, chartable_only, limit, cursor }) => {
       requireTier('free');
       const data = await upstreamGet<Record<string, unknown>>('/v1/series', {
-        query: { dataset, group, collateral, prefix, q, chartable: chartable_only ? 'true' : undefined, limit, cursor },
+        query: { dataset, group, collateral, prefix, q, chartable: chartable_only ? 'true' : undefined, limit: limit ?? 100, cursor },
       });
       return text({ ...data, disclaimer: DISCLAIMER });
     }
@@ -148,15 +148,15 @@ export function registerSeriesTools(server: McpServer): void {
       description:
         `What backs the dollar debt against bitcoin, by collateral and by venue type (pools, isolated markets, ` +
         `vaults, the auction, corporate, posted cards), as the site's "How these loans are backed" panel shows ` +
-        `it, with each observer named and the collateral rule stated. days (30 to 1500, default 365) sets the ` +
+        `it, with each observer named and the collateral rule stated. days (30 to 1500, default 30) sets the ` +
         `window of the series it carries. Returns the route's payload as served.`,
       inputSchema: {
-        days: z.number().int().min(30).max(1500).optional().describe('Window in days, 30 to 1500 (default 365)'),
+        days: z.number().int().min(30).max(1500).optional().describe('Window in days, 30 to 1500 (default 30)'),
       },
     },
     async ({ days }) => {
       requireTier('free');
-      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/debt-by-collateral', { query: { days } })), disclaimer: DISCLAIMER });
+      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/debt-by-collateral', { query: { days: days ?? 30 } })), disclaimer: DISCLAIMER });
     }
   );
 }
