@@ -29,7 +29,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
   const ip = (req.ip || req.socket.remoteAddress || 'unknown').toString();
 
-  const ctx = { tier, ip, bearerToken, requestId };
+  // MN1 Phase 2: what the shadow meter needs (src/meter.ts); a request without X-Forwarded-For
+  // reached this process directly on the host, i.e. our own harness or monitors.
+  const ctx = { tier, ip, bearerToken, requestId,
+    userAgent: req.header('user-agent') || null, viaProxy: !!req.header('x-forwarded-for') };
 
   // Light access log on entry; the real per-tool log happens inside the tool
   // handler so we know which tool was actually invoked. This entry just

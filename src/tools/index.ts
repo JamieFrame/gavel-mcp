@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { meterToolCall } from '../meter.js';
 import { questionsForTool } from '../content/stack-questions.js';
 
 import { registerListOnchainTool } from './discovery/list-onchain.js';
@@ -147,7 +148,9 @@ Standard questions this tool answers (get_guide with question): ${sq.join(', ')}
             }
             const shape = (cfg.inputSchema ?? {}) as ZodRawShape;
             cfg = { ...cfg, inputSchema: strictInput(exposedName, shape) };
-            h = wrapHandler(handler as (...a: any[]) => unknown, (m) => applyRenames(m, profile.renames));
+            const wrapped = wrapHandler(handler as (...a: any[]) => unknown, (m) => applyRenames(m, profile.renames));
+            // MN1 Phase 2: every observatory call is counted once, in the shadow meter (src/meter.ts).
+            h = async (...a: unknown[]) => { const r = await wrapped(...a); meterToolCall(exposedName, a[0], r); return r; };
           }
           return (target as unknown as {
             registerTool: (n: string, c: unknown, h: unknown) => unknown;

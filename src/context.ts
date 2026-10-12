@@ -10,6 +10,9 @@ export interface RequestContext {
   ip: string;
   bearerToken: string | null;
   requestId: string;
+  /** MN1 Phase 2 (the shadow meter): the caller's User-Agent, and whether it came through nginx. */
+  userAgent?: string | null;
+  viaProxy?: boolean;
 }
 
 export const requestContext = new AsyncLocalStorage<RequestContext>();

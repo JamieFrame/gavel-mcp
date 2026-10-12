@@ -3,6 +3,7 @@ import { tryGetContext } from './context.js';
 import { logger } from './logger.js';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || '';
 const BASE_URL = (process.env.GAVEL_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 // Testnet is served by a separate API process against a separate database, so
@@ -115,6 +116,9 @@ export async function upstreamGet<T = unknown>(
     headers['Authorization'] = `Bearer ${ctx.bearerToken}`;
   }
   if (ctx?.requestId) headers['X-Request-Id'] = ctx.requestId;
+  // MN1 Phase 2: a call this server makes is metered here (src/meter.ts), so the API's REST meter
+  // skips it. The secret goes only to a loopback API, never over the network.
+  if (INTERNAL_SECRET && /^(127\.0\.0\.1|localhost|\[::1\])$/.test(url.hostname)) headers['X-Internal-Secret'] = INTERNAL_SECRET;
 
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), timeoutMs);
