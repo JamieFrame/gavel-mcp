@@ -66,6 +66,15 @@ function asErrorResultRaw(err: unknown): ToolResult {
         retryable: false,
       });
     }
+    // MN1 Phase 5: a 422 is the API declining what was asked (get_chart: the plan draws none of the
+    // series), with its reason — not an outage, and asking again changes nothing.
+    if (up.status === 422) {
+      return errorResult({
+        code: 'nothing_to_draw',
+        message: up.detail ?? 'The data API could not draw that request.',
+        retryable: false,
+      });
+    }
     if (up.status === 429) {
       return errorResult({ code: 'rate_limited', message: 'Too many requests; wait and call again.', retryable: true });
     }
