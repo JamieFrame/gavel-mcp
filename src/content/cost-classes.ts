@@ -44,5 +44,6 @@ export const COST_CLASS: Readonly<Record<string, CostClass>> = {
   get_debt_by_collateral: 'snapshot',
   get_chain_series: 'history',
   get_series: 'history',
+  get_chart: 'reading',               // MN1 Phase 5: a picture, free (D8)
   get_credit_state_history: 'history',
 };

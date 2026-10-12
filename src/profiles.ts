@@ -239,6 +239,8 @@ const OBSERVATORY_TOOLS = [
   // MR1 Phase 4 (Gate 4a, 2026-10-11) — the series layer and the table tools (disposition §5).
   'list_series',
   'get_series',
+  // MN1 Phase 5 (2026-10-12) — the house-style chart of any series combination, free.
+  'get_chart',
   'get_corporate_instruments',
   'get_desk_rates',
   'get_debt_by_collateral',

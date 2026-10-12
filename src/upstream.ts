@@ -56,6 +56,8 @@ export interface UpstreamGetOptions {
    * Note the two run different contract builds — see the verification bundle.
    */
   network?: GavelNetwork;
+  /** 'text' returns the body as a string (an SVG chart); default 'json'. */
+  responseType?: 'json' | 'text';
 }
 
 /** What the API said about a failed request: its status, the path, and its own message. */
@@ -168,6 +170,7 @@ export async function upstreamGet<T = unknown>(
       );
     }
 
+    if (opts.responseType === 'text') return (await res.text()) as unknown as T;
     const body = (await res.json()) as T;
     return body;
   } catch (err) {

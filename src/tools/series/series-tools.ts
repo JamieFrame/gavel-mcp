@@ -23,6 +23,8 @@ const DISCLAIMER =
 const text = (o: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(o, null, 2) }] });
 const GROUPS = ['Cost of credit', 'Size and leverage', 'Liquidation', 'Wrapped bitcoin', 'Holders and spending', 'Miners', 'Context'] as const;
 const date = (what: string) => z.string().regex(DATE, `${what} must be YYYY-MM-DD`);
+// The public address that serves the same chart get_chart returns (MN1 Phase 5).
+const PUBLIC_API = (process.env.STACK_PUBLIC_API_BASE || 'https://api.bitcoincreditstack.com').replace(/\/$/, '');
 
 export function registerSeriesTools(server: McpServer): void {
   server.registerTool(
@@ -92,6 +94,50 @@ export function registerSeriesTools(server: McpServer): void {
         query: { ids: ids.join(','), from, to, as_known_on, plan: plan == null ? undefined : String(plan) },
       });
       return text({ ...data, disclaimer: DISCLAIMER });
+    }
+  );
+
+  // MN1 Phase 5 (operator 2026-10-12): the API is the one home of the house-style renderer
+  // (gavel-indexer GET /v1/series/chart.svg); this tool hands its picture on. Free: a render is a
+  // picture of a series, not the series (D8).
+  server.registerTool(
+    'get_chart',
+    {
+      title: 'A chart of series, drawn in the house style',
+      description:
+        `Draws the series get_series would return for the same request (ids from list_series, the same ` +
+        `window and as_known_on) as an SVG image in the Stack's house style: exactly the chart plan's ` +
+        `panels, one unit each; rate axes from zero; a refused series not drawn; an absence a gap, never a ` +
+        `zero; coverage steps marked; the sources, span, number of values, any as-known-on date and every ` +
+        `credit printed under the chart, with the link that draws it on the site. size: 'site' (default) or ` +
+        `'post' (a social-post format); log: 'upper' or 'lower' draws that panel on a log axis where the ` +
+        `plan offers one; title adds a heading.\n\n` +
+        `Returns the SVG as an embedded resource (image/svg+xml) and the public URL that serves the same ` +
+        `image, so it can be shown or linked. A request whose series the plan draws none of is refused with ` +
+        `the plan's reasons. Show the credits with the chart. This tool draws data; it does not advise, ` +
+        `forecast or characterise the market.`,
+      inputSchema: {
+        ids: z.array(z.string().min(1)).min(1).max(13).describe(`Series ids from list_series, e.g. ['cx.index.bsbs', 'cx.market.secured.borrow_spread_over_ust_3m']`),
+        from: date('from').optional().describe('First date, YYYY-MM-DD (default: a year before `to`)'),
+        to: date('to').optional().describe('Last date, YYYY-MM-DD (default: today)'),
+        as_known_on: date('as_known_on').optional().describe('YYYY-MM-DD: every series as the store held it at the end of that day (UTC)'),
+        size: z.enum(['site', 'post']).optional().describe(`'site' (default) or 'post'`),
+        log: z.enum(['upper', 'lower']).optional().describe('Draw that panel on a log axis, where the plan offers one'),
+        title: z.string().max(160).optional().describe('A heading for the chart'),
+      },
+    },
+    async ({ ids, from, to, as_known_on, size, log, title }) => {
+      requireTier('free');
+      const query = { ids: ids.join(','), from, to, as_known_on, size, log, title };
+      const svg = await upstreamGet<string>('/v1/series/chart.svg', { query, responseType: 'text' });
+      const qs = new URLSearchParams(Object.entries(query).filter(([, v]) => v != null) as Array<[string, string]>);
+      const url = `${PUBLIC_API}/v1/series/chart.svg?${qs}`;
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify({ url, mime_type: 'image/svg+xml', note: 'The image is the resource below; the URL serves the same chart. Its sources and credits are printed in it.', disclaimer: DISCLAIMER }, null, 2) },
+          { type: 'resource' as const, resource: { uri: url, mimeType: 'image/svg+xml', text: svg } },
+        ],
+      };
     }
   );
 
