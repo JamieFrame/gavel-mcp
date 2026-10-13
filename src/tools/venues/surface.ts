@@ -122,8 +122,12 @@ export function registerSurfaceTools(server: McpServer): void {
         `⚠ Coverage is not constant through the series. A move in a figure may be ` +
         `a move in the market or a venue entering or leaving observation — the ` +
         `per-point coverage is what distinguishes them.\n\n` +
-        `${COLLATERAL_DESCRIPTION} The ether series is being back-filled family by ` +
-        `family; its first date is stated in the answer.`,
+        `${COLLATERAL_DESCRIPTION} The ether series covers the market, each class and ` +
+        `each family from the first date the answer states (history_starts); points ` +
+        `before the ether tree's first live snapshot are rebuilt from each venue's own ` +
+        `contract reads. Pooled venues' debt is read once a month: between readings ` +
+        `that figure is an absence with its reason, never a zero. The answer's steps ` +
+        `and notes say where coverage changes.`,
       inputSchema: {
         days: z.number().int().min(1).max(3650).optional()
           .describe(`How many days of history. Default 365, capped at 3650.`),
@@ -145,7 +149,7 @@ export function registerSurfaceTools(server: McpServer): void {
           ...hist,
           points,
           days: window,
-          // MR1: read from the data rather than typed (the ether history is back-filled family by family, EH1).
+          // MR1: read from the data rather than typed; since EH1 Phase 4 the ether history runs from its history_starts.
           first_date_served: (hist.points ?? []).map((p) => p.date).filter(Boolean).sort()[0] ?? null,
           usd_limitation: ETHER_USD_LIMITATION,
         });
