@@ -219,7 +219,8 @@ export function registerSeriesTools(server: McpServer): void {
     const s = e.subject ?? {}; const eth = e.collateral === 'eth'; const c = eth ? 'coll_eth.' : '';
     if (s.level === 'issuer' && !eth) return [
       { ids: [`corporate.issuer.${s.id}.btc_held`], what: 'the company\'s bitcoin as filed, over any window (from= sets it)' },
-      { ids: ['credit.class.corporate.collateral_btc'], what: 'the bitcoin of every company in the registry, together' },
+      // not credit.class.corporate.collateral_btc: the tree's corporate series keeps the registry figure on the live
+      // days to 2026-10-14 (the break of 2026-10-15) and would draw a fall the filings do not show
     ];
     if (s.level === 'venue' || s.level === 'family') return [
       { ids: [`credit.${s.level}.${s.id}.${c}debt_usd`, `credit.${s.level}.${s.id}.${c}${eth ? 'collateral_eth' : 'collateral_btc'}`], what: 'its debt and its collateral, on two panels' },
