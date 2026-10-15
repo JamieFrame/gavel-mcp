@@ -174,7 +174,7 @@ export function registerSeriesTools(server: McpServer): void {
         `borrow rate moving past its rule from one daily reading to the next, a figure crossing a level of the ` +
         `1-2-5 ladder, a company filing a purchase, sale or total of the coin it holds, and a venue first read or ` +
         `wound down. Each event: one sentence, the figures and their dates, the rule it met in words, and its ` +
-        `source (the dataset and readings, or the filing with its link and the sentence that holds the figure). ` +
+        `source (the daily readings and their dates, or the filing with its link and the sentence that holds the figure). ` +
         `A change caused by coverage or method (a reader or pool change, a restatement, a price-only move) is not ` +
         `an event and is not returned. Bitcoin by default; collateral: 'eth' returns the ether events, never added ` +
         `to bitcoin's. Gavel's own book is included with its own-account disclosure. Descriptive: no cause, ` +
@@ -187,7 +187,7 @@ export function registerSeriesTools(server: McpServer): void {
         since: date('since').optional().describe('Events dated on or after this day'),
         until: date('until').optional().describe('Events dated on or before this day'),
         limit: z.number().int().min(1).max(500).optional().describe('Events per page (default 20)'),
-        cursor: z.number().int().min(0).optional().describe('The `next` value of a previous page'),
+        cursor: z.string().optional().describe('The `next` value of a previous page'),
       },
     },
     async ({ collateral, type, subject, since, until, limit, cursor }) => {
