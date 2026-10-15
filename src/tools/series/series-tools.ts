@@ -12,6 +12,7 @@ import { requireTier } from '../../tiers.js';
  *   get_desk_rates             -> GET /v1/market/cefi-rates            (snapshot)
  *   get_debt_by_collateral     -> GET /v1/market/debt-by-collateral    (snapshot)
  *   get_events                 -> GET /v1/market/events                (reading; EV1 Phase 2, free)
+ *   get_event_post_kit         -> GET /v1/market/events?id=            (reading; EV1 EV-D13, free)
  * The chart plan is the API's (one home, G0-2): panels by unit, two at most, the explorer's refusals in its
  * words, ether and bitcoin never on one panel, and the /explore link that draws the same chart. No image.
  * Values are identities on observed data: no forecast, no ranking, no characterisation.
@@ -196,6 +197,89 @@ export function registerSeriesTools(server: McpServer): void {
         query: { collateral, type: type?.length ? type.join(',') : undefined, subject, since, until, limit: limit ?? 20, cursor },
       });
       return text({ ...data, disclaimer: DISCLAIMER });
+    }
+  );
+
+  // EV1 EV-D13 (operator 2026-10-15): what a reader needs to post an event on X, tailored by the assistant. The
+  // suggested chart is the site's (bitcoin-credit-stack-frontend src/lib/eventChart.js, its one home; kept the same here).
+  const SITE = 'https://www.bitcoincreditstack.com';
+  const daysBefore = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
+  type Ev = { id: number; date: string; type: string; collateral: string; text: string; subject?: { level?: string; id?: string; name?: string }; figure?: { name?: string } };
+  const suggested = (e: Ev): { ids: string[]; from: string } | null => {
+    const s = e.subject ?? {}; const eth = e.collateral === 'eth';
+    if (e.type === 'filing') return !eth && s.level === 'issuer' ? { ids: [`corporate.issuer.${s.id}.btc_held`], from: daysBefore(e.date, 183) } : null;
+    if (!['venue', 'family'].includes(s.level ?? '')) return null;
+    const name = e.figure?.name ?? ''; const coll = eth ? 'collateral_eth' : 'collateral_btc';
+    const metric = e.type === 'level_cross' ? (/debt/.test(name) ? 'debt_usd' : /collateral/.test(name) ? coll : null)
+      : e.type === 'collateral_move' ? coll : e.type === 'debt_move' ? 'debt_usd' : e.type === 'rate_move' ? 'borrow_rate' : null;
+    return metric ? { ids: [`credit.${s.level}.${s.id}.${eth ? 'coll_eth.' : ''}${metric}`], from: daysBefore(e.date, 92) } : null;
+  };
+  // Other series a post can set beside the event, by subject (ids as list_series serves them).
+  const context = (e: Ev): Array<{ ids: string[]; what: string }> => {
+    const s = e.subject ?? {}; const eth = e.collateral === 'eth'; const c = eth ? 'coll_eth.' : '';
+    if (s.level === 'issuer' && !eth) return [
+      { ids: [`corporate.issuer.${s.id}.btc_held`], what: 'the company\'s bitcoin as filed, over any window (from= sets it)' },
+      { ids: ['credit.class.corporate.collateral_btc'], what: 'the bitcoin of every company in the registry, together' },
+    ];
+    if (s.level === 'venue' || s.level === 'family') return [
+      { ids: [`credit.${s.level}.${s.id}.${c}debt_usd`, `credit.${s.level}.${s.id}.${c}${eth ? 'collateral_eth' : 'collateral_btc'}`], what: 'its debt and its collateral, on two panels' },
+      { ids: [`credit.${s.level}.${s.id}.${c}borrow_rate`], what: 'its borrow rate' },
+      { ids: [`credit.market.${c}debt_usd`], what: 'the whole market\'s debt, for scale' },
+    ];
+    return [];
+  };
+  const chartLinks = (c: { ids: string[]; from: string }) => ({
+    ids: c.ids, from: c.from,
+    page: `${SITE}/chart?ids=${c.ids.join(',')}&from=${c.from}`,
+    svg: `${PUBLIC_API}/v1/series/chart.svg?ids=${c.ids.join(',')}&from=${c.from}&size=post`,
+  });
+
+  server.registerTool(
+    'get_event_post_kit',
+    {
+      title: 'What to post an event on X with (text, link, chart)',
+      description:
+        `For one credit-market event (an id from get_events; without one, the newest events to choose from): ` +
+        `its sentence, the link to post (X shows it as a card with the event's chart), the suggested chart and ` +
+        `other series to set beside it (each with a page that saves it as a PNG to attach), and the rules a post ` +
+        `follows. The assistant drafts the post from these; nothing is posted by this server. A post stays ` +
+        `descriptive: the event's figures and dates, no forecast, no advice, no ranking and no cause the data ` +
+        `does not state; X counts any link as 23 characters of the 280.`,
+      inputSchema: {
+        id: z.number().int().min(1).optional().describe('An event id from get_events'),
+      },
+    },
+    async ({ id }) => {
+      requireTier('free');
+      if (id == null) {
+        const latest = await upstreamGet<{ events?: Ev[] }>('/v1/market/events', { query: { limit: 5 } });
+        const eth = await upstreamGet<{ events?: Ev[] }>('/v1/market/events', { query: { collateral: 'eth', limit: 3 } });
+        return text({ choose: 'Ask again with one of these ids.', events: [...(latest.events ?? []), ...(eth.events ?? [])].map((e) => ({ id: e.id, date: e.date, collateral: e.collateral, text: e.text })), disclaimer: DISCLAIMER });
+      }
+      let e: Ev | undefined;
+      try { e = (await upstreamGet<{ events?: Ev[] }>('/v1/market/events', { query: { id } })).events?.[0]; } catch { e = undefined; }
+      if (!e) return text({ error: { code: 'not_found', message: `no published event has id ${id}; get_events lists them`, retryable: false } });
+      const c = suggested(e);
+      return text({
+        event: e,
+        post: {
+          text: e.text,
+          link: `${SITE}/e/${e.id}`,
+          link_note: 'X shows this link as a large card: the sentence, the suggested chart and the source. A reader who follows it lands on the event.',
+          event_page: `${SITE}/activity?event=${e.id}`,
+        },
+        suggested_chart: c ? chartLinks(c) : null,
+        suggested_chart_note: c ? null : 'No chart for this event (an ether company has no holdings series; a coverage event, a class or the market have none suggested).',
+        context_series: context(e).map((x) => ({ ...chartLinks({ ids: x.ids, from: c?.from ?? daysBefore(e!.date, 183) }), what: x.what })),
+        custom_chart: `${SITE}/chart?ids=<ids from list_series, comma-separated>&from=YYYY-MM-DD (to=, title= also taken); its page saves the chart as a PNG`,
+        rules: [
+          'Descriptive only: the figures, dates and source as served. No forecast, no advice, no ranking, no superlative ("record", "all-time") and no cause the data does not state.',
+          'Up to 280 characters, the link counting as 23.',
+          'The event\'s own sentence may be shortened, never changed in its figures or dates.',
+          'A chart attached by hand replaces the card: attach one only when it says more than the suggested chart.',
+        ],
+        disclaimer: DISCLAIMER,
+      });
     }
   );
 

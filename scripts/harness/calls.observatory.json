@@ -382,6 +382,13 @@
     "args": {}
   },
   {
+    "id": "p4-event-post-kit",
+    "tool": "get_event_post_kit",
+    "args": {
+      "id": 41
+    }
+  },
+  {
     "id": "p4-desk-rates",
     "tool": "get_desk_rates",
     "args": {
