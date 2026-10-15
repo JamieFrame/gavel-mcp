@@ -149,7 +149,10 @@ export function registerSeriesTools(server: McpServer): void {
         `Lists the instruments of the corporate issuers in the registry (convertible notes, credit facilities, ` +
         `bonds, perpetual preferreds), one row per instrument, as the site's /instruments pages show them: ` +
         `terms, seniority, the yield a holder receives where a last regular-session trade prices it, returns, ` +
-        `and the issuer's bitcoin holdings. Corporate lending, not bitcoin-backed credit: a holder lends to the ` +
+        `and the issuer's bitcoin holdings. The holding is the latest-dated figure read from a filing; ` +
+        `btc_holdings_derived, beside it, is the last read plus the purchases filed since ("derived from filed ` +
+        `purchases"), display only, never in backing_ratio, and confirmed or corrected by the next read. ` +
+        `Corporate lending, not bitcoin-backed credit: a holder lends to the ` +
         `issuer unsecured, with no lien on its bitcoin. Income in the returns is what the terms accrue, not ` +
         `what was confirmed paid (returns_convention says so). Prices are IEX's, credited in the answer's ` +
         `attribution. Returns the route's payload as served.`,
