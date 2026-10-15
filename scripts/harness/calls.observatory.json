@@ -521,6 +521,11 @@
     }
   },
   {
+    "id": "sq-m8",
+    "tool": "get_events",
+    "args": {}
+  },
+  {
     "id": "sq-c1",
     "tool": "get_series",
     "args": {

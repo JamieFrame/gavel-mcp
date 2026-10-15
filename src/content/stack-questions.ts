@@ -111,6 +111,16 @@ export const QUESTIONS: readonly StackQuestion[] = [
     "limits": "Matched venues only; a flagged venue's change is also shown left out."
   },
   {
+    "id": "SQ-M8",
+    "group": "Market",
+    "question": "What has changed in bitcoin-secured credit recently: debt, collateral or rates moving past a published rule, levels crossed, company filings?",
+    "tool": "get_events",
+    "args": {},
+    "page": "/activity",
+    "meaning": "The credit-market events, newest first: each a dated sentence with its figures, the rule it met in words, and its source (the daily readings, or the filing and the sentence that holds the figure).",
+    "limits": "A change caused by coverage or method is not an event and is not returned. Daily readings from 2026-10-02. Ether events are their own feed (collateral: 'eth'), never added to bitcoin's."
+  },
+  {
     "id": "SQ-C1",
     "group": "Class",
     "question": "How do the credit classes compare on dollar debt, and how has that moved?",
