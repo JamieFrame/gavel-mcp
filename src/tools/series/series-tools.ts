@@ -171,8 +171,8 @@ export function registerSeriesTools(server: McpServer): void {
       title: 'Credit-market events (dated facts)',
       description:
         `Returns the credit-market events the Stack has recorded, newest first: a venue's debt, collateral or ` +
-        `borrow rate moving past its rule from one daily reading to the next, a figure crossing a level of the ` +
-        `1-2-5 ladder, a company filing a purchase, sale or total of the coin it holds, and a venue first read or ` +
+        `borrow rate moving past its rule from one daily reading to the next, a figure crossing a fixed level (each ` +
+        `power of ten, and twice and five times it), a company filing a purchase, sale or total of the coin it holds, and a venue first read or ` +
         `wound down. Each event: one sentence, the figures and their dates, the rule it met in words, and its ` +
         `source (the daily readings and their dates, or the filing with its link and the sentence that holds the figure). ` +
         `A change caused by coverage or method (a reader or pool change, a restatement, a price-only move) is not ` +
