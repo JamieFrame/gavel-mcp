@@ -212,7 +212,7 @@ export function registerSeriesTools(server: McpServer): void {
     const name = e.figure?.name ?? ''; const coll = eth ? 'collateral_eth' : 'collateral_btc';
     const metric = e.type === 'level_cross' ? (/debt/.test(name) ? 'debt_usd' : /collateral/.test(name) ? coll : null)
       : e.type === 'collateral_move' ? coll : e.type === 'debt_move' ? 'debt_usd' : e.type === 'rate_move' ? 'borrow_rate' : null;
-    return metric ? { ids: [`credit.${s.level}.${s.id}.${eth ? 'coll_eth.' : ''}${metric}`], from: daysBefore(e.date, 92) } : null;
+    return metric ? { ids: [`credit.${s.level}.${s.id}.${eth ? 'coll_eth.' : ''}${metric}`], from: daysBefore(e.date, 183) } : null;
   };
   // Other series a post can set beside the event, by subject (ids as list_series serves them).
   const context = (e: Ev): Array<{ ids: string[]; what: string }> => {
