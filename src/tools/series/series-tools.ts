@@ -244,7 +244,7 @@ export function registerSeriesTools(server: McpServer): void {
         `other series to set beside it (each with a page that saves it as a PNG to attach), and the rules a post ` +
         `follows. The assistant drafts the post from these; nothing is posted by this server. A post stays ` +
         `descriptive: the event's figures and dates, no forecast, no advice, no ranking and no cause the data ` +
-        `does not state; X counts any link as 23 characters of the 280.`,
+        `does not state; the rules give X's length limit and how a link counts against it.`,
       inputSchema: {
         id: z.number().int().min(1).optional().describe('An event id from get_events'),
       },
