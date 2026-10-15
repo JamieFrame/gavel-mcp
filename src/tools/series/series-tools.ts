@@ -173,7 +173,8 @@ export function registerSeriesTools(server: McpServer): void {
       description:
         `Returns the credit-market events the Stack has recorded, newest first: a venue's debt, collateral or ` +
         `borrow rate moving past its rule from one daily reading to the next, a figure crossing a fixed level (each ` +
-        `power of ten, and twice and five times it), a company filing a purchase, sale or total of the coin it holds, and a venue first read or ` +
+        `power of ten, and twice and five times it), a company filing a purchase, sale or total of the coin it holds, an indicator (bsbs, bcsi, ` +
+        `the collateral share, the weekly matched change, a wrapper's reserve coverage) crossing a fixed level or moving past its threshold, and a venue first read or ` +
         `wound down. Each event: one sentence, the figures and their dates, the rule it met in words, and its ` +
         `source (the daily readings and their dates, or the filing with its link and the sentence that holds the figure). ` +
         `A change caused by coverage or method (a reader or pool change, a restatement, a price-only move) is not ` +
@@ -182,7 +183,7 @@ export function registerSeriesTools(server: McpServer): void {
         `forecast or ranking. Paged: 20 events by default (limit up to 500); pass the returned \`next\` as cursor.`,
       inputSchema: {
         collateral: z.enum(['btc', 'eth']).optional().describe('Events of credit secured by bitcoin (default) or by ether; never added together'),
-        type: z.array(z.enum(['debt_move', 'collateral_move', 'rate_move', 'level_cross', 'filing', 'coverage_enter', 'coverage_exit'])).optional()
+        type: z.array(z.enum(['debt_move', 'collateral_move', 'rate_move', 'level_cross', 'filing', 'coverage_enter', 'coverage_exit', 'indicator_level', 'indicator_move'])).optional()
           .describe('Only these event types'),
         subject: z.string().optional().describe(`A venue id (e.g. 'aave_v3_ethereum'), a tree node id or a corporate issuer id (e.g. 'strive')`),
         since: date('since').optional().describe('Events dated on or after this day'),
@@ -208,6 +209,7 @@ export function registerSeriesTools(server: McpServer): void {
   const suggested = (e: Ev): { ids: string[]; from: string } | null => {
     const s = e.subject ?? {}; const eth = e.collateral === 'eth';
     if (e.type === 'filing') return !eth && s.level === 'issuer' ? { ids: [`corporate.issuer.${s.id}.btc_held`], from: daysBefore(e.date, 183) } : null;
+    if (s.level === 'indicator' && s.id) return { ids: [s.id], from: daysBefore(e.date, 183) };
     if (!['venue', 'family'].includes(s.level ?? '')) return null;
     const name = e.figure?.name ?? ''; const coll = eth ? 'collateral_eth' : 'collateral_btc';
     const metric = e.type === 'level_cross' ? (/debt/.test(name) ? 'debt_usd' : /collateral/.test(name) ? coll : null)
