@@ -542,6 +542,18 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'Our own daily BTC price, read on chain: the median across bitcoin wrappers (WBTC, cbBTC) of their pools against USDC and USDT, priced in a basket of dollar stablecoins, from 2020-07-13. Not CoinGecko. Each wrapper’s own peg is published separately. Recast on 2026-10-09 from a CoinGecko spot price.',
     live: true,
   },
+  // EP1 Phase 3a (operator approved the ETH reference price page and its wording, 2026-10-15): the twin
+  // of btc-price. The series is already served; this entry only names it in the catalogue.
+  {
+    id: 'eth-price',
+    name: 'ETH Reference Price (on-chain)',
+    family: 'market',
+    path: '/v1/onchain/series/price.eth_in_basket',
+    historyPath: '/v1/onchain/series/price.eth_in_basket',
+    units: 'USDBASKET_per_ETH (basket dollars, not fiat)',
+    description: 'Our own daily ETH price, read on chain: the median across WETH pools against USDC and USDT on Ethereum and Base, priced in a basket of dollar stablecoins, from 2020-05-25. WETH is redeemable one for one for ETH by its contract. Not a market data feed.',
+    live: true,
+  },
   // CX1 Gate 8 (operator 2026-10-09): three governed indices, descriptive, free with
   // history, methodology on www.bitcoincreditstack.com/indicators/<id> and changes
   // published 30 days ahead. Venue-independent, so observatory-only (not anchored).
