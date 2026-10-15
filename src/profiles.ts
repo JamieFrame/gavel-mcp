@@ -244,6 +244,8 @@ const OBSERVATORY_TOOLS = [
   'get_corporate_instruments',
   'get_desk_rates',
   'get_debt_by_collateral',
+  // EV1 Phase 2 (2026-10-15) — credit-market events, free.
+  'get_events',
 ] as const;
 
 /** Everything on the catalogue that is not observatory-only. */

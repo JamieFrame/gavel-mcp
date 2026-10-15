@@ -42,6 +42,7 @@ export const COST_CLASS: Readonly<Record<string, CostClass>> = {
   get_corporate_instruments: 'snapshot',
   get_desk_rates: 'snapshot',
   get_debt_by_collateral: 'snapshot',
+  get_events: 'reading',              // EV1 Phase 2: dated facts, free (EV-D11); 20 by default
   get_chain_series: 'history',
   get_series: 'history',
   get_chart: 'reading',               // MN1 Phase 5: a picture, free (D8)

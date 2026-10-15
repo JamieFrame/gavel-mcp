@@ -377,6 +377,11 @@
     "args": {}
   },
   {
+    "id": "p4-events",
+    "tool": "get_events",
+    "args": {}
+  },
+  {
     "id": "p4-desk-rates",
     "tool": "get_desk_rates",
     "args": {

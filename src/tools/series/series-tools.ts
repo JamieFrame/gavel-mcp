@@ -11,6 +11,7 @@ import { requireTier } from '../../tiers.js';
  *   get_corporate_instruments  -> GET /v1/market/corporate/instruments (snapshot)
  *   get_desk_rates             -> GET /v1/market/cefi-rates            (snapshot)
  *   get_debt_by_collateral     -> GET /v1/market/debt-by-collateral    (snapshot)
+ *   get_events                 -> GET /v1/market/events                (reading; EV1 Phase 2, free)
  * The chart plan is the API's (one home, G0-2): panels by unit, two at most, the explorer's refusals in its
  * words, ether and bitcoin never on one panel, and the /explore link that draws the same chart. No image.
  * Values are identities on observed data: no forecast, no ranking, no characterisation.
@@ -161,6 +162,40 @@ export function registerSeriesTools(server: McpServer): void {
     async () => {
       requireTier('free');
       return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/corporate/instruments')), disclaimer: DISCLAIMER });
+    }
+  );
+
+  server.registerTool(
+    'get_events',
+    {
+      title: 'Credit-market events (dated facts)',
+      description:
+        `Returns the credit-market events the Stack has recorded, newest first: a venue's debt, collateral or ` +
+        `borrow rate moving past its rule from one daily reading to the next, a figure crossing a level of the ` +
+        `1-2-5 ladder, a company filing a purchase, sale or total of the coin it holds, and a venue first read or ` +
+        `wound down. Each event: one sentence, the figures and their dates, the rule it met in words, and its ` +
+        `source (the dataset and readings, or the filing with its link and the sentence that holds the figure). ` +
+        `A change caused by coverage or method (a reader or pool change, a restatement, a price-only move) is not ` +
+        `an event and is not returned. Bitcoin by default; collateral: 'eth' returns the ether events, never added ` +
+        `to bitcoin's. Gavel's own book is included with its own-account disclosure. Descriptive: no cause, ` +
+        `forecast or ranking. Paged: 20 events by default (limit up to 500); pass the returned \`next\` as cursor.`,
+      inputSchema: {
+        collateral: z.enum(['btc', 'eth']).optional().describe('Events of credit secured by bitcoin (default) or by ether; never added together'),
+        type: z.array(z.enum(['debt_move', 'collateral_move', 'rate_move', 'level_cross', 'filing', 'coverage_enter', 'coverage_exit'])).optional()
+          .describe('Only these event types'),
+        subject: z.string().optional().describe(`A venue id (e.g. 'aave_v3_ethereum'), a tree node id or a corporate issuer id (e.g. 'strive')`),
+        since: date('since').optional().describe('Events dated on or after this day'),
+        until: date('until').optional().describe('Events dated on or before this day'),
+        limit: z.number().int().min(1).max(500).optional().describe('Events per page (default 20)'),
+        cursor: z.number().int().min(0).optional().describe('The `next` value of a previous page'),
+      },
+    },
+    async ({ collateral, type, subject, since, until, limit, cursor }) => {
+      requireTier('free');
+      const data = await upstreamGet<Record<string, unknown>>('/v1/market/events', {
+        query: { collateral, type: type?.length ? type.join(',') : undefined, subject, since, until, limit: limit ?? 20, cursor },
+      });
+      return text({ ...data, disclaimer: DISCLAIMER });
     }
   );
 
