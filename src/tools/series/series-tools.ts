@@ -155,7 +155,13 @@ export function registerSeriesTools(server: McpServer): void {
         `btc_holdings_derived, beside it, is the last read plus the purchases filed since ("derived from filed ` +
         `purchases"), display only, never in backing_ratio, and confirmed or corrected by the next read. ` +
         `Corporate lending, not bitcoin-backed credit: a holder lends to the ` +
-        `issuer unsecured, with no lien on its bitcoin. Income in the returns is what the terms accrue, not ` +
+        `issuer with no lien on its bitcoin, except where the issuer has pledged bitcoin against a facility.\n\n` +
+        `btc_backing also carries the debt attributed to bitcoin, beside the filed debt: for each company holding at least ` +
+        `100 BTC (a subsidiary counted at its parent), bitcoin-pledged debt counts in full (no more than the pledged coins' ` +
+        `value where the line states them), debt secured by other assets at zero, and unsecured debt and preferred stock at ` +
+        `the company's unencumbered share of assets. It is a stated convention applied to filed figures, not a measurement; ` +
+        `total assets, each debt line and its security are served beside it, and a company whose figure cannot be ` +
+        `attributed says why. Income in the returns is what the terms accrue, not ` +
         `what was confirmed paid (returns_convention says so). Prices are IEX's, credited in the answer's ` +
         `attribution. Returns the route's payload as served.`,
       inputSchema: {},

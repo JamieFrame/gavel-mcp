@@ -73,6 +73,10 @@ export function registerSurfaceTools(server: McpServer): void {
         `⚠ Read coverage before reading the figures. A venue absent from this ` +
         `reading is a declared gap, not a zero, and the rows it would have ` +
         `contributed are counted separately as unavailable.\n\n` +
+        `Corporate issuers' debt is not in this reading. get_corporate_instruments serves it, with the debt attributed ` +
+        `to bitcoin: bitcoin-pledged debt in full, debt secured by other assets at zero, unsecured debt and preferred ` +
+        `stock at each company's unencumbered share of assets, for companies holding at least 100 BTC (a subsidiary ` +
+        `counted at its parent).\n\n` +
         `${COLLATERAL_DESCRIPTION} With collateral: 'eth' this returns the ether ` +
         `market: the same six figures at market and class level, books per loan ` +
         `currency (ether lent against ether is its own book, outside the headline).\n\n` +
