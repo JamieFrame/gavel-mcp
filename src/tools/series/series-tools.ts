@@ -23,6 +23,28 @@ const DISCLAIMER =
   'Informational. Aletheia Analytics SASU operates this interface and data product. No guarantee of ' +
   'accuracy, and nothing here is a recommendation.';
 const text = (o: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(o, null, 2) }] });
+// The two corporate snapshots are sent unindented: their default answers sit near the snapshot budget (CA1 Phase 4).
+const compact = (o: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(o) }] });
+type Row = Record<string, unknown> & { issuer_id?: string; attribution?: Record<string, unknown> | null };
+// CA1 Phase 4: get_debt_by_collateral carries the corporate class totals; the rows for each company are
+// get_corporate_instruments' (one home).
+const COMPANIES_SERVED_BY =
+  "The rows for each company are served by get_corporate_instruments; pass issuer for one company's debt lines.";
+// CA1 Phase 4: each company's attribution, without its debt lines, balance sheet and currencies. The full
+// attribution is get_corporate_instruments with issuer.
+const ATTRIBUTION_DETAIL =
+  "Each company's attribution is summarised here. get_corporate_instruments with issuer returns that company's " +
+  'instruments and its full attribution: every debt line with its security and source, the balance sheet and the currencies.';
+function summarise(a: Record<string, unknown> | null | undefined) {
+  if (!a) return a ?? null;
+  return {
+    unencumbered_share: a.unencumbered_share, unencumbered_share_absent_because: a.unencumbered_share_absent_because,
+    total_assets_today_usd: a.total_assets_today_usd, total_assets_today_absent_because: a.total_assets_today_absent_because,
+    excluded_from_class: a.excluded_from_class, carried_in_class_usd: a.carried_in_class_usd,
+    periods: a.periods, periods_differ: a.periods_differ,
+    debt_lines: Array.isArray(a.lines) ? a.lines.length : 0,
+  };
+}
 const GROUPS = ['Cost of credit', 'Size and leverage', 'Liquidation', 'Wrapped bitcoin', 'Holders and spending', 'Miners', 'Context'] as const;
 const date = (what: string) => z.string().regex(DATE, `${what} must be YYYY-MM-DD`);
 // The public address that serves the same chart get_chart returns (MN1 Phase 5).
@@ -163,12 +185,32 @@ export function registerSeriesTools(server: McpServer): void {
         `total assets, each debt line and its security are served beside it, and a company whose figure cannot be ` +
         `attributed says why. Income in the returns is what the terms accrue, not ` +
         `what was confirmed paid (returns_convention says so). Prices are IEX's, credited in the answer's ` +
-        `attribution. Returns the route's payload as served.`,
-      inputSchema: {},
+        `attribution.\n\n` +
+        `Without issuer, every instrument is returned and each company's attribution is summarised: its unencumbered ` +
+        `share, total assets, the dates of its balance sheet and debt lines, and how many debt lines it has. Pass ` +
+        `issuer (e.g. 'strategy') for that company's instruments and its full attribution, every debt line with its ` +
+        `security and source.`,
+      inputSchema: {
+        issuer: z.string().optional().describe(`A corporate issuer id (e.g. 'strategy'): its instruments and its full attribution, debt line by debt line`),
+      },
     },
-    async () => {
+    async ({ issuer }) => {
       requireTier('free');
-      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/corporate/instruments')), disclaimer: DISCLAIMER });
+      const data = await upstreamGet<{ instruments?: Row[]; btc_backing?: { issuers?: Row[]; [k: string]: unknown }; [k: string]: unknown }>('/v1/market/corporate/instruments');
+      const issuers = data.btc_backing?.issuers ?? [];
+      if (!issuer) {
+        return compact({ ...data, btc_backing: { ...data.btc_backing, issuers: issuers.map((r) => ({ ...r, attribution: summarise(r.attribution) })), attribution_detail: ATTRIBUTION_DETAIL }, disclaimer: DISCLAIMER });
+      }
+      const row = issuers.find((r) => r.issuer_id === issuer);
+      if (!row && !(data.instruments ?? []).some((r) => r.issuer_id === issuer)) {
+        throw new Error(`no issuer '${issuer}' in the registry; issuers: ${[...new Set(issuers.map((r) => String(r.issuer_id)))].sort().join(', ')}`);
+      }
+      // a parent's consolidated subsidiaries come with it (their bitcoin and debt are counted at the parent)
+      const ids = new Set([issuer, ...((row?.attribution?.subsidiaries as string[] | undefined) ?? [])]);
+      return compact({ ...data,
+        instruments: (data.instruments ?? []).filter((r) => ids.has(String(r.issuer_id))),
+        btc_backing: { ...data.btc_backing, issuers: issuers.filter((r) => ids.has(String(r.issuer_id))) },
+        issuer_filter: issuer, disclaimer: DISCLAIMER });
     }
   );
 
@@ -326,14 +368,20 @@ export function registerSeriesTools(server: McpServer): void {
         `What backs the dollar debt against bitcoin, by collateral and by venue type (pools, isolated markets, ` +
         `vaults, the auction, corporate, posted cards), as the site's "How these loans are backed" panel shows ` +
         `it, with each observer named and the collateral rule stated. days (30 to 1500, default 30) sets the ` +
-        `window of the series it carries. Returns the route's payload as served.`,
+        `window of the series it carries. The corporate part carries the class totals; the rows for each company ` +
+        `are get_corporate_instruments'.`,
       inputSchema: {
         days: z.number().int().min(30).max(1500).optional().describe('Window in days, 30 to 1500 (default 30)'),
       },
     },
     async ({ days }) => {
       requireTier('free');
-      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/debt-by-collateral', { query: { days: days ?? 30 } })), disclaimer: DISCLAIMER });
+      const data = await upstreamGet<{ corporate?: { btc_backing?: { issuers?: Row[]; [k: string]: unknown }; [k: string]: unknown }; [k: string]: unknown }>('/v1/market/debt-by-collateral', { query: { days: days ?? 30 } });
+      const bb = data.corporate?.btc_backing;
+      if (!bb) return compact({ ...data, disclaimer: DISCLAIMER });
+
+      const { issuers, ...cls } = bb;
+      return compact({ ...data, corporate: { ...data.corporate, btc_backing: { ...cls, companies: issuers?.length ?? 0, companies_served_by: COMPANIES_SERVED_BY } }, disclaimer: DISCLAIMER });
     }
   );
 }
