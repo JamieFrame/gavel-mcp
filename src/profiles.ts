@@ -242,6 +242,8 @@ const OBSERVATORY_TOOLS = [
   // MN1 Phase 5 (2026-10-12) — the house-style chart of any series combination, free.
   'get_chart',
   'get_corporate_instruments',
+  // BH1 Phase 1 (2026-10-18) — the bitcoin spot funds state they hold.
+  'get_fund_holdings',
   'get_desk_rates',
   'get_debt_by_collateral',
   // EV1 Phase 2 (2026-10-15) — credit-market events, free.

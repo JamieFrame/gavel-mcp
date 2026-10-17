@@ -9,6 +9,7 @@ import { requireTier } from '../../tiers.js';
  *   list_series                -> GET /v1/series                       (catalogue)
  *   get_series                 -> GET /v1/series/values                (history; as-known-on with as_known_on)
  *   get_corporate_instruments  -> GET /v1/market/corporate/instruments (snapshot)
+ *   get_fund_holdings          -> GET /v1/market/holders/funds          (snapshot; BH1 Phase 1)
  *   get_desk_rates             -> GET /v1/market/cefi-rates            (snapshot)
  *   get_debt_by_collateral     -> GET /v1/market/debt-by-collateral    (snapshot)
  *   get_events                 -> GET /v1/market/events                (reading; EV1 Phase 2, free)
@@ -169,6 +170,28 @@ export function registerSeriesTools(server: McpServer): void {
     async () => {
       requireTier('free');
       return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/corporate/instruments')), disclaimer: DISCLAIMER });
+    }
+  );
+
+  // BH1 Phase 1: the bitcoin spot funds state they hold. Description wording: operator approval pending.
+  server.registerTool(
+    'get_fund_holdings',
+    {
+      title: 'Bitcoin held by spot funds',
+      description:
+        `Lists the spot bitcoin funds and the bitcoin each states it holds, as read from the fund's own ` +
+        `SEC filing (10-Q or 10-K), its daily holdings file, or its periodic report, each figure with its date, ` +
+        `its source and a quote. A fund's headline is its latest-dated figure; the other figures are served ` +
+        `beside it. Custodians and the fund's lending statement are quoted as filed; "lending not stated" means ` +
+        `no statement was found, not that the fund lends. A fund without a figure says why, never zero. Fund ` +
+        `shares held by another fund or a public body are listed and not added, so each coin is counted once. ` +
+        `Totals are given per date, and across dates only with the earliest and latest date they cover. ` +
+        `Funds are listed by name; nothing is ranked. Returns the route's payload as served.`,
+      inputSchema: {},
+    },
+    async () => {
+      requireTier('free');
+      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/holders/funds')), disclaimer: DISCLAIMER });
     }
   );
 
