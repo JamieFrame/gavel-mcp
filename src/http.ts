@@ -1,4 +1,5 @@
 import express, { type Request, type Response } from 'express';
+import { createServer } from 'node:http';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -19,7 +20,9 @@ const corsOrigins = corsOriginsRaw ? corsOriginsRaw.split(',').map((s) => s.trim
 
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', true); // behind nginx — req.ip should reflect the client
+// Behind nginx: req.ip is the hop nginx saw. Only loopback may name it; 'true' took the leftmost
+// X-Forwarded-For, which a client writes itself (HX1 review of MN1 Phase 3, 2026-10-19).
+app.set('trust proxy', 'loopback');
 
 if (corsOrigins) {
   app.use(cors({ origin: corsOrigins, credentials: false }));
@@ -244,9 +247,17 @@ app.use((req: Request, res: Response) => {
   res.status(404).json({ error: { code: 'not_found', message: `Route ${req.path} not found` } });
 });
 
-app.listen(PORT, () => {
+// Loopback only (operator, 2026-10-19, MN1/HX1): nginx on this machine is the one way in; bound on
+// every address, the port answered the internet directly, past nginx. ::1 too, for local callers
+// whose 'localhost' resolves to IPv6. MCP_LISTEN_HOST=0.0.0.0 restores the old binding.
+const LISTEN_HOST = process.env.MCP_LISTEN_HOST || '127.0.0.1';
+if (LISTEN_HOST === '127.0.0.1') {
+  createServer(app).listen(PORT, '::1').on('error', (e: NodeJS.ErrnoException) =>
+    logger.warn({ port: PORT, code: e.code }, '::1 not bound; 127.0.0.1 only'));
+}
+app.listen(PORT, LISTEN_HOST, () => {
   logger.info(
-    { port: PORT, server: SERVER_NAME, version: SERVER_VERSION, upstream: process.env.GAVEL_API_BASE_URL },
+    { port: PORT, host: LISTEN_HOST, server: SERVER_NAME, version: SERVER_VERSION, upstream: process.env.GAVEL_API_BASE_URL },
     'Aletheia MCP server listening'
   );
 });
