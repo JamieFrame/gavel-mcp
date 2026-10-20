@@ -51,6 +51,18 @@ let PL: PriceList | null = null;
 let server: unknown = null;
 let wrap: ((rs: unknown, cfg: unknown) => (h: (a: Record<string, unknown>) => Promise<Result>) => (a: Record<string, unknown>, extra: unknown) => Promise<Result>) | null = null;
 let ready = false;
+// Which tools rest only on sources that may be sold (the API's /internal/x402-terms, from the price
+// list's mcp_tool_providers and the provider register): an answer without a licence block is sold
+// only when its tool is in this set (operator, LG1 Gate 2: the same rules on both doors).
+let sellableTools: Record<string, boolean> = {};
+async function loadTerms(): Promise<void> {
+  const base = (process.env.GAVEL_API_INTERNAL_URL || 'http://127.0.0.1:4012').replace(/\/$/, '');
+  try {
+    const r = await fetch(`${base}/internal/x402-terms`, { headers: { 'X-Internal-Secret': process.env.INTERNAL_API_SECRET || '' }, signal: AbortSignal.timeout(5_000) });
+    if (r.ok) sellableTools = ((await r.json()) as { tools?: Record<string, boolean> }).tools ?? {};
+    else logger.error({ status: r.status }, '[x402] /internal/x402-terms refused; tools without a licence block are not sold');
+  } catch (e) { logger.error({ err: String(e) }, '[x402] /internal/x402-terms failed; tools without a licence block are not sold'); }
+}
 
 function fill(t?: string): string { return String(t || '').replace(/\{allowance\}/g, String(PL?.allowance_per_day ?? '')); }
 
@@ -73,6 +85,8 @@ if (ON) {
         .catch((e: unknown) => { logger.error({ err: String(e) }, '[x402] facilitator not ready; retry in 300 s'); setTimeout(init, 300_000).unref?.(); });
     };
     init();
+    void loadTerms();
+    setInterval(() => { void loadTerms(); }, 3_600_000).unref?.();
   } catch (e) {
     logger.error({ err: String(e) }, '[x402] NOT switched on');
     PL = null;
@@ -91,11 +105,13 @@ export function priceUsd(cls: string, args: Record<string, unknown>, units: numb
  * answer itself, from the licences it carries (src/meter.ts unitsOf). An answer that carries
  * no licence is not sellable (strict, as the REST door's credit tree).
  */
-export function sellableUnits(cls: string, r: Result): number {
+export function sellableUnits(cls: string, r: Result, tool = '', tools: Record<string, boolean> = sellableTools): number {
   if (!r || r.isError) return 0;
   let body: unknown = null;
   try { body = JSON.parse(r.content?.find((c) => c.type === 'text')?.text ?? 'null'); } catch { return 0; }
-  return unitsOf(cls as CostClass, body).sellable ?? 0;
+  const u = unitsOf(cls as CostClass, body);
+  if (u.sellable !== null) return u.sellable;   // the answer's own licences decide
+  return tools[tool] ? u.list : 0;              // otherwise the tool's sources (strict when unknown)
 }
 
 // ── the day's allowance per anonymous caller: taken on entry, refunded on failure ──
@@ -139,7 +155,7 @@ export async function x402Call(tool: string, cls: string | null, args: Record<st
   // The answer first: it says what in it may be sold. Nothing sellable: served free, and it
   // spends no allowance (HX1 review). An error is never priced.
   const answer = await run();
-  const units = sellableUnits(cls, answer);
+  const units = sellableUnits(cls, answer, tool);
   if (!units) return answer;
   if (!TEST_MODE && take(pseudonym(ctx?.ip ?? 'unknown'))) return answer;
   if (!ready || !wrap) return unavailable();

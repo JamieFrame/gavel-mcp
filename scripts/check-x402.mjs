@@ -14,6 +14,8 @@ assert.strictEqual(sellableUnits('history', series('own', 'attributed', 'free_at
 assert.strictEqual(sellableUnits('history', series('free_attributed_only', 'unknown_terms')), 0, 'none sellable: free');
 assert.strictEqual(sellableUnits('snapshot', text({ licence: { status: 'own' } })), 1);
 assert.strictEqual(sellableUnits('snapshot', text({ venues: [] })), 0, 'no licence carried: not sellable (strict)');
+assert.strictEqual(sellableUnits('snapshot', text({ instruments: [] }), 'get_corporate_instruments', { get_corporate_instruments: true }), 1, 'no licence block, but the tool rests on sellable sources');
+assert.strictEqual(sellableUnits('snapshot', text({ venues: [] }), 'compare_venues', { compare_venues: false }), 0, 'the tool rests on unsellable sources');
 assert.strictEqual(sellableUnits('snapshot', { ...text({ licence: { status: 'own' } }), isError: true }), 0, 'an error is never priced');
 
 const r = scrubResult({ structuredContent: { x402Version: 2, error: 'Facilitator verify failed (500): cdp text', accepts: [] }, content: [{ type: 'text', text: '' }],
