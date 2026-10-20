@@ -66,13 +66,19 @@ let ready = false;
 // list's mcp_tool_providers and the provider register): an answer without a licence block is sold
 // only when its tool is in this set (operator, LG1 Gate 2: the same rules on both doors).
 let sellableTools: Record<string, boolean> = {};
-async function loadTerms(): Promise<void> {
+async function loadTerms(): Promise<boolean> {
   const base = (process.env.GAVEL_API_INTERNAL_URL || 'http://127.0.0.1:4012').replace(/\/$/, '');
   try {
     const r = await fetch(`${base}/internal/x402-terms`, { headers: { 'X-Internal-Secret': process.env.INTERNAL_API_SECRET || '' }, signal: AbortSignal.timeout(5_000) });
-    if (r.ok) sellableTools = ((await r.json()) as { tools?: Record<string, boolean> }).tools ?? {};
-    else logger.error({ status: r.status }, '[x402] /internal/x402-terms refused; tools without a licence block are not sold');
+    if (r.ok) { sellableTools = ((await r.json()) as { tools?: Record<string, boolean> }).tools ?? {}; return true; }
+    logger.error({ status: r.status }, '[x402] /internal/x402-terms refused; tools without a licence block are not sold');
   } catch (e) { logger.error({ err: String(e) }, '[x402] /internal/x402-terms failed; tools without a licence block are not sold'); }
+  return false;
+}
+// Loaded at start and hourly; after a failure, tried again each minute until it answers (HX1).
+async function keepTerms(): Promise<void> {
+  const ok = await loadTerms();
+  setTimeout(() => { void keepTerms(); }, ok ? 3_600_000 : 60_000).unref?.();
 }
 
 function fill(t?: string): string { return String(t || '').replace(/\{allowance\}/g, String(PL?.allowance_per_day ?? '')); }
@@ -96,8 +102,7 @@ if (ON) {
         .catch((e: unknown) => { logger.error({ err: String(e) }, '[x402] facilitator not ready; retry in 300 s'); setTimeout(init, 300_000).unref?.(); });
     };
     init();
-    void loadTerms();
-    setInterval(() => { void loadTerms(); }, 3_600_000).unref?.();
+    void keepTerms();
   } catch (e) {
     logger.error({ err: String(e) }, '[x402] NOT switched on');
     PL = null;
