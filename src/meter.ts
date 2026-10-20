@@ -95,12 +95,12 @@ export function meterToolCall(tool: string, args: unknown, result: unknown): voi
     let body: unknown = null;
     try { body = text ? JSON.parse(text) : null; } catch { body = null; }
     if (body && typeof body === 'object' && 'error' in (body as object)) return; // an error answer is not counted
-    const ctx = tryGetContext() as (ReturnType<typeof tryGetContext> & { userAgent?: string | null; viaProxy?: boolean; x402Test?: boolean }) | null;
+    const ctx = tryGetContext() as (ReturnType<typeof tryGetContext> & { userAgent?: string | null; viaProxy?: boolean; x402Test?: boolean; keyResolved?: boolean }) | null;
     const internal = !!ctx && ctx.viaProxy === false;
     // MN1 Phase 3: a paid call names its payer (x402 settlement in _meta); a test payment is ours.
     const settled = (result as { _meta?: Record<string, { success?: boolean; payer?: string }> } | null)?._meta?.['x402/payment-response'];
     const payer = settled?.success !== false && /^0x[0-9a-fA-F]{40}$/.test(String(settled?.payer || '')) ? String(settled!.payer).toLowerCase() : null;
-    const caller_class: Rec['caller_class'] = ctx?.bearerToken ? 'key' : payer && ctx?.x402Test ? 'internal' : payer ? 'payer' : internal ? 'internal' : 'anon';
+    const caller_class: Rec['caller_class'] = ctx?.bearerToken && ctx.keyResolved ? 'key' : payer && ctx?.x402Test ? 'internal' : payer ? 'payer' : internal ? 'internal' : 'anon';
     const caller = caller_class === 'key' ? `key:${createHash('sha256').update(ctx!.bearerToken!).digest('hex').slice(0, 16)}`
       : payer && ctx?.x402Test ? `x402-test:${payer}` : payer ? `payer:${payer}`
       : caller_class === 'internal' ? 'internal' : pseudonym(ctx?.ip ?? 'unknown');

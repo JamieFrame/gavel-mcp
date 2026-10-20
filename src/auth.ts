@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { requestContext } from './context.js';
-import { resolveTier } from './tiers.js';
+import { resolveTier, isResolvedKey } from './tiers.js';
 import { logger } from './logger.js';
 
 /**
@@ -19,6 +19,7 @@ import { logger } from './logger.js';
  * request can never fail here because tier lookup was unavailable.
  */
 // MN1 Gate 3: in X402_MODE=test only the test agent is priced (src/x402.ts).
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const TEST_KEY = process.env.X402_MODE === 'test' ? String(process.env.X402_TEST_KEY || '') : '';
 function isTestAgent(v: string | undefined): boolean {
   if (!TEST_KEY || TEST_KEY.length < 32 || !v) return false;
@@ -40,7 +41,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   // MN1 Phase 2: what the shadow meter needs (src/meter.ts); a request without X-Forwarded-For
   // reached this process directly on the host, i.e. our own harness or monitors.
   const ctx = { tier, ip, bearerToken, requestId,
-    userAgent: req.header('user-agent') || null, viaProxy: !!req.header('x-forwarded-for'),
+    // "Not via the proxy" means this machine: no X-Forwarded-For AND a loopback socket (HX1).
+    userAgent: req.header('user-agent') || null,
+    viaProxy: !!req.header('x-forwarded-for') || !LOOPBACK.has(String(req.socket.remoteAddress || '')),
+    keyResolved: isResolvedKey(bearerToken),
     x402Test: isTestAgent(req.header('x-x402-test')) };
 
   // Light access log on entry; the real per-tool log happens inside the tool

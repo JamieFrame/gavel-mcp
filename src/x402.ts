@@ -33,7 +33,7 @@ import type { CostClass } from './content/cost-classes.js';
 
 const require = createRequire(import.meta.url);
 
-type Ctx = { bearerToken?: string | null; viaProxy?: boolean; ip?: string; x402Test?: boolean } | null;
+type Ctx = { bearerToken?: string | null; keyResolved?: boolean; viaProxy?: boolean; ip?: string; x402Test?: boolean } | null;
 type Result = { content?: Array<{ type?: string; text?: string }>; isError?: boolean; structuredContent?: unknown; _meta?: Record<string, unknown> };
 type Run = () => Promise<Result>;
 
@@ -82,7 +82,7 @@ if (ON) {
 /** The price in USD of a priced call: the class's price x the sellable units, x2 for a dated as_known_on. */
 export function priceUsd(cls: string, args: Record<string, unknown>, units: number, list: PriceList | null = PL): number {
   const p = list?.classes?.[cls]?.price ?? 0;
-  const dated = /^\d{4}-\d{2}-\d{2}$/.test(String(args.as_known_on || ''));
+  const dated = /^\d{4}-\d{2}-\d{2}/.test(String(args.as_known_on || ''));   // as the REST door's asKnownOn
   return p * units * (dated ? (list?.as_known_on_multiplier ?? 2) : 1);
 }
 
@@ -115,7 +115,7 @@ export function scrubResult(r: Result): Result {
   try {
     const clean = (o: Record<string, unknown> | undefined): void => {
       if (!o || typeof o !== 'object') return;
-      if ('error' in o && !CODE.test(String(o.error)) && !/^Payment required/.test(String(o.error))) o.error = 'payment_not_accepted';
+      if ('error' in o && !CODE.test(String(o.error)) && String(o.error) !== 'Payment required to access this tool') o.error = 'payment_not_accepted';
       if ('errorReason' in o && !CODE.test(String(o.errorReason))) o.errorReason = 'settlement_failed';
       if ('errorMessage' in o) delete o.errorMessage;
     };
@@ -135,28 +135,23 @@ const unavailable = (): Result => ({ content: [{ type: 'text', text: JSON.string
 export async function x402Call(tool: string, cls: string | null, args: Record<string, unknown>, extra: unknown, run: Run): Promise<Result> {
   if (!PL || !cls || !PRICED.has(cls)) return run();
   const ctx = tryGetContext() as Ctx;
-  if (TEST_MODE) {
-    if (!ctx?.x402Test) return run();
-  } else {
-    if (ctx?.bearerToken || ctx?.viaProxy === false) return run();
-    const refund = take(pseudonym(ctx?.ip ?? 'unknown'));
-    if (refund) {
-      const r = await run().catch((e) => { refund(); throw e; });
-      if (r?.isError) refund();
-      return r;
-    }
-  }
-  if (!ready || !wrap) return unavailable();
-  // The answer first: it says what in it may be sold. Nothing sellable: it is served free.
+  if (TEST_MODE ? !ctx?.x402Test : (ctx?.keyResolved || ctx?.viaProxy === false)) return run();
+  // The answer first: it says what in it may be sold. Nothing sellable: served free, and it
+  // spends no allowance (HX1 review). An error is never priced.
   const answer = await run();
   const units = sellableUnits(cls, answer);
   if (!units) return answer;
+  if (!TEST_MODE && take(pseudonym(ctx?.ip ?? 'unknown'))) return answer;
+  if (!ready || !wrap) return unavailable();
   try {
     const accepts = await (server as { buildPaymentRequirements: (o: unknown) => Promise<unknown[]> }).buildPaymentRequirements({
       scheme: 'exact', network: PL.x402!.network, payTo: PL.x402!.pay_to, price: `$${priceUsd(cls, args, units).toFixed(4)}`,
     });
     const paid = wrap(server, { accepts, resource: { url: `mcp://tool/${tool}`, description: fill(PL.x402!.description) } });
-    return scrubResult(await paid(async () => answer)(args, extra));
+    const r = scrubResult(await paid(async () => answer)(args, extra));
+    // The library's own failure text ("Internal Server Error") becomes ours.
+    if (r?.isError && !r.structuredContent && /Internal Server Error/.test(r.content?.[0]?.text ?? '')) return unavailable();
+    return r;
   } catch (e) {
     logger.error({ tool, err: String(e) }, '[x402] paid call failed');
     return unavailable();

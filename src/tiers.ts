@@ -127,6 +127,15 @@ function pruneCache(now: number): void {
  * nothing today. Every failure is logged so a silent degradation to free is
  * visible rather than invisible.
  */
+// MN1 Phase 3 (HX1 review): which tokens the API resolved to an active key. An unknown or
+// revoked token still reads as 'free' (fail open), but only a resolved key is a keyed caller.
+const resolvedKeys = new Map<string, number>();
+export function isResolvedKey(token: string | null): boolean {
+  if (!token) return false;
+  const until = resolvedKeys.get(cacheKey(token));
+  return !!until && until > Date.now();
+}
+
 export async function resolveTier(token: string | null): Promise<Tier> {
   if (!token) return 'free';
 
@@ -168,6 +177,7 @@ export async function resolveTier(token: string | null): Promise<Tier> {
     }
 
     tierCache.set(key, { tier: body.tier, expiresAt: now + CACHE_TTL_MS });
+    if (body.reason === 'resolved') resolvedKeys.set(key, now + CACHE_TTL_MS);
     pruneCache(now);
     return body.tier;
   } catch (err) {
