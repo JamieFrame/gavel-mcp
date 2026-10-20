@@ -45,8 +45,19 @@ const CODE = /^[a-z0-9_]{1,64}$/;
 const MAX_CALLERS = 200_000;
 const UNAVAILABLE = 'Paid calls are unavailable just now. Try again later; the free allowance is unaffected.';
 
-type PriceList = { classes: Record<string, { price?: number }>; as_known_on_multiplier: number; allowance_per_day: number;
-  x402?: { network?: string; pay_to?: string; description?: string } };
+type PriceList = { version?: string; classes: Record<string, { price?: number }>; as_known_on_multiplier: number; allowance_per_day: number;
+  x402?: { network?: string; pay_to?: string; description?: string; asset_address?: string } };
+
+// A settled payment leaves a receipt in the API's x402_receipts (ingest 264), through its loopback
+// /internal/receipt; a refusal is logged in full so the receipt can be rebuilt.
+async function postReceipt(rec: Record<string, unknown>): Promise<void> {
+  const base = (process.env.GAVEL_API_INTERNAL_URL || 'http://127.0.0.1:4012').replace(/\/$/, '');
+  try {
+    const r = await fetch(`${base}/internal/receipt`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Internal-Secret': process.env.INTERNAL_API_SECRET || '' },
+      body: JSON.stringify(rec), signal: AbortSignal.timeout(10_000) });
+    if (!r.ok) logger.error({ status: r.status, receipt: rec }, '[x402-receipt] UNRECORDED');
+  } catch (e) { logger.error({ err: String(e), receipt: rec }, '[x402-receipt] UNRECORDED'); }
+}
 let PL: PriceList | null = null;
 let server: unknown = null;
 let wrap: ((rs: unknown, cfg: unknown) => (h: (a: Record<string, unknown>) => Promise<Result>) => (a: Record<string, unknown>, extra: unknown) => Promise<Result>) | null = null;
@@ -115,11 +126,23 @@ export function sellableUnits(cls: string, r: Result, tool = '', tools: Record<s
 }
 
 // ── the day's allowance per anonymous caller: taken on entry, refunded on failure ──
-let day = ''; let used = new Map<string, number>();
-function take(caller: string): (() => void) | null {
+let day = ''; let used = new Map<string, number>(); let per48 = new Map<string, number>();
+const PER_48 = 256;   // /64 callers per IPv6 /48 per day, as the REST door
+function slash48(ip: string): string | null {
+  const a = ip.replace(/^::ffff:/, '');
+  if (!a.includes(':')) return null;
+  let g: string[];
+  if (a.includes('::')) { const [h, t] = a.split('::'); const hh = h ? h.split(':') : []; const tt = t ? t.split(':') : []; g = [...hh, ...Array(Math.max(0, 8 - hh.length - tt.length)).fill('0'), ...tt]; } else g = a.split(':');
+  return g.slice(0, 3).map((x) => (parseInt(x || '0', 16) || 0).toString(16)).join(':');
+}
+function take(caller: string, ip = ''): (() => void) | null {
   const d = new Date().toISOString().slice(0, 10);
-  if (day !== d) { day = d; used = new Map(); }
+  if (day !== d) { day = d; used = new Map(); per48 = new Map(); }
   if (!used.has(caller) && used.size >= MAX_CALLERS) return null;
+  if (!used.has(caller)) {
+    const net = slash48(ip);
+    if (net) { const n = per48.get(net) ?? 0; if (n >= PER_48) return null; per48.set(net, n + 1); }
+  }
   const n = used.get(caller) ?? 0;
   if (n >= (PL?.allowance_per_day ?? 0)) return null;
   used.set(caller, n + 1);
@@ -157,7 +180,7 @@ export async function x402Call(tool: string, cls: string | null, args: Record<st
   const answer = await run();
   const units = sellableUnits(cls, answer, tool);
   if (!units) return answer;
-  if (!TEST_MODE && take(pseudonym(ctx?.ip ?? 'unknown'))) return answer;
+  if (!TEST_MODE && take(pseudonym(ctx?.ip ?? 'unknown'), ctx?.ip ?? '')) return answer;
   if (!ready || !wrap) return unavailable();
   try {
     const accepts = await (server as { buildPaymentRequirements: (o: unknown) => Promise<unknown[]> }).buildPaymentRequirements({
@@ -165,6 +188,11 @@ export async function x402Call(tool: string, cls: string | null, args: Record<st
     });
     const paid = wrap(server, { accepts, resource: { url: `mcp://tool/${tool}`, description: fill(PL.x402!.description) } });
     const r = scrubResult(await paid(async () => answer)(args, extra));
+    const s = r?._meta?.['x402/payment-response'] as { success?: boolean; payer?: string; transaction?: string; network?: string } | undefined;
+    if (s?.success !== false && s?.transaction && s?.payer) {
+      void postReceipt({ item: tool, network: s.network || PL.x402!.network, asset: PL.x402!.asset_address, pay_to: PL.x402!.pay_to, payer: s.payer,
+        amount_units: String(Math.round(priceUsd(cls, args, units) * 1e6)), units, price_list_version: PL.version, transaction: s.transaction, test: !!ctx?.x402Test });
+    }
     // The library's own failure text ("Internal Server Error") becomes ours.
     if (r?.isError && !r.structuredContent && /Internal Server Error/.test(r.content?.[0]?.text ?? '')) return unavailable();
     return r;
