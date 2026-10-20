@@ -28,7 +28,8 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tryGetContext } from './context.js';
 import { logger } from './logger.js';
-import { pseudonym } from './meter.js';
+import { pseudonym, unitsOf } from './meter.js';
+import type { CostClass } from './content/cost-classes.js';
 
 const require = createRequire(import.meta.url);
 
@@ -78,13 +79,23 @@ if (ON) {
   }
 }
 
-/** The price in USD of a priced call: the class's price, x units, x2 for a dated as_known_on. */
-export function priceUsd(cls: string, args: Record<string, unknown>, list: PriceList | null = PL): number {
+/** The price in USD of a priced call: the class's price x the sellable units, x2 for a dated as_known_on. */
+export function priceUsd(cls: string, args: Record<string, unknown>, units: number, list: PriceList | null = PL): number {
   const p = list?.classes?.[cls]?.price ?? 0;
-  const ids = Array.isArray(args.ids) ? new Set(args.ids.map(String)).size : 0;
-  const units = cls === 'history' && ids > 1 ? ids : 1;
   const dated = /^\d{4}-\d{2}-\d{2}$/.test(String(args.as_known_on || ''));
   return p * units * (dated ? (list?.as_known_on_multiplier ?? 2) : 1);
+}
+
+/**
+ * Only what may be sold is priced (MN1 G0-2, G1-6; LG1 G0-L15): the sellable units of the
+ * answer itself, from the licences it carries (src/meter.ts unitsOf). An answer that carries
+ * no licence is not sellable (strict, as the REST door's credit tree).
+ */
+export function sellableUnits(cls: string, r: Result): number {
+  if (!r || r.isError) return 0;
+  let body: unknown = null;
+  try { body = JSON.parse(r.content?.find((c) => c.type === 'text')?.text ?? 'null'); } catch { return 0; }
+  return unitsOf(cls as CostClass, body).sellable ?? 0;
 }
 
 // ── the day's allowance per anonymous caller: taken on entry, refunded on failure ──
@@ -136,12 +147,16 @@ export async function x402Call(tool: string, cls: string | null, args: Record<st
     }
   }
   if (!ready || !wrap) return unavailable();
+  // The answer first: it says what in it may be sold. Nothing sellable: it is served free.
+  const answer = await run();
+  const units = sellableUnits(cls, answer);
+  if (!units) return answer;
   try {
     const accepts = await (server as { buildPaymentRequirements: (o: unknown) => Promise<unknown[]> }).buildPaymentRequirements({
-      scheme: 'exact', network: PL.x402!.network, payTo: PL.x402!.pay_to, price: `$${priceUsd(cls, args).toFixed(4)}`,
+      scheme: 'exact', network: PL.x402!.network, payTo: PL.x402!.pay_to, price: `$${priceUsd(cls, args, units).toFixed(4)}`,
     });
     const paid = wrap(server, { accepts, resource: { url: `mcp://tool/${tool}`, description: fill(PL.x402!.description) } });
-    return scrubResult(await paid(async () => run())(args, extra));
+    return scrubResult(await paid(async () => answer)(args, extra));
   } catch (e) {
     logger.error({ tool, err: String(e) }, '[x402] paid call failed');
     return unavailable();

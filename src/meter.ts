@@ -72,7 +72,7 @@ export function classOf(tool: string, args: Record<string, unknown>): CostClass 
 // Units from the answer: a series answer counts its series and their licences; any other
 // priced answer is one unit, its sellability left to the price list's tool providers
 // (units_sellable null) unless the answer carries its own licence.
-function unitsOf(cls: CostClass, body: unknown): { list: number; sellable: number | null } {
+export function unitsOf(cls: CostClass, body: unknown): { list: number; sellable: number | null } {
   if (cls === 'catalogue' || cls === 'reading') return { list: 0, sellable: 0 };
   const b = body as { series?: Array<{ error?: unknown; licence?: { status?: string } }>; licence?: { status?: string } } | null;
   if (Array.isArray(b?.series) && b!.series.some((s) => s && 'licence' in s)) {
