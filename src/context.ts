@@ -13,6 +13,8 @@ export interface RequestContext {
   /** MN1 Phase 2 (the shadow meter): the caller's User-Agent, and whether it came through nginx. */
   userAgent?: string | null;
   viaProxy?: boolean;
+  /** MN1 Gate 3: the request carries X-X402-Test equal to X402_TEST_KEY (test mode only). */
+  x402Test?: boolean;
 }
 
 export const requestContext = new AsyncLocalStorage<RequestContext>();
