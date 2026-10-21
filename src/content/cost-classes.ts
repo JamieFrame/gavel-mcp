@@ -41,6 +41,7 @@ export const COST_CLASS: Readonly<Record<string, CostClass>> = {
   get_market_flows: 'snapshot',
   get_corporate_instruments: 'snapshot',
   get_fund_holdings: 'snapshot',          // BH1 Phase 1 (class to confirm with MN1)
+  get_balance_sheet: 'snapshot',          // BH1 Phase 4 (class to confirm with MN1)
   get_desk_rates: 'snapshot',
   get_debt_by_collateral: 'snapshot',
   get_events: 'reading',

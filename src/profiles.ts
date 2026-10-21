@@ -244,6 +244,8 @@ const OBSERVATORY_TOOLS = [
   'get_corporate_instruments',
   // BH1 Phase 1 (2026-10-18) — the bitcoin spot funds state they hold.
   'get_fund_holdings',
+  // BH1 Phase 4 (2026-10-21) — the balance sheet of the mined bitcoin.
+  'get_balance_sheet',
   'get_desk_rates',
   'get_debt_by_collateral',
   // EV1 Phase 2 (2026-10-15) — credit-market events, free.
