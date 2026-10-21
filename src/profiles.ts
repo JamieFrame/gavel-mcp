@@ -162,6 +162,11 @@ const OBSERVATORY_INSTRUCTIONS = [
   `What this server covers, and how much of it, is counted from the data when`,
   `asked: call get_guide. An argument a tool does not take is refused by name,`,
   `never ignored, and a failure answers as { error: { code, message, retryable } }.`,
+  ``,
+  // LG1 Gate 3: the Terms of Use 3.3 give machines the documents' addresses here.
+  `Use of this server is governed by the Terms of Use, the Data Licence and, for`,
+  `paid calls, the Terms of Sale, published with the price list at`,
+  `https://www.bitcoincreditstack.com/legal (terms, licence, terms-of-sale, pricing).`,
 ].join('\n');
 
 /** The Gavel server's instructions — unchanged from copy pack §2.2, plus the
@@ -244,6 +249,8 @@ const OBSERVATORY_TOOLS = [
   'get_corporate_instruments',
   // BH1 Phase 1 (2026-10-18) — the bitcoin spot funds state they hold.
   'get_fund_holdings',
+  // BH1 Phase 4 (2026-10-21) — the balance sheet of the mined bitcoin.
+  'get_balance_sheet',
   'get_desk_rates',
   'get_debt_by_collateral',
   // EV1 Phase 2 (2026-10-15) — credit-market events, free.

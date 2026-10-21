@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { meterToolCall } from '../meter.js';
+import { meterToolCall, classOf } from '../meter.js';
+import { x402Call } from '../x402.js';
 import { questionsForTool } from '../content/stack-questions.js';
 
 import { registerListOnchainTool } from './discovery/list-onchain.js';
@@ -150,7 +151,14 @@ Standard questions this tool answers (get_guide with question): ${sq.join(', ')}
             cfg = { ...cfg, inputSchema: strictInput(exposedName, shape) };
             const wrapped = wrapHandler(handler as (...a: any[]) => unknown, (m) => applyRenames(m, profile.renames));
             // MN1 Phase 2: every observatory call is counted once, in the shadow meter (src/meter.ts).
-            h = async (...a: unknown[]) => { const r = await wrapped(...a); meterToolCall(exposedName, a[0], r); return r; };
+            // MN1 Phase 3: a priced call past the free allowance is paid by x402 (src/x402.ts); off unless X402_MODE.
+            h = async (...a: unknown[]) => {
+              const args = (a[0] && typeof a[0] === 'object' ? a[0] : {}) as Record<string, unknown>;
+              const r = await x402Call(exposedName, classOf(exposedName, args), args, a[1],
+                async () => (await wrapped(...a)) as Awaited<ReturnType<typeof x402Call>>);
+              meterToolCall(exposedName, a[0], r);
+              return r;
+            };
           }
           return (target as unknown as {
             registerTool: (n: string, c: unknown, h: unknown) => unknown;

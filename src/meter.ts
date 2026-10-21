@@ -24,17 +24,27 @@ const FLUSH_MS = 60_000;
 const SELLABLE = new Set(['own', 'attributed']);
 
 type Rec = {
-  day: string; item: string; cost_class: CostClass; as_known_on: boolean; caller_class: 'key' | 'anon' | 'internal';
+  day: string; item: string; cost_class: CostClass; as_known_on: boolean; caller_class: 'key' | 'anon' | 'internal' | 'payer';
   caller: string; agent: string; indicator_id?: string; calls: number; bytes: number; units_list: number; units_sellable: number | null;
 };
 let pending = new Map<string, Rec>();
 
 let dayKey: { day: string; key: Buffer } = { day: '', key: Buffer.alloc(0) };
-function pseudonym(ip: string): string {
+/** The /64 (or the IPv4 address), with '::' expanded first, as gavel-indexer api-gate.js anonKeyForIp. */
+function netOf(ip: string): string {
+  const a = ip.replace(/^::ffff:/, '');
+  if (!a.includes(':')) return a;
+  let g: string[];
+  if (a.includes('::')) {
+    const [h, t] = a.split('::'); const hh = h ? h.split(':') : []; const tt = t ? t.split(':') : [];
+    g = [...hh, ...Array(Math.max(0, 8 - hh.length - tt.length)).fill('0'), ...tt];
+  } else g = a.split(':');
+  return g.slice(0, 4).map((x) => (parseInt(x || '0', 16) || 0).toString(16)).join(':') + '::/64';
+}
+export function pseudonym(ip: string): string {
   const day = new Date().toISOString().slice(0, 10);
   if (dayKey.day !== day) dayKey = { day, key: randomBytes(32) }; // never written anywhere
-  let net = ip.replace(/^::ffff:/, '');
-  if (net.includes(':')) net = net.split(':').slice(0, 4).join(':'); // IPv6 /64
+  const net = netOf(ip);
   return `anon:${createHmac('sha256', dayKey.key).update(net).digest('hex').slice(0, 16)}`;
 }
 
@@ -50,7 +60,7 @@ function agentOf(ua: string | null | undefined): string {
 }
 
 // The class a call actually falls in: an argument that asks for depth moves it up (MR1 §6).
-function classOf(tool: string, args: Record<string, unknown>): CostClass | null {
+export function classOf(tool: string, args: Record<string, unknown>): CostClass | null {
   const base = COST_CLASS[tool];
   if (!base) return null;
   if (tool === 'get_indicator' && args.include_history) return 'history';
@@ -62,7 +72,7 @@ function classOf(tool: string, args: Record<string, unknown>): CostClass | null 
 // Units from the answer: a series answer counts its series and their licences; any other
 // priced answer is one unit, its sellability left to the price list's tool providers
 // (units_sellable null) unless the answer carries its own licence.
-function unitsOf(cls: CostClass, body: unknown): { list: number; sellable: number | null } {
+export function unitsOf(cls: CostClass, body: unknown): { list: number; sellable: number | null } {
   if (cls === 'catalogue' || cls === 'reading') return { list: 0, sellable: 0 };
   const b = body as { series?: Array<{ error?: unknown; licence?: { status?: string } }>; licence?: { status?: string } } | null;
   if (Array.isArray(b?.series) && b!.series.some((s) => s && 'licence' in s)) {
@@ -85,10 +95,14 @@ export function meterToolCall(tool: string, args: unknown, result: unknown): voi
     let body: unknown = null;
     try { body = text ? JSON.parse(text) : null; } catch { body = null; }
     if (body && typeof body === 'object' && 'error' in (body as object)) return; // an error answer is not counted
-    const ctx = tryGetContext() as (ReturnType<typeof tryGetContext> & { userAgent?: string | null; viaProxy?: boolean }) | null;
+    const ctx = tryGetContext() as (ReturnType<typeof tryGetContext> & { userAgent?: string | null; viaProxy?: boolean; x402Test?: boolean; keyResolved?: boolean }) | null;
     const internal = !!ctx && ctx.viaProxy === false;
-    const caller_class: Rec['caller_class'] = ctx?.bearerToken ? 'key' : internal ? 'internal' : 'anon';
+    // MN1 Phase 3: a paid call names its payer (x402 settlement in _meta); a test payment is ours.
+    const settled = (result as { _meta?: Record<string, { success?: boolean; payer?: string }> } | null)?._meta?.['x402/payment-response'];
+    const payer = settled?.success !== false && /^0x[0-9a-fA-F]{40}$/.test(String(settled?.payer || '')) ? String(settled!.payer).toLowerCase() : null;
+    const caller_class: Rec['caller_class'] = ctx?.bearerToken && ctx.keyResolved ? 'key' : payer && ctx?.x402Test ? 'internal' : payer ? 'payer' : internal ? 'internal' : 'anon';
     const caller = caller_class === 'key' ? `key:${createHash('sha256').update(ctx!.bearerToken!).digest('hex').slice(0, 16)}`
+      : payer && ctx?.x402Test ? `x402-test:${payer}` : payer ? `payer:${payer}`
       : caller_class === 'internal' ? 'internal' : pseudonym(ctx?.ip ?? 'unknown');
     const u = unitsOf(cls, body);
     const rec: Rec = {

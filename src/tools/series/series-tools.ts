@@ -10,6 +10,7 @@ import { requireTier } from '../../tiers.js';
  *   get_series                 -> GET /v1/series/values                (history; as-known-on with as_known_on)
  *   get_corporate_instruments  -> GET /v1/market/corporate/instruments (snapshot)
  *   get_fund_holdings          -> GET /v1/market/holders/funds          (snapshot; BH1 Phase 1)
+ *   get_balance_sheet          -> GET /v1/market/holders/balance-sheet  (snapshot; BH1 Phase 4)
  *   get_desk_rates             -> GET /v1/market/cefi-rates            (snapshot)
  *   get_debt_by_collateral     -> GET /v1/market/debt-by-collateral    (snapshot)
  *   get_events                 -> GET /v1/market/events                (reading; EV1 Phase 2, free)
@@ -234,6 +235,35 @@ export function registerSeriesTools(server: McpServer): void {
     async () => {
       requireTier('free');
       return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/holders/funds')), disclaimer: DISCLAIMER });
+    }
+  );
+
+  // BH1 Phase 4: the balance sheet of the mined bitcoin. Description wording: operator approval (Phase 4 Appendix A).
+  server.registerTool(
+    'get_balance_sheet',
+    {
+      title: 'Balance sheet of the mined bitcoin',
+      description:
+        `Who holds the mined bitcoin, as each holder states it, and how much of it is pledged, wrapped or lent out. ` +
+        `One line per holder (companies, spot funds, wrapped-token reserves, custodians, exchanges, governments), each ` +
+        `with its figure or a range, its date, its source and a grade (A stated units; B units by a stated rule; C the ` +
+        `holder's own unchecked statement; D inferred outside primary sources), or an absence with its reason, never ` +
+        `zero. A coin is counted once, at its owner: what a custodian holds for funds or wrapped tokens is taken out of ` +
+        `its line, and fund shares or coins held for a victim are listed, not added. Three totals (holders that disclose; ` +
+        `with custody for owners who do not; with governments) and the remainder not attributed to a disclosed holder, ` +
+        `described by the age of its coins and the amount each address holds, never by who holds it. Pledged, wrapped and ` +
+        `lent-out bitcoin is a second view, never added. Governments with a figure carry their debt beside GDP and beside ` +
+        `the dollar value of that bitcoin. Nothing is ranked. Pass as_of (YYYY-MM-DD) for a written date, or quarter ` +
+        `(YYYY-Qn) for a quarter's last day, which is fixed once that quarter's filings are in. Returns the route's ` +
+        `payload as served.`,
+      inputSchema: {
+        as_of: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('A date the sheet was written (YYYY-MM-DD); the latest by default'),
+        quarter: z.string().regex(/^\d{4}-Q[1-4]$/).optional().describe("A quarter (YYYY-Qn): the sheet of that quarter's last day"),
+      },
+    },
+    async ({ as_of, quarter }) => {
+      requireTier('free');
+      return text({ ...(await upstreamGet<Record<string, unknown>>('/v1/market/holders/balance-sheet', { query: { as_of, quarter } })), disclaimer: DISCLAIMER });
     }
   );
 
