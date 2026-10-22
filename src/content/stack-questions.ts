@@ -355,7 +355,7 @@ export const QUESTIONS: readonly StackQuestion[] = [
     },
     "page": "/explore",
     "meaning": "The chain series built from every block on Aletheia's node: supply by age, holders, spending, realised value, MVRV, SOPR and more, each with unit, span and licence.",
-    "limits": "Values priced before 2020-07-13 rest on CoinGecko's daily price: free, attributed use only."
+    "limits": "Values priced before 2020-07-13 rest on the legacy daily price (CoinGecko, CryptoCompare and Binance backfills): free, attributed use only."
   },
   {
     "id": "SQ-Ch2",
@@ -377,7 +377,7 @@ export const QUESTIONS: readonly StackQuestion[] = [
     },
     "page": "/indicators/costbasis-near-liquidation",
     "meaning": "Supply whose cost basis lies in the liquidation bands, beside the debt the map places there.",
-    "limits": "The mark is a debt-weighted mean of the venues' own marks, not a price any venue liquidates against. Partly priced from CoinGecko before 2020-07-13."
+    "limits": "The mark is a debt-weighted mean of the venues' own marks, not a price any venue liquidates against. Partly priced from the legacy daily price (CoinGecko, CryptoCompare and Binance backfills) before 2020-07-13."
   },
   {
     "id": "SQ-Ch4",

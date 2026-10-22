@@ -103,7 +103,7 @@ export function registerSeriesTools(server: McpServer): void {
         `collateral are never drawn on one panel; each refusal names its reason. The plan carries the ` +
         `/explore link that draws the same chart on the site, and a text alternative per panel. plan: 'only' ` +
         `returns the plan without the values; plan: false the values without the plan.\n\n` +
-        `Values resting on CoinGecko prices carry coingecko_share or price_today, and the answer's attribution ` +
+        `Values resting on the legacy daily price before 2020-07-13 (CoinGecko, CryptoCompare and Binance backfills) carry coingecko_share or price_today, and the answer's attribution ` +
         `names every source to credit: show them with the values. This tool returns data; it does not advise, ` +
         `forecast or characterise the market.`,
       inputSchema: {

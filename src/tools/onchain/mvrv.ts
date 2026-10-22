@@ -28,7 +28,15 @@ interface IndicatorsLatest {
   realised_price_usd?: string | number;
   spot_price_usd?: string | number;
   utxos_included?: string | number;
+  attribution?: unknown;
+  licence?: unknown;
 }
+
+// HX1 #13 (2026-10-22): on the Stack the legacy price before 2020-07-13 is named for what it is,
+// three backfills (CoinGecko, CryptoCompare, Binance; migration 030), and the API's licence block
+// is handed on. The Gavel profile's answer is left exactly as it was (its surfaces are not changed here).
+const STACK = (): boolean => activeProfile().id === 'observatory';
+const LEGACY_DESC = 'the legacy daily price, from CoinGecko, CryptoCompare and Binance backfills';
 
 const num = (v: unknown): number | null =>
   v === undefined || v === null || v === '' ? null : Number(v);
@@ -50,14 +58,17 @@ export function registerMvrvTool(server: McpServer): void {
         `Computed nightly from Aletheia's own full node and UTXO set. Since ` +
         `2026-10-05 the current price and the creation prices from 2020-07-13 are ` +
         `Aletheia's own on-chain BTC fixing; coins created before 2020-07-13 are ` +
-        `valued at CoinGecko's daily price (` +
-        `price): the supply and each coin's age are Aletheia's, the prices are ` +
-        `not. ` +
+        (STACK()
+          ? `valued at ${LEGACY_DESC}: the supply and each coin's age are Aletheia's, those prices are ` +
+            `not, so the ratio is free, attributed use only (its licence block says so). `
+          : `valued at CoinGecko's daily price (` +
+            `price): the supply and each coin's age are Aletheia's, the prices are ` +
+            `not. `) +
         `'mvrv_z_score' is returned alongside it: the same numerator measured ` +
         `in standard deviations of the historical market-cap series.\n\n` +
         `Returns: { value, mvrv_z_score, as_of, inputs: { market_cap_usd, ` +
         `realised_cap_usd, realised_price_usd, spot_price_usd }, ` +
-        `methodology, attribution, disclaimer }. 'attribution' carries the ` +
+        `methodology, attribution, ${STACK() ? 'licence, ' : ''}disclaimer }. 'attribution' carries the ` +
         `source credit for third-party figures; show it with them.`,
       inputSchema: {
         timestamp: z
@@ -92,10 +103,14 @@ export function registerMvrvTool(server: McpServer): void {
           'the BTC/USD price on the day it was created. The UTXO set and supply ' +
           'come from Aletheia’s own Bitcoin full node, computed nightly; the ' +
           'BTC/USD prices (spot_price_usd, and the daily prices realised cap is ' +
-          'valued at) are Aletheia’s on-chain BTC fixing from 2020-07-13 (the current price included), and CoinGecko’s daily price for coins created before.',
-        // BCS remediation P4: the upstream's source credit (CoinGecko for the
-        // BTC/USD price) travels with the figures built on it.
-        attribution: (data as { attribution?: unknown }).attribution ?? null,
+          'valued at) are Aletheia’s on-chain BTC fixing from 2020-07-13 (the current price included), and ' +
+          (STACK() ? `${LEGACY_DESC} for coins created before.` : 'CoinGecko’s daily price for coins created before.'),
+        // BCS remediation P4: the upstream's source credit travels with the figures built on it.
+        // The Gavel profile keeps the one credit it carried (CoinGecko).
+        attribution: STACK()
+          ? (data.attribution ?? null)
+          : (Array.isArray(data.attribution) ? data.attribution.filter((a) => (a as { provider?: string })?.provider === 'CoinGecko') : data.attribution ?? null),
+        ...(STACK() && data.licence ? { licence: data.licence } : {}),
         // MR1 H-09: on the Stack the disclaimer names no protocol (OB1 §0.1).
         disclaimer:
           activeProfile().id === 'observatory'

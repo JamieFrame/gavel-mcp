@@ -34,7 +34,7 @@ export function registerChainSeriesTools(server: McpServer): void {
         `transactions, subsidy, fees, difficulty, hashrate, hashprice), the on-chain BTC/ETH/TRX price fixings ` +
         `and staked-ether contract rates (price.*), and the Federal Reserve H.10 exchange rates (fx.*).\n\n` +
         `Returns: { count, series: [{ id, dataset, unit, kinds, first, last, latest_vintage, licence }] }. ` +
-        `licence 'free_attributed_only' marks series with values priced from CoinGecko before 2020-07-13.`,
+        `licence 'free_attributed_only' marks series with values priced before 2020-07-13 from the legacy daily price (CoinGecko, CryptoCompare and Binance backfills).`,
       inputSchema: {},
     },
     async () => {
@@ -54,7 +54,7 @@ export function registerChainSeriesTools(server: McpServer): void {
         `past answer can be reproduced.\n\n` +
         `Chain series reach back to 2009 and are day-granular. Priced values (realised value, MVRV, SOPR, ` +
         `hashprice in USD) value each coin at the price of the day it was created: Aletheia's on-chain fixing ` +
-        `from 2020-07-13, CoinGecko's daily price before. Such points carry coingecko_share and price_today, ` +
+        `from 2020-07-13, the legacy daily price (CoinGecko, CryptoCompare and Binance backfills) before. Such points carry coingecko_share and price_today, ` +
         `and the response's licence block carries the attribution: show it with them. This tool returns data; ` +
         `it does not advise, forecast, or characterise the market.`,
       inputSchema: {
@@ -82,8 +82,8 @@ export function registerChainSeriesTools(server: McpServer): void {
         `Returns Bitcoin's supply alive at the end of one UTC day, grouped by the BTC price on the day each ` +
         `coin was created, in logarithmic price buckets of a chosen width (ratio, default 1.02: each bucket ` +
         `spans 2%). Built from Aletheia's own node, block by block; day-granular.\n\n` +
-        `Creation prices are Aletheia's on-chain fixing from 2020-07-13 and CoinGecko's daily price before; ` +
-        `each bucket states how much of it is CoinGecko-priced (coingecko_btc), and the licence block carries ` +
+        `Creation prices are Aletheia's on-chain fixing from 2020-07-13 and the legacy daily price (CoinGecko, CryptoCompare and Binance backfills) before; ` +
+        `each bucket states how much of it is priced from the legacy price (coingecko_btc), and the licence block carries ` +
         `the attribution. Coins created before 2010-07-17 have no price and form one bucket at 0. This tool ` +
         `returns data; it does not advise, forecast, or characterise the market.\n\n` +
         `Returns: { date, ratio, unit, buckets: [{ low_usd, high_usd, btc, coingecko_btc }], limitation, licence }.`,
