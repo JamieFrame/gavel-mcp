@@ -50,7 +50,7 @@ export const TEST_MODE = MODE === 'test';
 const PRICED = new Set(['snapshot', 'history']);
 const CODE = /^[a-z0-9_]{1,64}$/;
 const MAX_CALLERS = 200_000;
-const ACCOUNT_REQUIRED = 'Paid access is moving to identified professional accounts. Until account opening is available, a call past the free allowance is not sold and no payment is taken.';
+const ACCOUNT_REQUIRED = 'Paid access is moving to identified professional accounts. Calls past the free allowance are refused until account opening; no payment is taken.';
 /** Whether settlement waits for an identified account (LG2 O-1): on unless X402_REQUIRE_ACCOUNT=off. */
 export function requiresAccount(env: Record<string, string | undefined> = process.env): boolean {
   return String(env.X402_REQUIRE_ACCOUNT ?? '').trim().toLowerCase() !== 'off';
