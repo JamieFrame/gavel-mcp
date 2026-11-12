@@ -22,6 +22,13 @@
 // own (gavel-indexer lib/x402.js).
 // What the facilitator says never reaches the caller: only a code (lower case, digits,
 // underscores) survives in a payment result.
+//
+// LG2 Phase 2 (O-1, counsel C6, 2026-11-12): paid access is moving to identified accounts
+// (aletheia-docs runbooks/IN_PROGRESS/runbook_LG2_stack_identified_paid_access_v1.md LG2-D1).
+// Until the account gate is built, X402_REQUIRE_ACCOUNT (on unless set to 'off') closes
+// settlement, as on the REST door: a priced call with sellable units past the allowance
+// answers an isError result with code `account_required`, offers no payment, and neither
+// @x402/mcp nor the facilitator is called. Test mode is not affected.
 // ============================================================================
 
 import { readFileSync } from 'node:fs';
@@ -43,10 +50,16 @@ export const TEST_MODE = MODE === 'test';
 const PRICED = new Set(['snapshot', 'history']);
 const CODE = /^[a-z0-9_]{1,64}$/;
 const MAX_CALLERS = 200_000;
+const ACCOUNT_REQUIRED = 'Paid access is moving to identified professional accounts. Until account opening is available, a call past the free allowance is not sold and no payment is taken.';
+/** Whether settlement waits for an identified account (LG2 O-1): on unless X402_REQUIRE_ACCOUNT=off. */
+export function requiresAccount(env: Record<string, string | undefined> = process.env): boolean {
+  return String(env.X402_REQUIRE_ACCOUNT ?? '').trim().toLowerCase() !== 'off';
+}
+const REQUIRE_ACCOUNT = !TEST_MODE && requiresAccount();
 const UNAVAILABLE = 'Paid calls are unavailable just now. Try again later; the free allowance is unaffected.';
 
 type PriceList = { version?: string; classes: Record<string, { price?: number }>; as_known_on_multiplier: number; allowance_per_day: number;
-  x402?: { network?: string; pay_to?: string; description?: string; asset_address?: string } };
+  x402?: { network?: string; pay_to?: string; description?: string; asset_address?: string; legal_url?: string; account_required_message?: string } };
 
 // A settled payment leaves a receipt in the API's x402_receipts (ingest 264), through its loopback
 // /internal/receipt; a refusal is logged in full so the receipt can be rebuilt.
@@ -81,7 +94,10 @@ async function keepTerms(): Promise<void> {
   setTimeout(() => { void keepTerms(); }, ok ? 3_600_000 : 60_000).unref?.();
 }
 
-function fill(t?: string): string { return String(t || '').replace(/\{allowance\}/g, String(PL?.allowance_per_day ?? '')); }
+function fill(t?: string, list: PriceList | null = PL): string {
+  return String(t || '').replace(/\{allowance\}/g, String(list?.allowance_per_day ?? ''))
+    .replace(/\{legal_url\}/g, String(list?.x402?.legal_url || 'https://www.bitcoincreditstack.com/legal'));
+}
 
 if (ON) {
   try {
@@ -98,11 +114,12 @@ if (ON) {
     wrap = mcp.createPaymentWrapper;
     const init = (): void => {
       (server as { initialize: () => Promise<void> }).initialize()
-        .then(() => { ready = true; logger.info({ network: PL!.x402!.network, payTo: PL!.x402!.pay_to, test: TEST_MODE }, '[x402] ready'); })
+        .then(() => { ready = true; logger.info({ network: PL!.x402!.network, payTo: PL!.x402!.pay_to, test: TEST_MODE, accountRequired: REQUIRE_ACCOUNT }, '[x402] ready'); })
         .catch((e: unknown) => { logger.error({ err: String(e) }, '[x402] facilitator not ready; retry in 300 s'); setTimeout(init, 300_000).unref?.(); });
     };
     init();
     void keepTerms();
+    if (REQUIRE_ACCOUNT) logger.info('[x402] account required (X402_REQUIRE_ACCOUNT): a priced call past the allowance answers account_required; nothing is settled');
   } catch (e) {
     logger.error({ err: String(e) }, '[x402] NOT switched on');
     PL = null;
@@ -170,6 +187,21 @@ export function scrubResult(r: Result): Result {
   return r;
 }
 
+/** LG2 O-1: the answer past the allowance while settlement waits for identified accounts. No payment is offered. */
+export function accountRequiredResult(list: PriceList | null = PL): Result {
+  return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'account_required', message: fill(list?.x402?.account_required_message, list) || ACCOUNT_REQUIRED, retryable: false } }) }], isError: true };
+}
+
+/**
+ * What happens to a priced call with sellable units that the allowance does not cover:
+ * 'account_required' (LG2 O-1; never reaches @x402/mcp or the facilitator), 'unavailable'
+ * (the facilitator is not ready) or 'pay' (the x402 payment path).
+ */
+export function pastAllowance(o: { requireAccount: boolean; ready: boolean }): 'account_required' | 'unavailable' | 'pay' {
+  if (o.requireAccount) return 'account_required';
+  return o.ready ? 'pay' : 'unavailable';
+}
+
 const unavailable = (): Result => ({ content: [{ type: 'text', text: JSON.stringify({ error: { code: 'payment_unavailable', message: UNAVAILABLE, retryable: true } }) }], isError: true });
 
 /**
@@ -186,7 +218,9 @@ export async function x402Call(tool: string, cls: string | null, args: Record<st
   const units = sellableUnits(cls, answer, tool);
   if (!units) return answer;
   if (!TEST_MODE && take(pseudonym(ctx?.ip ?? 'unknown'), ctx?.ip ?? '')) return answer;
-  if (!ready || !wrap) return unavailable();
+  const step = pastAllowance({ requireAccount: REQUIRE_ACCOUNT, ready: ready && !!wrap });
+  if (step === 'account_required') return accountRequiredResult();
+  if (step === 'unavailable' || !wrap) return unavailable();
   try {
     const accepts = await (server as { buildPaymentRequirements: (o: unknown) => Promise<unknown[]> }).buildPaymentRequirements({
       scheme: 'exact', network: PL.x402!.network, payTo: PL.x402!.pay_to, price: `$${priceUsd(cls, args, units).toFixed(4)}`,
