@@ -395,7 +395,8 @@ export function registerSeriesTools(server: McpServer): void {
         `Returns the rate cards the custodial lending desks post (bitcoin collateral), one row per product: ` +
         `the representative APR and its range, term, maximum LTV, custody and liquidation model, and the card's ` +
         `effective date and source. Administered rates, not market-cleared; a card older than the stated ` +
-        `staleness is marked. Pass desk to read one desk's cards. Returns the route's payload as served.`,
+        `staleness is marked. Pass desk to read one desk's cards. A desk whose terms forbid automated reading is ` +
+        `not listed; it is named under withdrawn with the reason. Returns the route's payload as served.`,
       inputSchema: {
         desk: z.string().optional().describe(`A desk id as the payload names it, e.g. 'ledn', 'xapo'`),
       },
@@ -405,6 +406,10 @@ export function registerSeriesTools(server: McpServer): void {
       const data = await upstreamGet<{ desks?: Array<Record<string, unknown>>; [k: string]: unknown }>('/v1/market/cefi-rates');
       if (!desk) return text({ ...data, disclaimer: DISCLAIMER });
       const desks = (data.desks ?? []).filter((d) => String(d.desk ?? d.id ?? '').toLowerCase() === desk.toLowerCase());
+      // LG2 Phase 2 (O-6): a withdrawn desk answers with its reason, not as an unknown id.
+      const gone = (Array.isArray(data.withdrawn) ? data.withdrawn as Array<Record<string, unknown>> : [])
+        .filter((w) => String(w.desk ?? '').toLowerCase() === desk.toLowerCase());
+      if (!desks.length && gone.length) return text({ ...data, count: 0, desks: [], withdrawn: gone, desk_filter: desk, disclaimer: DISCLAIMER });
       if (!desks.length) {
         const known = [...new Set((data.desks ?? []).map((d) => String(d.desk ?? d.id ?? '')))].filter(Boolean).sort();
         throw new Error(`no desk '${desk}' in the posted cards; desks: ${known.join(', ')}`);

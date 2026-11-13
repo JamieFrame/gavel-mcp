@@ -519,7 +519,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/stablecoins/current',
     historyPath: '/v1/market/stablecoins/history',
     units: 'USD',
-    description: 'Stablecoin market cap, the liquidity backdrop for the lending side. Supply by issuer and chain is DefiLlama data and is currently withheld (returned as null); issuer and chain coverage is still listed. Stablecoin dominance is retired (2026-10-02) and returned as null. Payloads carry `withheld` and `retired` blocks naming each field returned as null and why.',
+    description: 'Stablecoin supply, the liquidity backdrop for the lending side, read from the token contracts chain by chain (from 2026-10-02); issuer totals over chains are null with the reason. The total stablecoin market cap is withdrawn (2026-11-12: it was a third-party figure that is not redistributed) and stablecoin dominance is retired (2026-10-02); both are returned as null. Payloads carry `withdrawn` and `retired` blocks naming each field returned as null and why.',
     live: true,
   },
   {
