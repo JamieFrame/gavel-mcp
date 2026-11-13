@@ -33,12 +33,14 @@
 // LG2 Phase 3 (LG2-D1, D2): the account gate, as on the REST door (gavel-indexer lib/x402.js).
 // X402_REQUIRE_ACCOUNT=gate (explicit; the default stays closed) settles only for a wallet bound to an
 // active, verified account that has accepted the major versions of the terms in force. The payer is
-// read from the payment in _meta["x402/payment"] (authorization.from, or permit2Authorization.from) and
+// read from the payment in _meta["x402/payment"] as the library settles it (permit2Authorization.from when that
+// key is present, else authorization.from; both present is refused, payment_invalid) and
 // asked of the API (GET /internal/x402-payer, loopback + secret, lib/accounts.js) before @x402/mcp is
 // called; an uncleared payer answers an isError result `account_required` or `terms_acceptance_required`
 // (with the versions), no payment offered, nothing verified or settled. The same question is asked again
-// in the resource server's beforeVerify and beforeSettle hooks. A call without a payment gets the usual
-// offer, with `account_url`. Each receipt names the account, the cost class and the terms in force.
+// in the resource server's beforeVerify and beforeSettle hooks, and the facilitator's verified payer must be
+// the cleared payer (afterVerify). A call without a payment gets the usual offer, with `account_url`. Each
+// receipt names the cost class, and the account and terms in force only when the settled payer is the cleared one.
 // Staging (LG2-D16): network, asset, pay_to and facilitator are overridden by environment only in a
 // process marked STACK_STAGING=on and only to a testnet (x402Settings below, the MCP half of gavel-indexer
 // lib/stack-staging.js); a process not marked staging that carries an override refuses to start.
@@ -105,22 +107,40 @@ x402Settings({}, process.env);
 let S: Settings | null = null;
 
 // ── LG2 Phase 3: the gate ──
+type Notice = { document: string; version: string; kind?: 'major' | 'minor'; applies_at?: string; blocking?: boolean };
 type Lookup = { decision: 'ok' | 'account_required' | 'terms_acceptance_required' | 'unavailable'; why?: string; account_id?: string;
-  account_status?: string | null; terms?: unknown[]; terms_in_force?: Record<string, unknown> };
+  account_status?: string | null; terms?: unknown[]; terms_in_force?: Record<string, unknown>; notices?: Notice[] };
 const GATE_TEXT = {
   not_bound: 'This wallet is not bound to an identified professional account, so no payment is taken. Open an account and bind this wallet: {account_url}. The free allowance is unaffected.',
   not_active: 'The account this wallet is bound to is not active (verification pending, suspended or closed), so no payment is taken. Details: {account_url}.',
   terms: 'A new major version of the terms applies and the account this wallet is bound to has not accepted it, so no payment is taken. The versions are listed in `terms`; accept them at {account_url}.',
 };
-/** The payer of an x402 `exact` EVM payment (EIP-3009 or Permit2), lower case, or null. */
-export function payerOf(payment: unknown): string | null {
-  const p = (payment as { payload?: { authorization?: { from?: string }; permit2Authorization?: { from?: string } } } | null)?.payload ?? {};
-  const from = p.authorization?.from || p.permit2Authorization?.from || '';
-  return /^0x[0-9a-fA-F]{40}$/.test(from) ? from.toLowerCase() : null;
+/**
+ * The payer of an x402 `exact` EVM payment, lower case, by the library's own rule: a payload carrying a
+ * `permit2Authorization` key is Permit2 and settles from its `from`, whatever else it carries (@x402/evm
+ * isPermit2Payload, key presence); otherwise EIP-3009, `authorization.from`. A payload carrying both is
+ * `ambiguous` and refused: the gate never clears one wallet while another pays (as gavel-indexer lib/x402.js).
+ */
+export function payerInfo(payment: unknown): { payer: string | null; ambiguous: boolean } {
+  const p = (payment as { payload?: unknown } | null)?.payload;
+  if (!p || typeof p !== 'object') return { payer: null, ambiguous: false };
+  const permit2 = 'permit2Authorization' in p; const eip3009 = 'authorization' in p;
+  if (permit2 && eip3009) return { payer: null, ambiguous: true };
+  const o = p as { authorization?: { from?: unknown }; permit2Authorization?: { from?: unknown } };
+  const from = String((permit2 ? o.permit2Authorization?.from : eip3009 ? o.authorization?.from : '') ?? '');
+  return { payer: /^0x[0-9a-fA-F]{40}$/.test(from) ? from.toLowerCase() : null, ambiguous: false };
 }
-/** The site's /account page, from the price list's legal_url. */
-export function accountUrlOf(list: { x402?: { legal_url?: string } } | null): string {
-  return new URL('/account', list?.x402?.legal_url || 'https://www.bitcoincreditstack.com').href;
+export function payerOf(payment: unknown): string | null { return payerInfo(payment).payer; }
+/** The site's /account page: STACK_SITE_URL, as the REST door (gavel-indexer lib/accounts.js), else the price list's legal_url. */
+export function accountUrlOf(list: { x402?: { legal_url?: string } } | null, env: Record<string, string | undefined> = process.env): string {
+  return new URL('/account', String(env.STACK_SITE_URL ?? '').trim() || list?.x402?.legal_url || 'https://www.bitcoincreditstack.com').href;
+}
+const AMBIGUOUS = 'A payment names one payer: an EIP-3009 authorization or a Permit2 authorization, not both. Nothing was verified or settled.';
+const ambiguousResult = (): Result => ({ content: [{ type: 'text', text: JSON.stringify({ error: { code: 'payment_invalid', message: AMBIGUOUS, retryable: false } }) }], isError: true });
+/** LG2-D2: the notices of versions published since the acceptance (a minor one notified, a major one until it applies), passed on as REST's X-Terms-Notice. */
+export function withNotices(r: Result, notices: Notice[] | undefined): Result {
+  if (r && !r.isError && notices?.length) r._meta = { ...(r._meta ?? {}), 'bcs/terms-notices': notices };
+  return r;
 }
 /** The gate's refusal: an isError result in our words, no payment offered. */
 export function gateResult(r: Lookup, accountUrl: string): Result {
@@ -197,12 +217,22 @@ if (ON) {
     if (MODE_ACCOUNT === 'gate') {
       // LG2 Phase 3: the gate again inside the library, before the facilitator verifies or settles.
       const guard = async (ctx: { paymentPayload?: unknown }): Promise<{ abort: true; reason: string; message: string } | undefined> => {
-        const payer = payerOf(ctx?.paymentPayload);
+        const { payer, ambiguous } = payerInfo(ctx?.paymentPayload);
+        if (ambiguous) return { abort: true, reason: 'payment_invalid', message: 'payment_invalid' };
         const r: Lookup = payer ? await lookupPayer(payer) : { decision: 'account_required' };
         return r.decision === 'ok' ? undefined : { abort: true, reason: r.decision === 'unavailable' ? 'payment_unavailable' : r.decision, message: r.decision };
       };
       (server as { onBeforeVerify: (h: typeof guard) => unknown }).onBeforeVerify(guard);
       (server as { onBeforeSettle: (h: typeof guard) => unknown }).onBeforeSettle(guard);
+      // The facilitator's verified payer must be the payer the gate cleared, or nothing is settled.
+      const afterVerify = async (ctx: { paymentPayload?: unknown; result?: { isValid?: boolean; payer?: string } }): Promise<{ abort: true; reason: string; message: string } | undefined> => {
+        if (!ctx?.result?.isValid) return undefined;
+        const cleared = payerOf(ctx.paymentPayload);
+        if (cleared && String(ctx.result.payer ?? '').toLowerCase() === cleared) return undefined;
+        logger.error({ verified: ctx.result.payer ?? null, cleared }, '[x402] verified payer is not the cleared payer: refused, nothing settled');
+        return { abort: true, reason: 'payer_mismatch', message: 'payer_mismatch' };
+      };
+      (server as { onAfterVerify: (h: typeof afterVerify) => unknown }).onAfterVerify(afterVerify);
       gateOn = true;
     }
     wrap = mcp.createPaymentWrapper;
@@ -327,13 +357,16 @@ export async function x402Call(tool: string, cls: string | null, args: Record<st
   if (step === 'account_required') return accountRequiredResult();
   if (step === 'unavailable' || !wrap) return unavailable();
   // LG2 Phase 3: a payment names its payer; it is cleared before @x402/mcp or the facilitator sees it.
-  let cleared: Lookup | null = null;
+  let cleared: Lookup | null = null; let clearedPayer: string | null = null;
   if (gateOn) {
-    const payer = payerOf((extra as { _meta?: Record<string, unknown> } | null)?._meta?.['x402/payment']);
+    const payment = (extra as { _meta?: Record<string, unknown> } | null)?._meta?.['x402/payment'];
+    const { payer, ambiguous } = payerInfo(payment);
+    if (ambiguous) return ambiguousResult();
     if (payer) {
       cleared = await lookupPayer(payer);
       if (cleared.decision === 'unavailable') return unavailable();
       if (cleared.decision !== 'ok') return gateResult(cleared, accountUrlOf(PL));
+      clearedPayer = payer;
     }
   }
   try {
@@ -345,10 +378,13 @@ export async function x402Call(tool: string, cls: string | null, args: Record<st
     if (gateOn) withAccountUrl(r, accountUrlOf(PL));
     const s = r?._meta?.['x402/payment-response'] as { success?: boolean; payer?: string; transaction?: string; network?: string } | undefined;
     if (s?.success !== false && s?.transaction && s?.payer) {
+      // LG2 O-13: the account and the terms in force only when the settled payer is the payer the gate cleared.
+      const same = !!cleared && !!clearedPayer && String(s.payer).toLowerCase() === clearedPayer;
+      if (cleared && !same) logger.error({ settled: s.payer, cleared: clearedPayer }, '[x402] settled payer is not the cleared payer: receipt written without the account');
       void postReceipt({ item: tool, network: s.network || S!.network, asset: S!.asset_address, pay_to: S!.pay_to, payer: s.payer,
         amount_units: String(Math.round(priceUsd(cls, args, units) * 1e6)), units, price_list_version: PL.version, transaction: s.transaction, test: !!ctx?.x402Test,
-        // LG2 O-13: the account, the cost class and the terms in force.
-        account_id: cleared?.account_id ?? null, cost_class: cls, terms_in_force: cleared?.terms_in_force ?? null });
+        account_id: same ? cleared!.account_id ?? null : null, cost_class: cls, terms_in_force: same ? cleared!.terms_in_force ?? null : null });
+      if (same) withNotices(r, cleared!.notices);
     }
     // The library's own failure text ("Internal Server Error") becomes ours.
     if (r?.isError && !r.structuredContent && /Internal Server Error/.test(r.content?.[0]?.text ?? '')) return unavailable();

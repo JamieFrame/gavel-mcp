@@ -19,6 +19,9 @@ const TX = `0x${'ab'.repeat(32)}`;
 const BOUND = '0x' + '44'.repeat(20);
 const NO_TERMS = '0x' + '55'.repeat(20);
 const UNBOUND = '0x' + '66'.repeat(20);
+const DOWN = '0x' + '77'.repeat(20);       // the API's lookup fails for it
+const NOTICED = '0x' + '88'.repeat(20);    // bound, with a minor version to notify
+const NOTICES = [{ document: 'cgv', version: '0.3', kind: 'minor', blocking: false }];
 const TERMS = { cgu: { version: '0.2', sha256: 'a'.repeat(64) }, cgv: { version: '0.2', sha256: 'b'.repeat(64) }, licence: { version: '0.2', sha256: 'c'.repeat(64) } };
 
 const listen = (server) => new Promise((r) => server.listen(0, '127.0.0.1', () => r(server.address().port)));
@@ -33,21 +36,24 @@ const api = http.createServer(async (req, res) => {
   if (url.pathname === '/internal/receipt') { receipts.push(JSON.parse(await body(req))); return res.end('{"recorded":true}'); }
   if (url.pathname === '/internal/x402-payer') {
     const p = url.searchParams.get('payer'); asked.push(p);
-    if (p === BOUND) return res.end(JSON.stringify({ decision: 'ok', account_id: '11111111-2222-4333-8444-555555555555', terms_in_force: TERMS }));
+    if (p === BOUND) return res.end(JSON.stringify({ decision: 'ok', account_id: '11111111-2222-4333-8444-555555555555', terms_in_force: TERMS, notices: [] }));
+    if (p === NOTICED) return res.end(JSON.stringify({ decision: 'ok', account_id: '22222222-2222-4333-8444-555555555555', terms_in_force: TERMS, notices: NOTICES }));
+    if (p === DOWN) { res.statusCode = 500; return res.end('{}'); }
     if (p === NO_TERMS) return res.end(JSON.stringify({ decision: 'terms_acceptance_required', account_id: 'x', terms: [{ document: 'cgu', version: '1.0' }] }));
     return res.end(JSON.stringify({ decision: 'account_required', why: 'not_bound' }));
   }
   res.statusCode = 404; res.end('{}');
 });
-// The facilitator stand-in: verifies and settles everything, records each call.
-const fac = [];
+// The facilitator stand-in: verifies and settles everything, records each call. Its payer follows @x402/evm
+// (a `permit2Authorization` key makes it Permit2, paid from its `from`); `override` changes what it answers.
+const fac = []; const override = { verify: null, settle: null };
 const facilitator = http.createServer(async (req, res) => {
   const b = await body(req); fac.push(req.url);
   res.setHeader('Content-Type', 'application/json');
-  const payer = (() => { try { return JSON.parse(b).paymentPayload.payload.authorization.from; } catch { return undefined; } })();
+  const payer = (() => { try { const p = JSON.parse(b).paymentPayload.payload; return 'permit2Authorization' in p ? p.permit2Authorization.from : p.authorization.from; } catch { return undefined; } })();
   if (req.url.startsWith('/supported')) return res.end(JSON.stringify({ kinds: [{ x402Version: 2, scheme: 'exact', network: NET }], extensions: [], signers: {} }));
-  if (req.url.startsWith('/verify')) return res.end(JSON.stringify({ isValid: true, payer }));
-  if (req.url.startsWith('/settle')) return res.end(JSON.stringify({ success: true, transaction: TX, network: NET, payer }));
+  if (req.url.startsWith('/verify')) return res.end(JSON.stringify({ isValid: true, payer: override.verify || payer }));
+  if (req.url.startsWith('/settle')) return res.end(JSON.stringify({ success: true, transaction: TX, network: NET, payer: override.settle || payer }));
   res.statusCode = 404; res.end('{}');
 });
 const apiPort = await listen(api); const facPort = await listen(facilitator);
@@ -105,6 +111,54 @@ assert.strictEqual(receipts.length, 1, 'one receipt');
 assert.deepStrictEqual({ ...receipts[0] }, { item: 'get_venue', network: NET, asset: USDC, pay_to: PAY_TO, payer: BOUND, amount_units: '10000', units: 1, price_list_version: 'test.1',
   transaction: TX, test: false, account_id: '11111111-2222-4333-8444-555555555555', cost_class: 'snapshot', terms_in_force: TERMS });
 assert.deepStrictEqual(asked.filter((p) => p === BOUND).length >= 2, true, 'asked before paying and again in the library\'s hooks');
+assert.strictEqual(paid._meta['bcs/terms-notices'], undefined, 'no notice when nothing is new');
+
+// Review F1, the Permit2 decoy: a bound wallet in authorization.from beside an unbound Permit2 payer.
+const permit2 = (from, decoy) => ({ _meta: { 'x402/payment': { x402Version: 2, resource: offer.structuredContent.resource, accepted: offer.structuredContent.accepts[0],
+  payload: { signature: `0x${'11'.repeat(65)}`, ...(decoy ? { authorization: { from: decoy } } : {}),
+    permit2Authorization: { from, permitted: { token: USDC, amount: offer.structuredContent.accepts[0].amount }, spender: `0x${'0'.repeat(40)}`, nonce: '1',
+      deadline: String(Math.floor(Date.now() / 1000) + 600), witness: { to: PAY_TO, validAfter: '0' } } } } } });
+const before = money().length; const receiptsBefore = receipts.length;
+const decoy = await call(permit2(UNBOUND, BOUND));
+assert.strictEqual(decoy.isError, true);
+assert.strictEqual(parse(decoy).error.code, 'payment_invalid', 'both authorizations: refused');
+assert.strictEqual(money().length, before, 'decoy: nothing verified or settled');
+// Permit2 alone: its own from is the payer.
+assert.strictEqual(parse(await call(permit2(UNBOUND))).error.code, 'account_required', 'an unbound Permit2 payer');
+assert.strictEqual(money().length, before);
+const p2 = await call(permit2(BOUND));
+assert.strictEqual(p2.isError, undefined, JSON.stringify(p2));
+await new Promise((r) => setTimeout(r, 100));
+assert.strictEqual(receipts.length, receiptsBefore + 1);
+assert.strictEqual(receipts.at(-1).payer, BOUND);
+assert.strictEqual(receipts.at(-1).account_id, '11111111-2222-4333-8444-555555555555');
+
+// The facilitator's verified payer must be the cleared payer.
+override.verify = UNBOUND;
+const m0 = money().length;
+const mismatch = await call(pay(BOUND));
+assert.strictEqual(mismatch.isError, true);
+assert.deepStrictEqual(money().slice(m0).map((u) => u.split('?')[0]), ['/verify'], 'verified, never settled');
+override.verify = null;
+// A settled payer other than the cleared one: the receipt carries no account.
+override.settle = UNBOUND;
+await call(pay(BOUND));
+await new Promise((r) => setTimeout(r, 100));
+assert.strictEqual(receipts.at(-1).payer, UNBOUND);
+assert.strictEqual(receipts.at(-1).account_id, null, 'no account when the settled payer is not the cleared payer');
+assert.strictEqual(receipts.at(-1).terms_in_force, null);
+override.settle = null;
+
+// Review F2 (the MCP already refused): a failed lookup is payment_unavailable, nothing settled.
+const m1 = money().length;
+const down = await call(pay(DOWN));
+assert.strictEqual(parse(down).error.code, 'payment_unavailable');
+assert.strictEqual(money().length, m1);
+
+// Review F6: notices pass on, as REST's X-Terms-Notice.
+const noticed = await call(pay(NOTICED));
+assert.strictEqual(noticed.isError, undefined, JSON.stringify(noticed));
+assert.deepStrictEqual(noticed._meta['bcs/terms-notices'], NOTICES);
 
 // Pure functions.
 assert.strictEqual(x.accountMode({}), 'closed', 'the default stays closed');
@@ -112,6 +166,11 @@ assert.strictEqual(x.accountMode({ X402_REQUIRE_ACCOUNT: ' Gate ' }), 'gate');
 assert.strictEqual(x.accountMode({ X402_REQUIRE_ACCOUNT: 'off' }), 'open');
 assert.strictEqual(x.payerOf({ payload: { permit2Authorization: { from: BOUND.toUpperCase().replace('0X', '0x') } } }), BOUND);
 assert.strictEqual(x.payerOf({ payload: {} }), null);
+assert.deepStrictEqual(x.payerInfo({ payload: { authorization: { from: BOUND }, permit2Authorization: { from: UNBOUND } } }), { payer: null, ambiguous: true });
+assert.deepStrictEqual(x.payerInfo({ payload: { authorization: { from: BOUND }, permit2Authorization: undefined } }), { payer: null, ambiguous: true }, 'key presence, as the library');
+// account_url: STACK_SITE_URL first, as the REST door.
+assert.strictEqual(x.accountUrlOf({ x402: { legal_url: 'https://www.bitcoincreditstack.com/legal' } }, { STACK_SITE_URL: 'https://staging.example.com' }), 'https://staging.example.com/account');
+assert.strictEqual(x.accountUrlOf({ x402: { legal_url: 'https://www.bitcoincreditstack.com/legal' } }, {}), 'https://www.bitcoincreditstack.com/account');
 
 // The staging switch: a process not marked staging that carries an override refuses to start; mainnet is refused in staging.
 assert.throws(() => x.x402Settings({}, { X402_NETWORK: NET }), /not marked staging/);

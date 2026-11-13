@@ -15,7 +15,8 @@
     "check:profiles": "node scripts/check-profiles.mjs",
     "check:alignment": "node scripts/check-lens-alignment.mjs",
     "check": "npm run build && npm run check:profiles && npm run check:alignment",
-    "check:transport": "node scripts/check-transport.mjs"
+    "check:transport": "node scripts/check-transport.mjs",
+    "check:x402-gate": "npm run build && node scripts/check-x402-gate.mjs"
   },
   "dependencies": {
     "@coinbase/x402": "2.1.0",
