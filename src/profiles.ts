@@ -240,6 +240,26 @@ const GAVEL_TESTNET_TOOLS = [
   'list_secondary_sales',
   'get_secondary_sale_bids',
   'get_calendar',
+  // G3, wave 1 (G1 §3.2): unsigned blueprints; the user signs.
+  'prepare_test_token_mint',
+  'prepare_vault_deposit',
+  'prepare_vault_withdraw',
+  'prepare_vault_product_approval',
+  'prepare_spot_order',
+  'prepare_spot_cancel',
+  'prepare_bullet_request_open',
+  'prepare_bullet_request_bid',
+  'prepare_bullet_offer_open',
+  'prepare_bullet_offer_bid',
+  'prepare_bullet_cancel',
+  'prepare_bullet_entry_release',
+  'prepare_bullet_finalise',
+  'prepare_obligation_pay',
+  'prepare_lien_payoff',
+  'prepare_lien_release',
+  'prepare_lien_claim',
+  'prepare_obligation_collect',
+  'prepare_obligation_redeem',
 ] as const;
 
 /**

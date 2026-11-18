@@ -23,6 +23,7 @@ import { registerLensTool } from './lenses/lens-tool.js';
 import { registerGuideTool } from './guide/guide.js';
 import { registerMovedTools } from './moved.js';
 import { registerV2ReadTools } from './v2/read-tools.js';
+import { registerV2WriteTools } from './v2/write-tools.js';
 import { strictTestnetInput } from '../v2/read.js';
 import type { Profile } from '../profiles.js';
 import type { ZodRawShape } from 'zod';
@@ -245,6 +246,7 @@ export function registerAllTools(server: McpServer, profile: Profile): void {
   // VZ10 row M1 — Gavel V2 on Arbitrum Sepolia, over /v1/core/v2 only. Exposed on the
   // gavel-testnet profile alone: no other allowlist names these tools.
   registerV2ReadTools(s);
+  registerV2WriteTools(s);
 
   // OB1 §1.5 — one release of `moved` shims for tools that left this server.
   // Registered on the UNSCOPED server: these names are deliberately absent from

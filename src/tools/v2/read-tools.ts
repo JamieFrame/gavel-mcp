@@ -51,7 +51,7 @@ function resolveContract(ref: string): { key: string; address: string } {
 }
 
 /** A spot or bill market by pair name ('mWBTC/mUSDC'), bill series ('bill-3'), or SpotMarket address. */
-function resolveMarket(ref: string) {
+export function resolveMarket(ref: string) {
   const l = ref.toLowerCase();
   const pair = PAIRS.find((p) => p.name.toLowerCase() === l || p.spotMarket.toLowerCase() === l);
   if (pair) return { kind: 'pair' as const, name: pair.name, spotMarket: pair.spotMarket.toLowerCase(), marketId: pair.marketId, base: pair.base, quote: pair.quote, params: pair.params };
