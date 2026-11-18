@@ -29,7 +29,7 @@
  * and it is the one every client reads whether or not it supports prompts. So
  * the rule is enforced over both, and the tool half is what actually fired.
  *
- * Usage:  node scripts/check-lens-alignment.mjs [--json]
+ * Usage:  node scripts/check-lens-alignment.mjs [--json] [--test-lens="<text>"]
  * Exit 0 clean, 1 on any red. Requires `npm run build` first.
  */
 import { fileURLToPath } from 'node:url';
@@ -250,6 +250,75 @@ if (gav.resources.length)
   }
   if (gav.tools.some((t) => t.name === 'get_lens')) {
     fail('lens_tool_observatory_only', 'the gavel server exposes get_lens; OB4-D1 keeps the lens layer on the observatory');
+  }
+}
+
+// ── 12. The credit conditions panel: no lens asks to sum, average or count its rows (RED) ──
+// CN1 (aletheia-docs data/specs/indicators/credit_conditions_panel_v1.md §6.2, §6.4; CN-R2): the panel
+// states, for each measure on its own, where its reading sits in its own history. Nothing adds, averages,
+// counts or weights the rows — counting how many sit at an extreme included. A lens may name the panel; it
+// must not instruct the reader's model to aggregate it. Unlike rule 8 this is red: an instruction to combine
+// the rows rebuilds the composite the panel was designed not to be. A negation ("never sum the rows") is the
+// rule being obeyed, so it is exempt, as in rule 8.
+// Usage: --test-lens="<text>" adds one stand-in lens text to the run, so the rule can be seen to refuse it.
+const AGG_VERB = '(?:sum(?:s|med|ming)?|add(?:s|ed|ing)? up|total(?:s|led|ling)?|averag(?:e|es|ed|ing)|mean|count(?:s|ed|ing)?|tall(?:y|ies|ied|ying)|combin(?:e|es|ed|ing)|aggregat(?:e|es|ed|ing)|weight(?:s|ed|ing)?)';
+const AGG_OBJ = '(?:rows?|components?|positions?|percentiles?|bands?|extremes?|panel)';
+const AGGREGATE = new RegExp(`\\b${AGG_VERB}\\b[^.\\n]{0,60}?\\b${AGG_OBJ}\\b|\\bhow many\\b[^.\\n]{0,40}?\\b${AGG_OBJ}\\b`, 'gi');
+// "count" after a determiner is the noun ("its counts (below, equal, n)", "the observation count"), not an instruction.
+const COUNT_NOUN = /\b(?:the|its|their|a|as|with|of|and|observation)\s+$/i;
+/** Each instruction in `text` to aggregate the panel's rows, outside a negation. */
+function aggregateAsks(text) {
+  const out = [];
+  for (const m of text.matchAll(AGGREGATE)) {
+    const before = text.slice(Math.max(0, m.index - 90), m.index);
+    if (NEGATED.test(before)) continue;
+    if (/^count/i.test(m[0]) && COUNT_NOUN.test(before)) continue;
+    out.push(m[0]);
+  }
+  return out;
+}
+// The rule checks itself first: a rule that stopped matching would pass every lens.
+{
+  const MUST_REFUSE = [
+    'Sum the percentiles of the rows and give the total.',
+    'Average the four rows into one reading of credit conditions.',
+    'Count how many rows sit in their highest tenth.',
+    'Tell the reader how many components are at an extreme of their history.',
+  ];
+  const MUST_PASS = [
+    'Present each row on its own; never sum, average or count the rows.',
+    'The rows are not combined, ranked or scored.',
+    'Render provenance with every figure: the observation count where one is given.',
+    'Give each row as counts (below, equal, n) and the percentile computed from them.',
+  ];
+  for (const t of MUST_REFUSE) if (!aggregateAsks(t).length) fail('lens_no_panel_aggregate_self_test', `the rule did not refuse: “${t}”`);
+  for (const t of MUST_PASS) if (aggregateAsks(t).length) fail('lens_no_panel_aggregate_self_test', `the rule refused an obeying sentence: “${t}”`);
+}
+const testLens = process.argv.find((a) => a.startsWith('--test-lens='))?.slice('--test-lens='.length) ?? null;
+const lensTexts = [...LENSES.map((l) => [promptName(l.id), obs.rendered[promptName(l.id)] ?? '']), ...(testLens != null ? [['lens_test (--test-lens)', testLens]] : [])];
+for (const [name, text] of lensTexts) {
+  for (const ask of aggregateAsks(text)) {
+    fail('lens_no_panel_aggregate', `${name} asks to aggregate the credit conditions rows: “${ask}” — each row is read on its own; nothing sums, averages or counts them (CN-R2)`);
+  }
+}
+
+// ── 13. The credit conditions panel's words (RED) ───────────────────────────
+// Spec §6.4's copy check, on this server's half: the panel's catalogue row and every lens line that names it
+// carry no signal or verdict word. Limited to the panel, as the site's check is (the word "signal" appears in
+// negations elsewhere). No negation exemption: these words do not appear at all.
+const PANEL_WORDS = /\b(fear|greed|healthy|unhealthy|stress(?:ed)?|overheated|cheap|rich|bullish|bearish|signal|risk-on|risk-off|predicts|leading|early warning)\b/i;
+{
+  const row = INDICATORS.find((i) => i.id === 'credit-conditions');
+  if (row) {
+    const prose = [row.name, row.units, row.description, row.historyElsewhere ?? '', row.note ?? ''].join(' ');
+    const w = prose.match(PANEL_WORDS);
+    if (w) fail('panel_words', `the credit-conditions catalogue row uses '${w[0]}'`);
+  }
+  for (const [name, text] of lensTexts) {
+    for (const line of text.split('\n').filter((l) => /credit-conditions|credit conditions/i.test(l))) {
+      const w = line.match(PANEL_WORDS);
+      if (w) fail('panel_words', `${name} uses '${w[0]}' in a line naming the credit conditions panel`);
+    }
   }
 }
 
