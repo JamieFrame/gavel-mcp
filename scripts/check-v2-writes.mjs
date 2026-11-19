@@ -97,8 +97,24 @@ async function send(who, tx) {
   return rc;
 }
 /** Sign every prerequisite, then the transaction; return the main receipt. */
+// G4: every transaction a tool hands out must lie inside the signing surface the site's /sign page relays.
+const SURFACE = await import('../dist/v2/sign-surface.js');
+const KIND_ABI = { TestToken: 'MockERC20', Vault: 'Vault', SpotMarket: 'SpotMarket', BulletLoanRequest: 'BulletLoanRequest', BulletLoanOffer: 'BulletLoanOffer', Obligation: 'Obligation', Lien: 'Lien' };
+let surfaceChecked = 0;
+function inSurface(tx, where) {
+  const kind = SURFACE.kindOf(tx.to);
+  if (!kind) return fail('surface', `${where}: ${tx.to} is not an address of the signing surface`);
+  let d;
+  try { d = viem.decodeFunctionData({ abi: ABI[`${KIND_ABI[kind]}_ABI`], data: tx.data }); } catch { return fail('surface', `${where}: calldata does not decode against ${kind}`); }
+  if (!SURFACE.SIGN_CALLS[kind].includes(d.functionName)) return fail('surface', `${where}: ${kind}.${d.functionName} is not in the signing surface`);
+  const addrs = (names) => names.map((n) => SURFACE.liveAddress(n));
+  if (d.functionName === 'approve' && !addrs(SURFACE.SPENDERS).includes(viem.getAddress(d.args[0]))) return fail('surface', `${where}: approval to ${d.args[0]}, not an admitted spender`);
+  if (d.functionName === 'approveConsumer' && !SURFACE.consumerAddresses().map((c) => c.address).includes(viem.getAddress(d.args[0]))) return fail('surface', `${where}: consumer ${d.args[0]} is not an admitted product`);
+  surfaceChecked++;
+}
 async function execute(who, env) {
-  for (const p of env.prerequisites) await send(who, p.transaction);
+  for (const p of env.prerequisites) { inSurface(p.transaction, `prerequisite ${p.type}`); await send(who, p.transaction); }
+  inSurface(env.transaction, 'transaction');
   return send(who, env.transaction);
 }
 
@@ -564,5 +580,5 @@ const summary = { forkBlock: Number(forkBlock), proven: tools.length, refusals, 
 if (asJson) console.log(JSON.stringify(summary, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 else console.log(findings.length
   ? findings.map((f) => `[RED] ${f.rule}: ${f.detail}`).join('\n')
-  : `check-v2-writes: clean (0 findings; ${tools.length} tools proven on the fork, ${refusals} hard errors refused)`);
+  : `check-v2-writes: clean (0 findings; ${tools.length} tools proven on the fork, ${refusals} hard errors refused, ${surfaceChecked} transactions inside the signing surface)`);
 process.exit(findings.length ? 1 : 0);
