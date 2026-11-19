@@ -12,7 +12,8 @@
  *      deployment's record hashes, its routes), sample, data and the testnet disclosure. Each
  *      tool must refuse an argument it does not take, by name.
  *
- * Usage:  npm run build && GAVEL_API_TESTNET_BASE_URL=<testnet API origin> node scripts/check-v2-reads.mjs [--json]
+ * Usage:  npm run build && GAVEL_API_TESTNET_BASE_URL=<testnet API origin> node scripts/check-v2-reads.mjs [--endpoint <mcp url>] [--json]
+ *         (--endpoint, G5: the tools are called on the deployed server rather than built in memory)
  * Exit 0 clean, 1 on any finding, 2 when the API base is not set. The base is never printed.
  */
 process.env.NODE_ENV = 'production';
@@ -26,6 +27,7 @@ if (!ORIGIN) {
 }
 const BASE = `${ORIGIN}/v1/core/v2`;
 const asJson = process.argv.includes('--json');
+const ENDPOINT = (() => { const i = process.argv.indexOf('--endpoint'); return i >= 0 ? process.argv[i + 1] : undefined; })();
 const findings = [];
 const fail = (rule, detail) => findings.push({ rule, detail });
 
@@ -68,19 +70,28 @@ for (const t of templates) {
 }
 
 // ── 2. tools ──
-const { PROFILES } = await import('../dist/profiles.js');
-const { buildServer } = await import('../dist/server.js');
+// G5: --endpoint <url> calls the deployed server over Streamable HTTP instead of the profile built in memory,
+// paced under its anonymous limit; the routes above are still read from the API host the env names.
 const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
-const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
-const server = buildServer(PROFILES['gavel-testnet']);
-const [a, b] = InMemoryTransport.createLinkedPair();
-await server.connect(a);
 const client = new Client({ name: 'check-v2-reads', version: '1' });
-await client.connect(b);
-// The tools run inside a request context, as over HTTP: a free-tier caller with no key.
-const { requestContext } = await import('../dist/context.js');
-const ctx = { tier: 'free', ip: '127.0.0.1', bearerToken: null, requestId: 'check-v2-reads' };
-const call = (params) => requestContext.run(ctx, () => client.callTool(params));
+let call;
+if (ENDPOINT) {
+  const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  await client.connect(new StreamableHTTPClientTransport(new URL(ENDPOINT)));
+  call = async (params) => { await new Promise((r) => setTimeout(r, 1100)); return client.callTool(params); };
+} else {
+  const { PROFILES } = await import('../dist/profiles.js');
+  const { buildServer } = await import('../dist/server.js');
+  const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
+  const server = buildServer(PROFILES['gavel-testnet']);
+  const [a, b] = InMemoryTransport.createLinkedPair();
+  await server.connect(a);
+  await client.connect(b);
+  // The tools run inside a request context, as over HTTP: a free-tier caller with no key.
+  const { requestContext } = await import('../dist/context.js');
+  const ctx = { tier: 'free', ip: '127.0.0.1', bearerToken: null, requestId: 'check-v2-reads' };
+  call = (params) => requestContext.run(ctx, () => client.callTool(params));
+}
 
 const ARGS = {
   get_deployment: {},
