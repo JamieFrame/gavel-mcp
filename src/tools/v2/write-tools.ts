@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { CONSUMERS } from '../../v2/sign-surface.js';
 import { decodeEventLog, decodeFunctionData, encodeAbiParameters, getAddress, keccak256, type Abi, type Hex } from 'viem';
 import { requireTier } from '../../tiers.js';
 import { REGULATORY_NOTICE, type Prerequisite } from '../../factory/envelope.js';
@@ -231,10 +232,9 @@ export function registerV2WriteTools(server: McpServer) {
   );
 
   // ── W4 ──
-  // The V2 products a user acts through (G1 §3.1's spenders and consumers), named, not filtered by pattern.
-  const PRODUCT_NAMES = ['BulletLoanRequest', 'BulletLoanOffer', 'Obligation', 'Lien', 'FutureOrchestrator', 'CoverOrchestrator', 'BillPackager', 'ClaimLotMarket', 'ObligorPositionMarket', 'BondProtocol'];
+  // The V2 products a user acts through: named once in src/v2/sign-surface.ts (CONSUMERS), not filtered by pattern.
   const PRODUCTS = (): Array<{ name: string; address: Addr }> => [
-    ...PRODUCT_NAMES.map((n) => ({ name: n, address: contract(n) })),
+    ...CONSUMERS.map((n) => ({ name: n as string, address: contract(n) })),
     ...V2_DEPLOYMENT.spot.pairs.map((p) => ({ name: `spot ${p.name}`, address: getAddress(p.spotMarket) as Addr })),
     ...V2_DEPLOYMENT.spot.billSeries.map((b) => ({ name: `bill-${b.k}`, address: getAddress(b.spotMarket) as Addr })),
   ].filter((x, i, arr) => arr.findIndex((y) => y.address === x.address) === i);

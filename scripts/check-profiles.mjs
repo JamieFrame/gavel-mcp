@@ -46,10 +46,14 @@ async function toolsFor(profileId) {
   const { tools } = await client.listTools();
   let promptNames = [];
   try { promptNames = (await client.listPrompts()).prompts.map((p) => p.name); } catch { promptNames = []; }
+  let resources = [];
+  try { resources = (await client.listResources()).resources; } catch { resources = []; }
+  const outlines = resources.find((r) => r.name === 'build-outlines');
+  const outlinesText = outlines ? (await client.readResource({ uri: outlines.uri })).contents[0].text : null;
   const instructions = server.server.getInstructions?.() ?? PROFILES[profileId].instructions;
   await client.close();
   await server.close();
-  return { tools, promptNames, profile: PROFILES[profileId], instructions };
+  return { tools, promptNames, resources, outlinesText, profile: PROFILES[profileId], instructions };
 }
 
 const obs = await toolsFor('observatory');
@@ -155,6 +159,16 @@ for (const [id, { profile, tools }] of Object.entries({ observatory: obs, gavel:
   }
   if (/created|authored/i.test(tst.instructions || '')) fail('entity_attribution', 'the gavel-testnet instructions claim Aletheia created/authored the Protocol');
   if (/mcp\.thegavel\.io|bitcoincreditstack/.test(tst.instructions || '')) fail('testnet_no_cross_pointer', 'the gavel-testnet instructions point at another server (agent_listing_copy §8.2)');
+  // G4: the build-outlines resource, on gavel-testnet only; it describes and ranks nothing (operator's ruling).
+  if (!tst.outlinesText) fail('testnet_build_outlines', 'gavel-testnet does not serve the build-outlines resource');
+  else {
+    const o = JSON.parse(tst.outlinesText);
+    if (!o.outlines?.length || o.outlines.some((x, i) => x.position !== i + 1)) fail('testnet_build_outlines', "build-outlines is empty or out of the site's order");
+    if (/\b(best|top|recommend(s|ed)?|rank(s|ed|ing)?|yield\w*|APY|APR)\b/i.test(o.outlines.map((x) => JSON.stringify(x)).join(' '))) fail('testnet_build_outlines', 'build-outlines carries a ranking, recommendation or yield word');
+    for (const x of o.outlines) for (const t of [...x.readTools, ...x.writeTools]) if (!tstNames.includes(t)) fail('testnet_build_outlines', `build-outlines names '${t}', not a gavel-testnet tool`);
+  }
+  if (!/build-outlines/.test(tst.instructions || '')) fail('testnet_build_outlines', 'the instructions do not name the build-outlines resource (§8.2)');
+  for (const other of [obs, gav, pre]) if (other.resources.some((r) => r.name === 'build-outlines')) fail('testnet_build_outlines', `build-outlines is served on ${other.profile.id}`);
 }
 
 // ── the merge must not cut over ─────────────────────────────────────────────

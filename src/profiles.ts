@@ -198,22 +198,12 @@ const GAVEL_INSTRUCTIONS_BASE = [
 /**
  * VZ10 row M1 — the gavel-testnet profile: Gavel V2 on Arbitrum Sepolia.
  *
- * Source of truth: aletheia-docs commercial/operational/agent_listing_copy_v1.md
- * §8.2, mirrored word for word (operator, 2026-11-18); compared by script at
- * G2. The copy pack's `listing_copy_drift` sensor is specified in gavel-ops'
- * editorial guideline, not yet built: until it is, a change here is checked by hand. Four paragraphs, after the Gavel block's shape; no
- * cross-pointer to either other server (OB2 §0.5 budgets one link each way
- * between those two, and this spends none).
+ * Its instructions are GENERATED word for word from their single source, aletheia-docs
+ * commercial/operational/agent_listing_copy_v1.md §8.2, by scripts/sync-testnet-instructions.mjs
+ * (src/v2/instructions.generated.ts; `--check` fails on any difference). No cross-pointer to either other
+ * server (OB2 §0.5 budgets one link each way between those two, and this spends none).
  */
-const GAVEL_TESTNET_INSTRUCTIONS = [
-  `This server exposes Aletheia Analytics' data product for Gavel V2 on Arbitrum Sepolia, a test network: the module core (the vault, obligations and liens), the auction engines, and the products built on them — the bullet loan, spot markets, the cash-settled future, loan protection and the insured bill, liquidation cover, the secondary market and BOND. Its tokens are test tokens with no value and its contracts are unaudited. Every tool here either returns observed data or returns an unsigned transaction blueprint. Nothing on this server signs, submits or broadcasts a transaction, and no tool takes custody of funds or receives a mandate — a blueprint is calldata the caller's own wallet may choose to sign.`,
-  ``,
-  `Read the provenance fields before treating any figure as a market reference. Activity on this testnet is predominantly own-account: responses carry the block the indexer has read to, the number of rows observed, the distinct addresses among them and the own-account share where the register allows it. A null own-account flag means unknown, not no. Where a figure would be degenerate on the observed data, the response returns a structured absence naming the threshold and the observed count rather than a zero.`,
-  ``,
-  `Nothing here is advice. Tools that return catalogues do not rank their entries and list them in the order they occurred, never by rate or price; tools that return distributions report what was observed with the sample size, and do not forecast a fill, a rate, a time-to-fill or a return. A blueprint is built from the parameters the caller supplied; this server does not choose a market, a size, a price or a term.`,
-  ``,
-  `Aletheia Analytics SASU operates this interface and data product; the Gavel Protocol is autonomous, permissionless code with no operating entity.`,
-].join('\n');
+import { GAVEL_TESTNET_INSTRUCTIONS } from './v2/instructions.generated.js';
 
 /**
  * VZ10 row M1 — the gavel-testnet allowlist. Fail-closed like the others: a V2
