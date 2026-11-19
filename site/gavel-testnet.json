@@ -1411,5 +1411,176 @@
         "assetKey": "0x010000000000000000000000489a363ce38cd085cc641e9fbc453293b4201c7f"
       }
     ]
+  },
+  "display": {
+    "ruling": "operator 2026-11-19 (TW3): three mock tokens and the markets between them; protocol-issued tokens stay. /sign admits the sign section, not this list.",
+    "tokens": [
+      {
+        "symbol": "mWBTC",
+        "decimals": 8,
+        "address": "0xe12c2A544d296B548DcAC81c0149d6f34D3E6Da8",
+        "issuer": "test"
+      },
+      {
+        "symbol": "mUSDC",
+        "decimals": 6,
+        "address": "0x33F975598A8c059b51BeAAbeA5Df3db76E26b637",
+        "issuer": "test"
+      },
+      {
+        "symbol": "mWETH",
+        "decimals": 18,
+        "address": "0xae0f7758c329318c100c39f90e1865a4b296b645",
+        "issuer": "test"
+      },
+      {
+        "symbol": "BOND",
+        "address": "0xe3eb5e720469aabd18e33ef586f880a02f7959a8",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 1,
+        "maturity": 1794787200,
+        "address": "0x6e2d704a2bc7919bf4ccd813ca93a3de240f9a89",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 2,
+        "maturity": 1795392000,
+        "address": "0xc91d9b72814db5112045353274f1d402e98e5d33",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 3,
+        "maturity": 1795996800,
+        "address": "0x21b45060e0898523e709ba3dacf7c1a174282644",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 4,
+        "maturity": 1796601600,
+        "address": "0x57b6555036330fd25a8681e18f01b0714578e909",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 5,
+        "maturity": 1797206400,
+        "address": "0x7a53dfc45b2b8dc0ab9077d579389d4e11c5e6dd",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 6,
+        "maturity": 1797811200,
+        "address": "0xb49c8ed4346fb1012341aed8558908cd7c263ed7",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 7,
+        "maturity": 1798416000,
+        "address": "0xf8aaa1644ef4789d16373caa743d35e1d41d5d4d",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 8,
+        "maturity": 1799020800,
+        "address": "0x101052818de485dd73c3d89a6020d79a39a53bd9",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 9,
+        "maturity": 1799625600,
+        "address": "0xc968aff2f8ae1df325e3d1f533aaebe9abca15d7",
+        "issuer": "protocol"
+      },
+      {
+        "bill": 10,
+        "maturity": 1800230400,
+        "address": "0xd14ead7be5627442072946b01e09ce247d5b34dc",
+        "issuer": "protocol"
+      }
+    ],
+    "markets": [
+      {
+        "marketId": 1,
+        "name": "mWBTC/mUSDC",
+        "base": "mWBTC",
+        "quote": "mUSDC",
+        "address": "0xa3b602a7deebba09f8bd4a698ede117cfc1d1f4e"
+      },
+      {
+        "marketId": 4,
+        "name": "mWETH/mUSDC",
+        "base": "mWETH",
+        "quote": "mUSDC",
+        "address": "0x6a5b866e2333dfc653877d0d71f947d65a6c82da"
+      },
+      {
+        "marketId": 7,
+        "name": "mWETH/mWBTC",
+        "base": "mWETH",
+        "quote": "mWBTC",
+        "address": "0x2f7df57cb4db0d8bbb7508de0b45d8d47c3f4378"
+      },
+      {
+        "marketId": 2,
+        "bill": 1,
+        "quote": "mUSDC",
+        "address": "0xea24aa298bf3ed402777df801cc7196606180fd7"
+      },
+      {
+        "marketId": 3,
+        "bill": 2,
+        "quote": "mUSDC",
+        "address": "0xb725ea2338398e5698cbb1a9104f05feff76f0d9"
+      },
+      {
+        "marketId": 9,
+        "bill": 3,
+        "quote": "mUSDC",
+        "address": "0x41393937cbbbd291175ed1513810aad03d231d4a"
+      },
+      {
+        "marketId": 10,
+        "bill": 4,
+        "quote": "mUSDC",
+        "address": "0x531c41fda3495faed217151e0f80f58b71f6ee17"
+      },
+      {
+        "marketId": 11,
+        "bill": 5,
+        "quote": "mUSDC",
+        "address": "0x6f98447bc160f636bc8b177759786c7344c13dbf"
+      },
+      {
+        "marketId": 12,
+        "bill": 6,
+        "quote": "mUSDC",
+        "address": "0x7b6f7db1669f7a42fad76b06f96b3c6526bc50f6"
+      },
+      {
+        "marketId": 13,
+        "bill": 7,
+        "quote": "mUSDC",
+        "address": "0x9e83e02bdfbdd25106f82a4355f53c2755c0ca13"
+      },
+      {
+        "marketId": 14,
+        "bill": 8,
+        "quote": "mUSDC",
+        "address": "0x98217994f983345d6bc9d798266452193ab23f9d"
+      },
+      {
+        "marketId": 15,
+        "bill": 9,
+        "quote": "mUSDC",
+        "address": "0x972dae4cc1f90eb87a0d11636255f5f500417f88"
+      },
+      {
+        "marketId": 16,
+        "bill": 10,
+        "quote": "mUSDC",
+        "address": "0xa9ac30f3cf662906450b266ea8242d1dbd241499"
+      }
+    ]
   }
 }

@@ -1,0 +1,21 @@
+# VZ10 row M1, G5 — the testnet MCP server: the gavel-testnet profile, served at https://mcp-testnet.thegavel.io/mcp.
+# Its own checkout (/root/gavel-mcp-testnet), its own dist/ and its own .env: a rebuild or restart here never touches
+# gavel-mcp.service or gavel-mcp-observatory.service, which share /root/gavel-mcp. Installed by apply.sh (unit step);
+# __NODE__ and the port come from that step, the port through .env.
+[Unit]
+Description=Gavel V2 testnet MCP server (gavel-testnet profile, mcp-testnet.thegavel.io)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/gavel-mcp-testnet
+EnvironmentFile=/root/gavel-mcp-testnet/.env
+ExecStart=__NODE__ dist/http.js
+Restart=always
+RestartSec=5
+MemoryMax=512M
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
