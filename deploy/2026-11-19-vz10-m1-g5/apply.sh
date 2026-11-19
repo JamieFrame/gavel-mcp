@@ -124,13 +124,19 @@ EOF
   sign-url)
     window
     grep -q '^GAVEL_TESTNET_SIGN_URL=' "$DIR/.env" && { echo "refused: already set" >&2; exit 4; }
-    # /sign must be the page this row built, not the site's fallback: its bundle carries the refusal attribute.
-    mkdir -p /root/scratch-vz10-m1
-    curl -s --max-time 10 -o /root/scratch-vz10-m1/sign.html https://testnet.thegavel.io/sign || true
-    JS=$(grep -oE '/assets/[^"]+\.js' /root/scratch-vz10-m1/sign.html 2>/dev/null | head -1 || true)
+    # /sign must be the page this row built, not the site's fallback: its code carries the refusal attribute. The entry
+    # bundle loads the testnet pages as a separate chunk (import("./TestnetApp-<hash>.js")), so the chunks it names are
+    # fetched and searched too.
+    S=/root/scratch-vz10-m1/sign-check; rm -rf "$S"; mkdir -p "$S"
+    curl -s --max-time 10 -o "$S/sign.html" https://testnet.thegavel.io/sign || true
+    JS=$(grep -oE '/assets/[^"]+\.js' "$S/sign.html" 2>/dev/null | head -1 || true)
     [ -n "$JS" ] || { echo "refused: https://testnet.thegavel.io/sign names no script bundle" >&2; exit 7; }
-    curl -s --max-time 30 -o /root/scratch-vz10-m1/sign.js "https://testnet.thegavel.io$JS" || true
-    grep -q 'data-refusal' /root/scratch-vz10-m1/sign.js || { echo "refused: the live testnet site does not carry /sign yet" >&2; exit 7; }
+    curl -s --max-time 30 -o "$S/entry.js" "https://testnet.thegavel.io$JS" || true
+    for C in $(grep -oE '[A-Za-z0-9_-]+-[A-Za-z0-9_-]{8}\.js' "$S/entry.js" 2>/dev/null | sort -u || true); do
+      curl -s --max-time 30 -o "$S/chunk-$C" "https://testnet.thegavel.io/assets/$C" || true
+    done
+    grep -lq 'data-refusal' "$S"/*.js 2>/dev/null || { echo "refused: the live testnet site does not carry /sign yet" >&2; exit 7; }
+    echo "-- /sign found in the live site's code ($(grep -l 'data-refusal' "$S"/*.js | xargs -n1 basename | tr '\n' ' '))"
     echo "GAVEL_TESTNET_SIGN_URL=$SIGN_URL" >> "$DIR/.env"
     systemctl restart "$UNIT"; sleep 4
     echo "== GAVEL_TESTNET_SIGN_URL set to the testnet site's /sign; $UNIT restarted: $(systemctl is-active "$UNIT"); /health: $(health)";;
