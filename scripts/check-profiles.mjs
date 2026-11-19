@@ -55,6 +55,7 @@ async function toolsFor(profileId) {
 const obs = await toolsFor('observatory');
 const gav = await toolsFor('gavel');
 const pre = await toolsFor('gavel-presplit');
+const tst = await toolsFor('gavel-testnet');
 const obsNames = obs.tools.map((t) => t.name);
 const gavNames = gav.tools.map((t) => t.name);
 
@@ -128,6 +129,32 @@ for (const [id, { profile, tools }] of Object.entries({ observatory: obs, gavel:
     if (!exposed.has(expected))
       fail('profile_allowlist_honest', `${id}: '${declared}' is allowlisted but not registered (expected '${expected}')`);
   }
+}
+
+// ── VZ10 M1: the gavel-testnet profile (Gavel V2 on Arbitrum Sepolia) ───────
+// Its own home: no tool it exposes is exposed by any other profile, and it
+// exposes exactly its allowlist (no shims). A write tool on it must carry the
+// regulatory notice verbatim; a read tool must not offer calldata. No tool
+// description says "best", "top" or "recommend" (describe, don't recommend).
+{
+  const { REGULATORY_NOTICE } = await import('../dist/factory/envelope.js');
+  const others = new Set([...obsNames, ...gavNames, ...pre.tools.map((t) => t.name)]);
+  const tstNames = tst.tools.map((t) => t.name);
+  for (const n of tstNames) if (others.has(n)) fail('testnet_home_unique', `'${n}' is exposed on gavel-testnet and on another profile`);
+  const declared = new Set(tst.profile.tools);
+  for (const n of declared) if (!tstNames.includes(n)) fail('profile_allowlist_honest', `gavel-testnet: '${n}' is allowlisted but not registered`);
+  for (const n of tstNames) if (!declared.has(n)) fail('profile_allowlist_honest', `gavel-testnet: '${n}' is exposed but not allowlisted`);
+  for (const t of tst.tools) {
+    const d = t.description || '';
+    if (WRITE_NAME.test(t.name)) {
+      if (!d.includes(REGULATORY_NOTICE)) fail('testnet_write_notice', `'${t.name}' does not carry the regulatory notice verbatim`);
+    } else if (/unsigned transaction blueprint|calldata/i.test(d)) {
+      fail('testnet_read_is_read', `read tool '${t.name}' offers calldata`);
+    }
+    if (/\b(best|top|recommend\w*)\b/i.test(d)) fail('testnet_describes', `'${t.name}' description says best/top/recommend`);
+  }
+  if (/created|authored/i.test(tst.instructions || '')) fail('entity_attribution', 'the gavel-testnet instructions claim Aletheia created/authored the Protocol');
+  if (/mcp\.thegavel\.io|bitcoincreditstack/.test(tst.instructions || '')) fail('testnet_no_cross_pointer', 'the gavel-testnet instructions point at another server (agent_listing_copy §8.2)');
 }
 
 // ── the merge must not cut over ─────────────────────────────────────────────
@@ -237,6 +264,7 @@ const summary = {
   observatory: { count: obsNames.length, tools: obsNames },
   gavel: { count: gavNames.length, tools: gavNames },
   presplit: { count: pre.tools.length, version: pre.profile.serverVersion },
+  testnet: { count: tst.tools.length, tools: tst.tools.map((t) => t.name) },
   both_split: [...bothSplit],
   moved_shims: [...shims],
   findings,
@@ -245,6 +273,7 @@ if (asJson) console.log(JSON.stringify(summary, null, 2));
 else {
   console.log(`observatory: ${obsNames.length} tools -> ${obsNames.join(', ')}`);
   console.log(`gavel:       ${gavNames.length} tools -> ${gavNames.join(', ')}`);
+  console.log(`testnet:     ${tst.tools.length} tools -> ${tst.tools.map((t) => t.name).join(', ')}`);
   console.log(`presplit:    ${pre.tools.length} tools @ ${pre.profile.serverVersion} (what mcp.thegavel.io serves today)`);
   console.log(`both-split:  ${[...bothSplit].join(', ')}`);
   console.log(`moved shims: ${[...shims].join(', ')}`);

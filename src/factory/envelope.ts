@@ -124,16 +124,28 @@ export interface TxBlueprint {
   chain_id: number;
 }
 
+/**
+ * VZ10 M1 (G1 §3.1): V2 adds two prerequisite kinds beside the ERC-20 approval —
+ * a deposit into the Vault, and the user's approval of a product as a Vault consumer.
+ * The mainnet tools emit only 'erc20_approval'; the widening is additive.
+ */
 export interface Prerequisite {
-  type: 'erc20_approval';
+  type: 'erc20_approval' | 'vault_deposit' | 'vault_consumer_approval';
   rationale: string;
   transaction: TxBlueprint;
   deeplinks: Deeplinks;
 }
 
+/**
+ * VZ10 M1 (G1 §4): on the testnet profile `eip681` is null, with `eip681_unavailable`
+ * saying why, where the arguments are not scalars; and `wallet_agnostic_url` is null
+ * until the testnet sign page is live. The mainnet tools always fill both.
+ */
 export interface Deeplinks {
-  eip681: string;
-  wallet_agnostic_url: string;
+  eip681: string | null;
+  wallet_agnostic_url: string | null;
+  eip681_unavailable?: string;
+  wallet_agnostic_url_unavailable?: string;
 }
 
 /**
