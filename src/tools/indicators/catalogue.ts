@@ -670,8 +670,7 @@ export const INDICATORS: IndicatorSpec[] = [
     live: true,
   },
   // CN1 (Gate 1, operator 2026-11-18): the credit conditions panel. One row per measure, in a fixed order, never
-  // combined; the description types no count (Gate 1's line, shortened for Gate 3 so the page's one sentence is not
-  // repeated: aletheia-docs frontend/specs/cn1_copy_v1.md). No history path: each
+  // combined; the description is the one Gate 1 approved, word for word, and types no count. No history path: each
   // row's position through time is its own conditions.* series in the store, read with get_series (CN-D8), so
   // include_history is refused by the relay's own message. Kept by vintage: as_known_on relays (isVintaged).
   {
@@ -681,7 +680,7 @@ export const INDICATORS: IndicatorSpec[] = [
     path: '/v1/market/conditions',
     historyPath: null,
     units: 'percent per row (where its reading sits in its own history), with the counts it is computed from',
-    description: 'Where each of a fixed set of bitcoin credit measures sits in its own weekly history, one row each.',
+    description: 'Where each of a fixed set of bitcoin credit measures sits in its own weekly history, one row each, never combined, ranked or scored.',
     live: true,
     historyElsewhere: 'Each row\'s position through time is its own series, named in the row\'s `series` field: read it with get_series.',
   },
