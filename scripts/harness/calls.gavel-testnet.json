@@ -1,0 +1,126 @@
+[
+  {
+    "id": "deployment",
+    "tool": "get_deployment",
+    "args": {}
+  },
+  {
+    "id": "tape",
+    "tool": "get_tape",
+    "args": {
+      "limit": 20
+    }
+  },
+  {
+    "id": "tape-figures",
+    "tool": "get_tape",
+    "args": {
+      "figures": true
+    }
+  },
+  {
+    "id": "auctions-closed",
+    "tool": "list_auctions",
+    "args": {
+      "state": "closed",
+      "limit": 20
+    }
+  },
+  {
+    "id": "bullet-loans",
+    "tool": "list_bullet_loans",
+    "args": {
+      "limit": 20
+    }
+  },
+  {
+    "id": "curve",
+    "tool": "get_curve",
+    "args": {}
+  },
+  {
+    "id": "spot-markets-last",
+    "tool": "list_spot_markets",
+    "args": {
+      "last": true
+    }
+  },
+  {
+    "id": "spot-wbtc-usdc",
+    "tool": "get_spot_market",
+    "args": {
+      "market": "mWBTC/mUSDC",
+      "limit": 10,
+      "pages": true
+    }
+  },
+  {
+    "id": "spot-bad-market",
+    "tool": "get_spot_market",
+    "args": {
+      "market": "mFOO/mBAR"
+    }
+  },
+  {
+    "id": "future-offers",
+    "tool": "list_future_offers",
+    "args": {}
+  },
+  {
+    "id": "futures",
+    "tool": "list_futures",
+    "args": {}
+  },
+  {
+    "id": "cover-offers-open",
+    "tool": "list_cover_offers",
+    "args": {
+      "open": true
+    }
+  },
+  {
+    "id": "policies",
+    "tool": "list_policies",
+    "args": {}
+  },
+  {
+    "id": "bill-3",
+    "tool": "get_bill_series",
+    "args": {
+      "k": 3
+    }
+  },
+  {
+    "id": "secondary-sales",
+    "tool": "list_secondary_sales",
+    "args": {}
+  },
+  {
+    "id": "calendar",
+    "tool": "get_calendar",
+    "args": {}
+  },
+  {
+    "id": "calendar-scenario",
+    "tool": "get_calendar",
+    "args": {
+      "scenario": true
+    }
+  },
+  {
+    "id": "events-obligation",
+    "tool": "get_contract_events",
+    "args": {
+      "contract": "Obligation",
+      "event": "SetCreated",
+      "limit": 5
+    }
+  },
+  {
+    "id": "stray-argument",
+    "tool": "list_auctions",
+    "args": {
+      "sort_by": "rate"
+    }
+  }
+]

@@ -23,7 +23,7 @@
  * return an identical payload from the same backend (`split_payload_parity`).
  */
 
-export type ProfileId = 'gavel-presplit' | 'gavel' | 'observatory';
+export type ProfileId = 'gavel-presplit' | 'gavel' | 'observatory' | 'gavel-testnet';
 
 export interface Profile {
   readonly id: ProfileId;
@@ -196,6 +196,63 @@ const GAVEL_INSTRUCTIONS_BASE = [
 ].join('\n');
 
 /**
+ * VZ10 row M1 — the gavel-testnet profile: Gavel V2 on Arbitrum Sepolia.
+ *
+ * Its instructions are GENERATED word for word from their single source, aletheia-docs
+ * commercial/operational/agent_listing_copy_v1.md §8.2, by scripts/sync-testnet-instructions.mjs
+ * (src/v2/instructions.generated.ts; `--check` fails on any difference). No cross-pointer to either other
+ * server (OB2 §0.5 budgets one link each way between those two, and this spends none).
+ */
+import { GAVEL_TESTNET_INSTRUCTIONS } from './v2/instructions.generated.js';
+
+/**
+ * VZ10 row M1 — the gavel-testnet allowlist. Fail-closed like the others: a V2
+ * tool is exposed here only by name, and none of these names is on the gavel
+ * or observatory allowlist (one tool, one home). G2: the read tools only; the
+ * write tools join at G3, wave by wave.
+ */
+const GAVEL_TESTNET_TOOLS = [
+  'get_deployment',
+  'get_tape',
+  'get_account',
+  'get_contract_events',
+  'list_auctions',
+  'get_auction_bids',
+  'list_bullet_loans',
+  'get_curve',
+  'list_spot_markets',
+  'get_spot_market',
+  'list_future_offers',
+  'list_futures',
+  'list_cover_offers',
+  'list_policies',
+  'get_bill_series',
+  'list_secondary_sales',
+  'get_secondary_sale_bids',
+  'get_calendar',
+  // G3, wave 1 (G1 §3.2): unsigned blueprints; the user signs.
+  'prepare_test_token_mint',
+  'prepare_vault_deposit',
+  'prepare_vault_withdraw',
+  'prepare_vault_product_approval',
+  'prepare_spot_order',
+  'prepare_spot_cancel',
+  'prepare_bullet_request_open',
+  'prepare_bullet_request_bid',
+  'prepare_bullet_offer_open',
+  'prepare_bullet_offer_bid',
+  'prepare_bullet_cancel',
+  'prepare_bullet_entry_release',
+  'prepare_bullet_finalise',
+  'prepare_obligation_pay',
+  'prepare_lien_payoff',
+  'prepare_lien_release',
+  'prepare_lien_claim',
+  'prepare_obligation_collect',
+  'prepare_obligation_redeem',
+] as const;
+
+/**
  * Tools the observatory exposes. OB1 §1.2 disposition table, DRAFT — this list
  * is not authoritative until the operator signs the table. Four rows carry an
  * open flag (D-B the indicator pair's names, D-C get_user_positions, D-D
@@ -357,6 +414,21 @@ export const PROFILES: Record<ProfileId, Profile> = {
     logService: 'aletheia-mcp',
     instructions: `${GAVEL_INSTRUCTIONS_BASE}\n\n${GAVEL_DATA_POINTER}`,
     tools: GAVEL_TOOLS,
+    renames: {},
+  },
+  /**
+   * VZ10 row M1 — Gavel V2 on Arbitrum Sepolia, its own unit and host
+   * (https://mcp-testnet.thegavel.io/mcp). Reads /v1/core/v2 on the testnet API
+   * only; no x402, no metering (src/tools/index.ts gives it the strict
+   * arguments and the one error shape, nothing else).
+   */
+  'gavel-testnet': {
+    id: 'gavel-testnet',
+    serverName: 'gavel-testnet-mcp',
+    serverVersion: '0.1.0',
+    logService: 'gavel-testnet-mcp',
+    instructions: GAVEL_TESTNET_INSTRUCTIONS,
+    tools: GAVEL_TESTNET_TOOLS,
     renames: {},
   },
   observatory: {

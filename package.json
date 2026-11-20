@@ -15,7 +15,16 @@
     "check:profiles": "node scripts/check-profiles.mjs",
     "check:alignment": "node scripts/check-lens-alignment.mjs",
     "check": "npm run build && npm run check:profiles && npm run check:alignment",
-    "check:transport": "node scripts/check-transport.mjs"
+    "check:transport": "node scripts/check-transport.mjs",
+    "sync:v2": "node scripts/sync-v2-deployment.mjs",
+    "check:v2-deployment": "node scripts/sync-v2-deployment.mjs --check",
+    "check:v2-reads": "node scripts/check-v2-reads.mjs",
+    "sync:v2-abi": "node scripts/sync-v2-abi.mjs",
+    "check:v2-writes": "node scripts/check-v2-writes.mjs",
+    "export:site-table": "node scripts/export-site-table.mjs",
+    "check:site-table": "node scripts/export-site-table.mjs --check",
+    "sync:build-outlines": "node scripts/sync-build-outlines.mjs",
+    "sync:testnet-instructions": "node scripts/sync-testnet-instructions.mjs"
   },
   "dependencies": {
     "@coinbase/x402": "2.1.0",

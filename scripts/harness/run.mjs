@@ -54,6 +54,11 @@ function summarise(text) {
       if (k === 'kind' && typeof x === 'string' && x.startsWith('absent')) {
         out.absences++; out.absent_kinds[x] = (out.absent_kinds[x] || 0) + 1;
       }
+      // VZ10 M1: the gavel-testnet profile's absence shape, { absent: { reason, … } }.
+      if (k === 'absent' && x && typeof x === 'object' && typeof x.reason === 'string') {
+        const kind = `absent:${x.reason}`;
+        out.absences++; out.absent_kinds[kind] = (out.absent_kinds[kind] || 0) + 1;
+      }
       if (k === 'value' && (x === 0 || x === '0' || /^0\.0+$/.test(String(x)))) out.zeros++;
     });
   }
