@@ -53,12 +53,10 @@ function onObservatory(): boolean {
 }
 
 /** Kept by vintage in the store, so readable as known on a past date (series_contract §3).
- *  The two curve routes are kept by day in dataset 'curves' (indexer scripts/vintage-curves.js).
- *  The credit conditions panel reads dataset 'conditions' (indexer scripts/vintage-conditions.js; CN1). */
+ *  The two curve routes are kept by day in dataset 'curves' (indexer scripts/vintage-curves.js). */
 function isVintaged(i: { path: string }): boolean {
   return /^\/v1\/(market\/(measure|index)|onchain\/series)\//.test(i.path)
-    || /^\/v1\/credit\/(capital-stack|benchmark-curves)$/.test(i.path)
-    || i.path === '/v1/market/conditions';
+    || /^\/v1\/credit\/(capital-stack|benchmark-curves)$/.test(i.path);
 }
 
 /** Example ids drawn from the catalogue this profile actually serves, so the

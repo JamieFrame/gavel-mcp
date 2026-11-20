@@ -128,7 +128,6 @@ export const LENSES: readonly Lens[] = [
       '- For any criterion cell: the source that establishes it, and its source kind. A value without a source is not a populated cell and the dataset serves it as null rather than as a value.',
       '- The coverage matrix: which venues contribute to a reading and which are named absent, with the reason. The absences are part of the finding.',
       '- The governed indices (`get_indicator` ids `bcsi`, `bsbs`, `wrc`): give each with its plain companion where it has one, its matched coverage on the date, and its methodology URL; the gap between an index and its plain series is coverage arriving, not the market moving.',
-      '- The credit conditions panel (`get_indicator` id `credit-conditions`): for each of a fixed set of measures, where its latest reading sits among its own earlier Monday readings, as counts (below, equal, n) and the percentile computed from them. Present each row on its own, in the order returned, with its date, its counts and the span it was counted over. The rows are never summed, averaged or counted, and neither end of a history is better or worse than the other. A position in history is not a forecast.',
       '- The criteria spec version the cells were graded against, which travels in the payload.',
       '',
       PROVENANCE,

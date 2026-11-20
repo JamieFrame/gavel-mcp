@@ -669,21 +669,6 @@ export const INDICATORS: IndicatorSpec[] = [
     description: 'Q4. The change over 7 days in debt and in collateral across only the venues read on both dates, with and without venues the integrity check flags. The finding built on it (no co-movement with old-coin spending) is published on the site. Descriptive, not a signal.',
     live: true,
   },
-  // CN1 (Gate 1, operator 2026-11-18): the credit conditions panel. One row per measure, in a fixed order, never
-  // combined; the description is the one Gate 1 approved, word for word, and types no count. No history path: each
-  // row's position through time is its own conditions.* series in the store, read with get_series (CN-D8), so
-  // include_history is refused by the relay's own message. Kept by vintage: as_known_on relays (isVintaged).
-  {
-    id: 'credit-conditions',
-    name: 'Credit conditions',
-    family: 'market',
-    path: '/v1/market/conditions',
-    historyPath: null,
-    units: 'percent per row (where its reading sits in its own history), with the counts it is computed from',
-    description: 'Where each of a fixed set of bitcoin credit measures sits in its own weekly history, one row each, never combined, ranked or scored.',
-    live: true,
-    historyElsewhere: 'Each row\'s position through time is its own series, named in the row\'s `series` field: read it with get_series.',
-  },
   // IX1 Phase 2 (operator, Gate 1 2026-10-09): the grouped chain pages (CS1 G0-6) and the holding-period curve.
   {
     id: 'spending',
