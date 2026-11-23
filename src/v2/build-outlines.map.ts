@@ -24,11 +24,10 @@ export const OUTLINE_MAP: OutlineMap[] = [
     card: { title: 'TBD-G3.2', body: 'TBD-G3.3' },
     product: 'bills',
     contracts: ['BillPackager', 'CoverOrchestrator', 'CoverIssuance', 'CoverSettlement', 'Obligation', 'Vault'],
-    readTools: ['get_bill_series', 'list_spot_markets', 'get_spot_market', 'list_cover_offers', 'list_policies', 'get_calendar', 'get_tape'],
+    readTools: ['get_bill_series', 'list_spot_markets', 'get_spot_market', 'list_cover_offers', 'list_policies', 'get_calendar', 'get_tape', 'get_obligation'],
     writeTools: ['prepare_spot_order', 'prepare_spot_cancel', 'prepare_vault_deposit', 'prepare_vault_withdraw', 'prepare_vault_product_approval'],
     notYetServed: [
       'Write tools for packaging a bill series and for loan protection (BillPackager, CoverOrchestrator).',
-      "A read of an obligation's, set's or lien's state by id (the indexer has no such view yet).",
     ],
   },
   {
@@ -39,7 +38,6 @@ export const OUTLINE_MAP: OutlineMap[] = [
     writeTools: [],
     notYetServed: [
       'Write tools for liquidation protection (the account adapters and their offers).',
-      "A read of a protected account's health on its venue (the indexer has no such view yet).",
     ],
   },
   {
@@ -54,7 +52,7 @@ export const OUTLINE_MAP: OutlineMap[] = [
     card: { title: 'TBD-G3.8', body: 'TBD-G3.9' },
     product: 'bullet-loan',
     contracts: ['BulletLoanRequest', 'BulletLoanOffer', 'SingleAuction', 'GroupAuction', 'Obligation', 'Lien', 'Vault'],
-    readTools: ['list_bullet_loans', 'list_auctions', 'get_auction_bids', 'get_curve', 'get_account', 'get_contract_events', 'get_tape'],
+    readTools: ['list_bullet_loans', 'list_auctions', 'get_auction_bids', 'get_curve', 'get_account', 'get_contract_events', 'get_tape', 'get_obligation'],
     writeTools: [
       'prepare_vault_deposit', 'prepare_vault_withdraw', 'prepare_vault_product_approval',
       'prepare_bullet_request_open', 'prepare_bullet_request_bid', 'prepare_bullet_offer_open', 'prepare_bullet_offer_bid',
@@ -62,10 +60,7 @@ export const OUTLINE_MAP: OutlineMap[] = [
       'prepare_obligation_pay', 'prepare_lien_payoff', 'prepare_lien_release', 'prepare_lien_claim',
       'prepare_obligation_collect', 'prepare_obligation_redeem',
     ],
-    notYetServed: [
-      "A read of an account's Vault balances, free, reserved and locked (the indexer has no such view yet).",
-      "A read of an obligation's, set's or lien's state by id (the indexer has no such view yet).",
-    ],
+    notYetServed: [],
   },
   {
     card: { notDeployed: 'otc-settlement', body: 'TBD-G3.12#0' },

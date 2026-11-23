@@ -117,6 +117,61 @@
     }
   },
   {
+    "id": "account-state",
+    "tool": "get_account",
+    "args": {
+      "address": "0x098f3a0f2a9c3d009fb30eed2cab0633258e8bf4",
+      "sections": [
+        "balances",
+        "liquidation_cover"
+      ]
+    }
+  },
+  {
+    "id": "account-obligor",
+    "tool": "get_account",
+    "args": {
+      "address": "0xe12c2a544d296b548dcac81c0149d6f34d3e6da8",
+      "limit": 5
+    }
+  },
+  {
+    "id": "obligation-1",
+    "tool": "get_obligation",
+    "args": {
+      "obligation_id": "1"
+    }
+  },
+  {
+    "id": "set-1",
+    "tool": "get_obligation",
+    "args": {
+      "set_id": "1"
+    }
+  },
+  {
+    "id": "lien-1",
+    "tool": "get_obligation",
+    "args": {
+      "lien_id": "1"
+    }
+  },
+  {
+    "id": "obligation-unseen",
+    "tool": "get_obligation",
+    "args": {
+      "obligation_id": "999999999999"
+    }
+  },
+  {
+    "id": "obligation-two-ids",
+    "tool": "get_obligation",
+    "args": {
+      "obligation_id": "1",
+      "set_id": "1"
+    }
+  },
+  {
     "id": "stray-argument",
     "tool": "list_auctions",
     "args": {

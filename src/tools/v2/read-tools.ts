@@ -3,8 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { requireTier } from '../../tiers.js';
 import { V2_DEPLOYMENT } from '../../v2/deployment.generated.js';
-import { v2Get, provenance, sample, absent, answer, type Call } from '../../v2/read.js';
-import { GAPS, notServed } from '../../v2/gaps.js';
+import { v2Get, v2Try, v2GetById, provenance, sample, absent, answer, type Call } from '../../v2/read.js';
 
 // ============================================================================
 // VZ10 row M1, G2 — the gavel-testnet profile's read tools (G1 §2.2; operator,
@@ -12,9 +11,9 @@ import { GAPS, notServed } from '../../v2/gaps.js';
 // /v1/core/v2 routes only. Read src/v2/read.ts first.
 //
 // Every tool: the route's rows in the route's order, `provenance`, `sample`, a
-// structured absence where a figure would be degenerate or a view is not
-// served, and the testnet disclosure. No ranking, no default sort by rate, no
-// forecast, no "best". Tier: free; this is a testnet.
+// structured absence where a figure would be degenerate or a route fails inside
+// a tool that makes several calls, and the testnet disclosure. No ranking, no
+// default sort by rate, no forecast, no "best". Tier: free; this is a testnet.
 // ============================================================================
 
 const ADDRESS = z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'a 0x-prefixed 20-byte address');
@@ -74,6 +73,21 @@ const NO_CLEARED_IN_WINDOW = absent('no_cleared_batch_in_window', { cleared: 1 }
 });
 const NO_FLAG = { ownAccountShare: null, ownAccountShareReason: 'these rows carry no own-account flag' };
 
+/** A route's body without the envelope, which provenance already carries. */
+function payload(c: Call<unknown>): Row {
+  const { indexedTo, source, abiCommit, ownAccount, ...rest } = c.body as unknown as Row;
+  void indexedTo; void source; void abiCommit; void ownAccount;
+  return rest;
+}
+
+// VZ10 M1g: notes of this server's own, beside the indexer's; each is marked as ours and cites its source.
+const BOND_SERVER_NOTES = {
+  minObservedPrincipal:
+    "The smallest principal, in the loan token's raw units, of a loan BOND's observe counts toward the curve; fixed at listing " +
+    '(BondListing.minObservedPrincipal; bond_protocol.md, the observation floor). It is not a price floor, a minimum mint or a minimum loan.',
+  source: 'this server (gavel-mcp), not the indexer',
+};
+
 export function registerV2ReadTools(server: McpServer): void {
   // ── R1 get_deployment ───────────────────────────────────────────────────
   server.registerTool(
@@ -87,14 +101,17 @@ export function registerV2ReadTools(server: McpServer): void {
         `The indexer's own list of what it follows (/deployment) is returned beside it.\n\n` +
         `Superseded contracts (VZ8's core and AuctionOrchestrator, BOND v0.2) are listed and marked; nothing on this server encodes a call to them. ` +
         `VZ8's ObligorPosition, replaced by Stage 3's, is listed under omitted with its reason. ` +
-        `BOND's listing state (prices, lapse, caps) is not served by the indexer yet and is returned as a structured absence.`,
+        `bondListing is BOND's listing as the indexer reads it (/bond/listing): its loan tokens (cap, minted, minObservedPrincipal), ` +
+        `its priced assets with their last clearings, price and lapse, supply, genesis, the listing's end, and registrations. ` +
+        `minObservedPrincipal is the smallest loan principal BOND counts toward its curve, not a price floor; the route's \`rules\` say how the price is formed and when it lapses. ` +
+        `BondCurve is not indexed, and the route says so. If that route fails, bondListing is a structured absence and the rest of the answer stands.`,
       inputSchema: {},
     },
     async () => {
       requireTier('free');
-      const c = await v2Get<{ chainId: number; contracts: Row[] }>('/deployment');
+      const [c, bond] = await Promise.all([v2Get<{ chainId: number; contracts: Row[] }>('/deployment'), v2Try<Row>('/bond/listing')]);
       return answer({
-        provenance: provenance([c]),
+        provenance: provenance('call' in bond ? [c, bond.call] : [c]),
         sample: sample({ rows: c.body.contracts, ownAccount: meta(c) }),
         data: {
           chainId: V2_DEPLOYMENT.chainId,
@@ -104,7 +121,7 @@ export function registerV2ReadTools(server: McpServer): void {
           superseded: V2_DEPLOYMENT.superseded,
           omitted: V2_DEPLOYMENT.omitted,
           indexerFollows: c.body.contracts,
-          bondListing: notServed(GAPS.G3),
+          bondListing: 'call' in bond ? { ...payload(bond.call), serverNotes: BOND_SERVER_NOTES } : bond.failed,
         },
       });
     }
@@ -166,7 +183,10 @@ export function registerV2ReadTools(server: McpServer): void {
   );
 
   // ── R3 get_account ──────────────────────────────────────────────────────
-  const SECTIONS = ['holdings', 'vault_events', 'held_units', 'bond', 'loans_opened', 'entries', 'policies', 'futures'] as const;
+  const LISTS = ['holdings', 'vault_events', 'held_units', 'bond', 'loans_opened', 'entries', 'policies', 'futures'] as const;
+  // VZ10 M1g: the state views of VZ9 row I4 (G-1, G-4). A failure of either is a structured absence in its section.
+  const STATES = ['balances', 'liquidation_cover'] as const;
+  const SECTIONS = [...LISTS, ...STATES] as const;
   server.registerTool(
     'get_account',
     {
@@ -179,9 +199,14 @@ export function registerV2ReadTools(server: McpServer): void {
         `- bond: the address's BOND registrations, commitments, mints and stake burns, as events;\n` +
         `- loans_opened, entries: bullet loans it opened and entries it recorded;\n` +
         `- policies: cover policies where it is insured, beneficiary or seller;\n` +
-        `- futures: futures where it is long or short.\n\n` +
-        `Not served by the indexer yet, and returned as structured absences: vault balances (free, reserved, locked), ` +
-        `the state of an obligation, set or lien, and liquidation-cover accounts. This tool does not read the chain.`,
+        `- futures: futures where it is long or short;\n` +
+        `- balances: the address's vault balances per asset (/accounts/:address/balances): free, reservedTotal, lockedTotal and total, ` +
+        `with each open reservation (reserved[]: consumer, contextId, amount) and each live lock leg (locked[]: lockId, owner, amount), and the vault's consumers ` +
+        `with whether each is authorised and approved by this address. Folded from the vault's events to the vault's own cursor (indexedBy: vault), which can differ from the other sections' block;\n` +
+        `- liquidation_cover: the address's liquidation-cover accounts on each MorphoCoverAdapter (/liquidation-cover/accounts): collateral, borrow, health, frozen, armed, ref and maxCover. ` +
+        `The venue figures are read from the chain by the indexer at its block; the route's notes say how to read liquidated, health (WAD) and armed.\n\n` +
+        `If the balances or liquidation_cover route fails, that section is a structured absence and the rest of the answer stands. ` +
+        `The state of an obligation, set or lien by id: get_obligation. This server does not read the chain itself.`,
       inputSchema: {
         address: ADDRESS.describe('The account.'),
         sections: z.array(z.enum(SECTIONS)).min(1).optional().describe(`Which sections; default all: ${SECTIONS.join(', ')}.`),
@@ -192,7 +217,7 @@ export function registerV2ReadTools(server: McpServer): void {
       requireTier('free');
       const want = new Set(sections ?? SECTIONS);
       const a = address.toLowerCase();
-      const plan: Array<[(typeof SECTIONS)[number], string, Record<string, string | number | undefined>]> = [
+      const plan: Array<[(typeof LISTS)[number], string, Record<string, string | number | undefined>]> = [
         ['holdings', `/accounts/${a}/holdings`, {}],
         ['vault_events', `/accounts/${a}/vault-events`, { limit }],
         ['held_units', `/accounts/${a}/held-units`, {}],
@@ -203,12 +228,20 @@ export function registerV2ReadTools(server: McpServer): void {
         ['futures', '/futures', { account: a, limit }],
       ];
       const todo = plan.filter(([k]) => want.has(k));
-      const calls = await Promise.all(todo.map(([, p, q]) => v2Get<Row>(p, q)));
+      const statePlan: Array<[(typeof STATES)[number], string, Record<string, string | undefined>]> = [
+        ['balances', `/accounts/${a}/balances`, {}],
+        ['liquidation_cover', '/liquidation-cover/accounts', { owner: a }],
+      ];
+      const stateTodo = statePlan.filter(([k]) => want.has(k));
+      const [calls, states] = await Promise.all([
+        Promise.all(todo.map(([, p, q]) => v2Get<Row>(p, q))),
+        Promise.all(stateTodo.map(([, p, q]) => v2Try<Row>(p, q))),
+      ]);
       const data: Record<string, unknown> = { address: a };
       const perSection: Record<string, unknown> = {};
       // Sections the route pages (limit applies) and those it serves whole; the flags each row carries.
       const BOUNDED = new Set(['vault_events', 'loans_opened', 'entries', 'policies', 'futures']);
-      const FLAGS: Partial<Record<(typeof SECTIONS)[number], (r: Row) => Array<boolean | null>>> = {
+      const FLAGS: Partial<Record<(typeof LISTS)[number], (r: Row) => Array<boolean | null>>> = {
         loans_opened: (r) => [f(r.ownAccount)],
         policies: (r) => { const o = (r.ownAccount ?? {}) as Row; return [f(o.insured), f(o.seller)]; },
       };
@@ -218,10 +251,22 @@ export function registerV2ReadTools(server: McpServer): void {
         data[k] = k === 'holdings' ? { claims: b.claims, positions: b.positions } : b.rows;
         perSection[k] = sample({ rows, limit: BOUNDED.has(k) ? limit ?? 50 : undefined, flags: FLAGS[k], ownAccount: meta(calls[i]) });
       });
-      data.notServed = { balances: notServed(GAPS.G1), obligationState: notServed(GAPS.G2), liquidationCover: notServed(GAPS.G4) };
+      const read: Array<Call<unknown>> = [...calls];
+      stateTodo.forEach(([k], i) => {
+        const r = states[i];
+        if (!('call' in r)) { data[k] = r.failed; perSection[k] = { rows: null, reason: 'the route failed; the section says how' }; return; }
+        read.push(r.call);
+        const b = r.call.body as Row;
+        const rows = (b.rows as Row[]) ?? [];
+        // balances: indexedTo is the vault's own cursor (indexedBy: 'vault'), kept in the section as the route serves it.
+        data[k] = k === 'balances' ? { indexedTo: b.indexedTo, ...payload(r.call) } : payload(r.call);
+        perSection[k] = k === 'balances'
+          ? sample({ rows, ownAccount: meta(r.call) })
+          : sample({ rows, parties: (x) => [s(x.owner)], flags: (x) => [f(x.ownAccount)], ownAccount: meta(r.call) });
+      });
       return answer({
-        provenance: provenance(calls),
-        sample: { perSection, note: 'Each section is sampled on its own: a section whose rows reach its limit is truncated; holdings, held_units and bond are served whole.' },
+        provenance: provenance(read),
+        sample: { perSection, note: 'Each section is sampled on its own: a section whose rows reach its limit is truncated; holdings, held_units, bond, balances and liquidation_cover are served whole.' },
         data,
       });
     }
@@ -234,7 +279,7 @@ export function registerV2ReadTools(server: McpServer): void {
       title: 'Gavel V2 testnet contract events',
       description:
         `One event of one Gavel V2 contract on Arbitrum Sepolia, decoded, as the indexer holds it: each row's arguments, block, transaction, log index, time and sender. ` +
-        `Use it for the history of an obligation, a set or a lien (e.g. contract 'Obligation', event 'SetCreated', t1 = the set id) while no state view is served. ` +
+        `Use it for the history of an obligation, a set or a lien (e.g. contract 'Obligation', event 'SetCreated', t1 = the set id); get_obligation gives its state at the indexer's block. ` +
         `${ORDER_NOTE} Pages with \`cursor\`.\n\n` +
         `contract is a key from get_deployment ('Obligation', 'Lien', 'SpotMarket#2', 'BulletLoanRequest'), a name that is unique, or an address.`,
       inputSchema: {
@@ -256,7 +301,7 @@ export function registerV2ReadTools(server: McpServer): void {
       return answer({
         provenance: provenance([c]),
         sample: sample({ rows: c.body.rows, limit: limit ?? 50, next: c.body.next, parties: (r) => [s(r.from)], ownAccount: meta(c) }),
-        data: { contract: c0, event, rows: c.body.rows, next: c.body.next, stateNotServed: notServed(GAPS.G2) },
+        data: { contract: c0, event, rows: c.body.rows, next: c.body.next },
       });
     }
   );
@@ -515,7 +560,7 @@ export function registerV2ReadTools(server: McpServer): void {
         `Cover offers on Gavel V2's CoverOrchestrator on Arbitrum Sepolia: loan protection on a Gavel loan claim, and liquidation cover through an adapter. ` +
         `Each: offer id, underwriter, product, terms (asset, capacity, premium in bps, cover grace, pay delay, adapter, collateral key, minimum collateral, maximum loan grace, due window, expiry), ` +
         `capacity remaining, close status and own-account flag. ${ORDER_NOTE}\n\n` +
-        `Liquidation cover is this list filtered by a MorphoCoverAdapter address (get_deployment). The state of a liquidation-cover account is not served by the indexer yet.`,
+        `Liquidation cover is this list filtered by a MorphoCoverAdapter address (get_deployment). The state of an owner's liquidation-cover accounts is get_account's liquidation_cover section.`,
       inputSchema: {
         open: z.boolean().optional().describe('Only offers not closed.'),
         adapter: ADDRESS.optional().describe('Only offers through this adapter.'),
@@ -528,7 +573,7 @@ export function registerV2ReadTools(server: McpServer): void {
       return answer({
         provenance: provenance([c]),
         sample: sample({ rows: c.body.rows, limit: limit ?? 50, parties: (r) => [s(r.underwriter)], flags: (r) => [f(r.ownAccount)], ownAccount: meta(c) }),
-        data: { rows: c.body.rows, liquidationCoverAccounts: notServed(GAPS.G4) },
+        data: { rows: c.body.rows },
       });
     }
   );
@@ -672,13 +717,55 @@ export function registerV2ReadTools(server: McpServer): void {
       });
     }
   );
+
+  // ── R19 get_obligation (VZ10 M1g: G-2, VZ9 row I4; operator, 2026-11-23) ─────
+  server.registerTool(
+    'get_obligation',
+    {
+      title: 'A Gavel V2 testnet obligation, set or lien',
+      description:
+        `The state of one obligation, obligation set or lien on Gavel V2 on Arbitrum Sepolia, by id, as the indexer reads the contracts at its block (indexedTo). Pass exactly one id.\n` +
+        `- obligation_id (/obligations/:id): set, obligor, asset, principal, interest, paid, payoff, debtAt (at \`at\`, the block's time), accrualStart, dueAt, breachableAt, ` +
+        `prepayment, status, unitsOutstanding, and its set's grace, pauseShift, setStatus, lien and obligor position; a contingent obligation's kind, state and window;\n` +
+        `- set_id (/sets/:id): the set's obligor, grace, pauseShift, setStatus, lien, position, debtAt, bound, takeMode, wholeOnly, settledAsTake, enforcedAt, settledTotal, breachedAt and obligation ids;\n` +
+        `- lien_id (/liens/:id): its set, vault, lock id, settlement asset, status and credits.\n\n` +
+        `status is as the contract stores it: an obligation reads BREACHED only once markBreached has run, and breachableAt (dueAt + pauseShift + grace) is when it may run; the answer carries the indexer's note. ` +
+        `Fields read from the chain that failed are null and listed in unavailable; sources says where each field came from. ` +
+        `An id the indexer has not seen at its block is refused in the indexer's words. Ids come from get_account (holdings) and get_contract_events.`,
+      inputSchema: {
+        obligation_id: z.string().regex(/^[0-9]{1,78}$/).optional().describe('An obligation id, as a decimal string.'),
+        set_id: z.string().regex(/^[0-9]{1,78}$/).optional().describe('An obligation set id, as a decimal string (also the obligor position token id).'),
+        lien_id: z.string().regex(/^[0-9]{1,78}$/).optional().describe('A lien id, as a decimal string.'),
+      },
+    },
+    async ({ obligation_id, set_id, lien_id }) => {
+      requireTier('free');
+      const given = Object.entries({ obligation_id, set_id, lien_id }).filter(([, v]) => v !== undefined);
+      if (given.length !== 1) throw new McpError(ErrorCode.InvalidParams, `get_obligation takes exactly one of obligation_id, set_id or lien_id; ${given.length ? `got ${given.map(([k]) => k).join(', ')}` : 'got none'}.`);
+      const [k, id] = given[0] as [string, string];
+      const path = k === 'obligation_id' ? `/obligations/${id}` : k === 'set_id' ? `/sets/${id}` : `/liens/${id}`;
+      const c = await v2GetById<Row>(path);
+      const b = c.body as Row;
+      const own = (b.ownAccountOf ?? null) as Row | null;
+      return answer({
+        provenance: provenance([c]),
+        sample: {
+          rows: 1,
+          ...(own
+            ? { ownAccountOf: own, ownAccountShare: null, ownAccountShareReason: 'one record: ownAccountOf flags its obligor and position owner' }
+            : { ownAccountShare: null, ownAccountShareReason: 'the lien route serves no own-account flag' }),
+        },
+        data: { kind: k.replace('_id', ''), ...payload(c) },
+      });
+    }
+  );
 }
 
 /** The routes each read tool calls, for scripts/check-v2-routes.mjs (the advertised-route check). */
 export const V2_READ_ROUTES: Record<string, string[]> = {
-  get_deployment: ['/deployment'],
+  get_deployment: ['/deployment', '/bond/listing'],
   get_tape: ['/tape', '/tape/figures'],
-  get_account: ['/accounts/:address/holdings', '/accounts/:address/vault-events', '/accounts/:address/held-units', '/accounts/:address/bond', '/bullet-loans/opened', '/bullet-loans/entries', '/protection/policies', '/futures'],
+  get_account: ['/accounts/:address/holdings', '/accounts/:address/vault-events', '/accounts/:address/held-units', '/accounts/:address/bond', '/bullet-loans/opened', '/bullet-loans/entries', '/protection/policies', '/futures', '/accounts/:address/balances', '/liquidation-cover/accounts'],
   get_contract_events: ['/events'],
   list_auctions: ['/auctions'],
   get_auction_bids: ['/auctions/:engine/:auctionId/bids'],
@@ -694,6 +781,7 @@ export const V2_READ_ROUTES: Record<string, string[]> = {
   list_secondary_sales: ['/secondary/sales'],
   get_secondary_sale_bids: ['/secondary/:market/:auctionId/bids'],
   get_calendar: ['/calendar', '/calendar/scenario'],
+  get_obligation: ['/obligations/:id', '/sets/:id', '/liens/:id'],
 };
 
 export const V2_READ_TOOLS = Object.keys(V2_READ_ROUTES);
