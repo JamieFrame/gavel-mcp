@@ -1,0 +1,1111 @@
+{
+  "endpoint": "http://127.0.0.1:3912/mcp",
+  "read_at": "2026-11-23T12:15:12.772Z",
+  "server": {
+    "name": "gavel-testnet-mcp",
+    "version": "0.1.0"
+  },
+  "instructions_chars": 1999,
+  "tool_count": 38,
+  "tools": [
+    {
+      "name": "get_deployment",
+      "args": {},
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 1185
+    },
+    {
+      "name": "get_tape",
+      "args": {
+        "since": "integer",
+        "product": "string",
+        "kind": "string",
+        "cursor": "string",
+        "limit": "integer",
+        "figures": "boolean",
+        "as_of": "?"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 700
+    },
+    {
+      "name": "get_account",
+      "args": {
+        "address": "string",
+        "sections": "array",
+        "limit": "integer"
+      },
+      "required": [
+        "address"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 1714
+    },
+    {
+      "name": "get_contract_events",
+      "args": {
+        "contract": "string",
+        "event": "string",
+        "t1": "string",
+        "t2": "string",
+        "t3": "string",
+        "from_block": "integer",
+        "to_block": "integer",
+        "cursor": "string",
+        "limit": "integer"
+      },
+      "required": [
+        "contract",
+        "event"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 615
+    },
+    {
+      "name": "list_auctions",
+      "args": {
+        "state": "enum(open|closed)",
+        "product": "string",
+        "limit": "integer"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 1188
+    },
+    {
+      "name": "get_auction_bids",
+      "args": {
+        "engine": "string",
+        "auction_id": "string"
+      },
+      "required": [
+        "engine",
+        "auction_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 406
+    },
+    {
+      "name": "list_bullet_loans",
+      "args": {
+        "view": "enum(loans|entries|both)",
+        "opener": "string",
+        "owner": "?",
+        "limit": "integer"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 521
+    },
+    {
+      "name": "get_curve",
+      "args": {},
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 593
+    },
+    {
+      "name": "list_spot_markets",
+      "args": {
+        "last": "boolean"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 649
+    },
+    {
+      "name": "get_spot_market",
+      "args": {
+        "market": "string",
+        "limit": "integer",
+        "pages": "boolean"
+      },
+      "required": [
+        "market"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 618
+    },
+    {
+      "name": "list_future_offers",
+      "args": {},
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 281
+    },
+    {
+      "name": "list_futures",
+      "args": {
+        "account": "string",
+        "limit": "integer"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 295
+    },
+    {
+      "name": "list_cover_offers",
+      "args": {
+        "open": "boolean",
+        "adapter": "string",
+        "limit": "integer"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 693
+    },
+    {
+      "name": "list_policies",
+      "args": {
+        "account": "string",
+        "role": "enum(insured|beneficiary|seller)",
+        "limit": "integer"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 367
+    },
+    {
+      "name": "get_bill_series",
+      "args": {
+        "k": "integer"
+      },
+      "required": [
+        "k"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 436
+    },
+    {
+      "name": "list_secondary_sales",
+      "args": {
+        "market": "string",
+        "state": "string",
+        "limit": "integer"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 380
+    },
+    {
+      "name": "get_secondary_sale_bids",
+      "args": {
+        "market": "string",
+        "auction_id": "string"
+      },
+      "required": [
+        "market",
+        "auction_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 170
+    },
+    {
+      "name": "get_calendar",
+      "args": {
+        "from": "integer",
+        "to": "?",
+        "scenario": "boolean"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 503
+    },
+    {
+      "name": "get_obligation",
+      "args": {
+        "obligation_id": "string",
+        "set_id": "string",
+        "lien_id": "string"
+      },
+      "required": [],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 1238
+    },
+    {
+      "name": "prepare_test_token_mint",
+      "args": {
+        "token": "string",
+        "to": "string",
+        "amount": "string"
+      },
+      "required": [
+        "token",
+        "to",
+        "amount"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 444
+    },
+    {
+      "name": "prepare_vault_deposit",
+      "args": {
+        "account": "string",
+        "token": "string",
+        "amount": "string"
+      },
+      "required": [
+        "account",
+        "token",
+        "amount"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 524
+    },
+    {
+      "name": "prepare_vault_withdraw",
+      "args": {
+        "account": "string",
+        "token": "string",
+        "amount": "string",
+        "destination": "string"
+      },
+      "required": [
+        "account",
+        "token",
+        "amount"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 461
+    },
+    {
+      "name": "prepare_vault_product_approval",
+      "args": {
+        "account": "string",
+        "product": "string",
+        "approved": "boolean"
+      },
+      "required": [
+        "account",
+        "product",
+        "approved"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 568
+    },
+    {
+      "name": "prepare_spot_order",
+      "args": {
+        "account": "string",
+        "market": "string",
+        "side": "enum(buy|sell)",
+        "amount": "string",
+        "limit_price": "string",
+        "expires_at_slot": "integer"
+      },
+      "required": [
+        "account",
+        "market",
+        "side",
+        "amount",
+        "limit_price"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 630
+    },
+    {
+      "name": "prepare_spot_cancel",
+      "args": {
+        "account": "string",
+        "market": "string",
+        "order_id": "string"
+      },
+      "required": [
+        "account",
+        "market",
+        "order_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 505
+    },
+    {
+      "name": "prepare_bullet_request_open",
+      "args": {
+        "account": "string",
+        "loan_token": "string",
+        "amount": "string",
+        "max_repayment": "string",
+        "term_days": "integer",
+        "auction_hours": "integer",
+        "collateral": "array",
+        "mode": "enum(one|many)",
+        "bid_step": "string",
+        "min_amount": "string"
+      },
+      "required": [
+        "account",
+        "loan_token",
+        "amount",
+        "max_repayment",
+        "term_days",
+        "auction_hours",
+        "collateral",
+        "mode"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 837
+    },
+    {
+      "name": "prepare_bullet_request_bid",
+      "args": {
+        "account": "string",
+        "loan_id": "string",
+        "repayment": "string",
+        "quantity": "string",
+        "min_fill": "string",
+        "expected_terms": "string"
+      },
+      "required": [
+        "account",
+        "loan_id",
+        "repayment"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 705
+    },
+    {
+      "name": "prepare_bullet_offer_open",
+      "args": {
+        "account": "string",
+        "loan_token": "string",
+        "principal": "string",
+        "min_loan": "string",
+        "max_loan": "string",
+        "collateral_token": "string",
+        "loan_per_collateral": "string",
+        "floor_rate": "string",
+        "ceiling_rate": "string",
+        "term_days": "integer",
+        "auction_hours": "integer",
+        "mode": "enum(one|many)",
+        "max_fills": "integer"
+      },
+      "required": [
+        "account",
+        "loan_token",
+        "principal",
+        "min_loan",
+        "max_loan",
+        "collateral_token",
+        "loan_per_collateral",
+        "floor_rate",
+        "term_days",
+        "auction_hours",
+        "mode"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 685
+    },
+    {
+      "name": "prepare_bullet_offer_bid",
+      "args": {
+        "account": "string",
+        "loan_id": "string",
+        "loan_size": "string",
+        "repayment": "string",
+        "min_fill": "string",
+        "expected_terms": "string"
+      },
+      "required": [
+        "account",
+        "loan_id",
+        "loan_size",
+        "repayment"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 697
+    },
+    {
+      "name": "prepare_bullet_cancel",
+      "args": {
+        "account": "string",
+        "product": "enum(request|offer)",
+        "loan_id": "string"
+      },
+      "required": [
+        "account",
+        "product",
+        "loan_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 504
+    },
+    {
+      "name": "prepare_bullet_entry_release",
+      "args": {
+        "account": "string",
+        "product": "enum(request|offer)",
+        "entry_id": "string"
+      },
+      "required": [
+        "account",
+        "product",
+        "entry_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 504
+    },
+    {
+      "name": "prepare_bullet_finalise",
+      "args": {
+        "account": "string",
+        "product": "enum(request|offer)",
+        "loan_id": "string",
+        "max_steps": "integer"
+      },
+      "required": [
+        "account",
+        "product",
+        "loan_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 615
+    },
+    {
+      "name": "prepare_obligation_pay",
+      "args": {
+        "account": "string",
+        "obligation_id": "string",
+        "source": "enum(wallet|vault)"
+      },
+      "required": [
+        "account",
+        "obligation_id",
+        "source"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 653
+    },
+    {
+      "name": "prepare_lien_payoff",
+      "args": {
+        "account": "string",
+        "lien_id": "string",
+        "source": "enum(wallet|vault)",
+        "max_amount": "string"
+      },
+      "required": [
+        "account",
+        "lien_id",
+        "source"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 654
+    },
+    {
+      "name": "prepare_lien_release",
+      "args": {
+        "account": "string",
+        "lien_id": "string"
+      },
+      "required": [
+        "account",
+        "lien_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 375
+    },
+    {
+      "name": "prepare_lien_claim",
+      "args": {
+        "account": "string",
+        "lien_id": "string"
+      },
+      "required": [
+        "account",
+        "lien_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 423
+    },
+    {
+      "name": "prepare_obligation_collect",
+      "args": {
+        "account": "string",
+        "obligation_id": "string",
+        "token": "string",
+        "destination": "string",
+        "to_vault": "boolean"
+      },
+      "required": [
+        "account",
+        "obligation_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 412
+    },
+    {
+      "name": "prepare_obligation_redeem",
+      "args": {
+        "account": "string",
+        "obligation_id": "string",
+        "destination": "string",
+        "to_vault": "boolean"
+      },
+      "required": [
+        "account",
+        "obligation_id"
+      ],
+      "counts_in_text": [],
+      "urls_in_text": [],
+      "description_chars": 419
+    }
+  ],
+  "results": [
+    {
+      "id": "deployment",
+      "tool": "get_deployment",
+      "args": {},
+      "ms": 400,
+      "bytes": 45061,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "tape",
+      "tool": "get_tape",
+      "args": {
+        "limit": 20
+      },
+      "ms": 537,
+      "bytes": 10150,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "tape-figures",
+      "tool": "get_tape",
+      "args": {
+        "figures": true
+      },
+      "ms": 90,
+      "bytes": 2207,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 1,
+      "absent_kinds": {
+        "absent:not_served_by_the_indexer": 1
+      },
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "auctions-closed",
+      "tool": "list_auctions",
+      "args": {
+        "state": "closed",
+        "limit": 20
+      },
+      "ms": 127,
+      "bytes": 17588,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "bullet-loans",
+      "tool": "list_bullet_loans",
+      "args": {
+        "limit": 20
+      },
+      "ms": 291,
+      "bytes": 1511,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "curve",
+      "tool": "get_curve",
+      "args": {},
+      "ms": 72,
+      "bytes": 1294,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 2,
+      "absent_kinds": {
+        "absent:below_threshold": 1,
+        "absent:no_observations": 1
+      },
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "spot-markets-last",
+      "tool": "list_spot_markets",
+      "args": {
+        "last": true
+      },
+      "ms": 269,
+      "bytes": 17532,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 11,
+      "absent_kinds": {
+        "absent:no_cleared_batch_in_window": 11
+      },
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "spot-wbtc-usdc",
+      "tool": "get_spot_market",
+      "args": {
+        "market": "mWBTC/mUSDC",
+        "limit": 10,
+        "pages": true
+      },
+      "ms": 242,
+      "bytes": 8249,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "spot-bad-market",
+      "tool": "get_spot_market",
+      "args": {
+        "market": "mFOO/mBAR"
+      },
+      "ms": 14,
+      "bytes": 433,
+      "outcome": "tool_error",
+      "error_text": "{\"error\":{\"code\":\"invalid_argument\",\"message\":\"'mFOO/mBAR' is not a spot or bill market on this deployment. Use a pair (mWBTC/mUSDC, mWETH/mUSDC, mWBTC/mUSDT, mUSDT/mUSDC, mWETH/mWBTC, mcbBTC/mUSDC), a bill series (bill-1 to bill-10) or a SpotMarket address; list_spot_markets lists them.\",\"retryable\":false}}",
+      "top_keys": [
+        "error"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "future-offers",
+      "tool": "list_future_offers",
+      "args": {},
+      "ms": 61,
+      "bytes": 1310,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 1,
+      "absent_kinds": {
+        "absent:no_offers": 1
+      },
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "futures",
+      "tool": "list_futures",
+      "args": {},
+      "ms": 62,
+      "bytes": 1209,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "cover-offers-open",
+      "tool": "list_cover_offers",
+      "args": {
+        "open": true
+      },
+      "ms": 930,
+      "bytes": 1205,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "policies",
+      "tool": "list_policies",
+      "args": {},
+      "ms": 62,
+      "bytes": 1200,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "bill-3",
+      "tool": "get_bill_series",
+      "args": {
+        "k": 3
+      },
+      "ms": 163,
+      "bytes": 1374,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "secondary-sales",
+      "tool": "list_secondary_sales",
+      "args": {},
+      "ms": 62,
+      "bytes": 1196,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "calendar",
+      "tool": "get_calendar",
+      "args": {},
+      "ms": 141,
+      "bytes": 2980,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "calendar-scenario",
+      "tool": "get_calendar",
+      "args": {
+        "scenario": true
+      },
+      "ms": 65,
+      "bytes": 1161,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 1,
+      "absent_kinds": {
+        "absent:not_published": 1
+      },
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "events-obligation",
+      "tool": "get_contract_events",
+      "args": {
+        "contract": "Obligation",
+        "event": "SetCreated",
+        "limit": 5
+      },
+      "ms": 63,
+      "bytes": 3095,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "account-state",
+      "tool": "get_account",
+      "args": {
+        "address": "0x098f3a0f2a9c3d009fb30eed2cab0633258e8bf4",
+        "sections": [
+          "balances",
+          "liquidation_cover"
+        ]
+      },
+      "ms": 191,
+      "bytes": 7709,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "account-obligor",
+      "tool": "get_account",
+      "args": {
+        "address": "0xe12c2a544d296b548dcac81c0149d6f34d3e6da8",
+        "limit": 5
+      },
+      "ms": 205,
+      "bytes": 9648,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "obligation-1",
+      "tool": "get_obligation",
+      "args": {
+        "obligation_id": "1"
+      },
+      "ms": 276,
+      "bytes": 2425,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "set-1",
+      "tool": "get_obligation",
+      "args": {
+        "set_id": "1"
+      },
+      "ms": 65,
+      "bytes": 1992,
+      "outcome": "answer",
+      "top_keys": [
+        "provenance",
+        "sample",
+        "data",
+        "disclosure"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "lien-1",
+      "tool": "get_obligation",
+      "args": {
+        "lien_id": "1"
+      },
+      "ms": 68,
+      "bytes": 321,
+      "outcome": "tool_error",
+      "error_text": "{\"error\":{\"code\":\"invalid_argument\",\"message\":\"no lien 1 as at block 331972730. An id appears once the block that created it is indexed; get_contract_events lists the ids seen.\",\"retryable\":false}}",
+      "top_keys": [
+        "error"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "obligation-unseen",
+      "tool": "get_obligation",
+      "args": {
+        "obligation_id": "999999999999"
+      },
+      "ms": 63,
+      "bytes": 338,
+      "outcome": "tool_error",
+      "error_text": "{\"error\":{\"code\":\"invalid_argument\",\"message\":\"no obligation 999999999999 as at block 331972730. An id appears once the block that created it is indexed; get_contract_events lists the ids seen.\",\"retryable\":false}}",
+      "top_keys": [
+        "error"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "obligation-two-ids",
+      "tool": "get_obligation",
+      "args": {
+        "obligation_id": "1",
+        "set_id": "1"
+      },
+      "ms": 10,
+      "bytes": 288,
+      "outcome": "tool_error",
+      "error_text": "{\"error\":{\"code\":\"invalid_argument\",\"message\":\"get_obligation takes exactly one of obligation_id, set_id or lien_id; got obligation_id, set_id.\",\"retryable\":false}}",
+      "top_keys": [
+        "error"
+      ],
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    },
+    {
+      "id": "stray-argument",
+      "tool": "list_auctions",
+      "args": {
+        "sort_by": "rate"
+      },
+      "ms": 11,
+      "bytes": 409,
+      "outcome": "tool_error",
+      "error_text": "MCP error -32602: Input validation error: Invalid arguments for tool list_auctions: [\n  {\n    \"code\": \"unrecognized_keys\",\n    \"keys\": [\n      \"sort_by\"\n    ],\n    \"path\": [],\n    \"message\": \"list_auctions does not take that argument. It takes: state, product, limit.\"\n  }\n]",
+      "top_keys": null,
+      "absences": 0,
+      "absent_kinds": {},
+      "zeros": 0,
+      "urls": []
+    }
+  ]
+}

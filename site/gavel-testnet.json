@@ -102,6 +102,10 @@
       "kind": "read"
     },
     {
+      "name": "get_obligation",
+      "kind": "read"
+    },
+    {
       "name": "prepare_test_token_mint",
       "kind": "write"
     },

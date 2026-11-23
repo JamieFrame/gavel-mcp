@@ -59,7 +59,8 @@ export const BUILD_OUTLINES = {
         "list_cover_offers",
         "list_policies",
         "get_calendar",
-        "get_tape"
+        "get_tape",
+        "get_obligation"
       ],
       "writeTools": [
         "prepare_spot_order",
@@ -69,8 +70,7 @@ export const BUILD_OUTLINES = {
         "prepare_vault_product_approval"
       ],
       "notYetServed": [
-        "Write tools for packaging a bill series and for loan protection (BillPackager, CoverOrchestrator).",
-        "A read of an obligation's, set's or lien's state by id (the indexer has no such view yet)."
+        "Write tools for packaging a bill series and for loan protection (BillPackager, CoverOrchestrator)."
       ]
     },
     {
@@ -120,8 +120,7 @@ export const BUILD_OUTLINES = {
       ],
       "writeTools": [],
       "notYetServed": [
-        "Write tools for liquidation protection (the account adapters and their offers).",
-        "A read of a protected account's health on its venue (the indexer has no such view yet)."
+        "Write tools for liquidation protection (the account adapters and their offers)."
       ]
     },
     {
@@ -230,7 +229,8 @@ export const BUILD_OUTLINES = {
         "get_curve",
         "get_account",
         "get_contract_events",
-        "get_tape"
+        "get_tape",
+        "get_obligation"
       ],
       "writeTools": [
         "prepare_vault_deposit",
@@ -250,10 +250,7 @@ export const BUILD_OUTLINES = {
         "prepare_obligation_collect",
         "prepare_obligation_redeem"
       ],
-      "notYetServed": [
-        "A read of an account's Vault balances, free, reserved and locked (the indexer has no such view yet).",
-        "A read of an obligation's, set's or lien's state by id (the indexer has no such view yet)."
-      ]
+      "notYetServed": []
     },
     {
       "position": 5,

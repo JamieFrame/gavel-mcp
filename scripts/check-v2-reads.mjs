@@ -6,7 +6,9 @@
  *   1. Routes (what the server CONSUMES). Every route template a read tool declares
  *      (V2_READ_ROUTES) is called on the live testnet API with ids taken from the API itself.
  *      Each must answer 200 with the V2 envelope: indexedTo, source, abiCommit, ownAccount.
- *      The templates must cover the indexer's 27 routes except /logs (G1 §2.2).
+ *      The templates are the 26 routes G1 §2.2 wrapped (the indexer's 27 at G1 except /logs) and the six
+ *      state views of VZ9 row I4 that replaced M1's structured absences (VZ10 M1g). An id route for which the
+ *      testnet has no id yet (no lien exists) is reported as skipped, not failed.
  *   2. Tools (what the server SERVES). The gavel-testnet profile is built in memory and every
  *      read tool is called. Each answer must be a non-error with provenance (chain 421614, the
  *      deployment's record hashes, its routes), sample, data and the testnet disclosure. Each
@@ -42,6 +44,13 @@ const get = async (p) => {
 // ── ids from the API itself ──
 const tape = (await get('/tape?limit=1')).body;
 const closed = (await get('/auctions?state=closed&limit=1')).body;
+// M1g: G-2 ids from the indexer's own events (a set and its first obligation; a lien, if any exists).
+const byName = (n) => V2_DEPLOYMENT.contracts.find((c) => c.name === n && !c.superseded)?.address;
+const setRow = (await get(`/events?contract=${byName('Obligation')}&event=SetCreated&limit=1`)).body?.rows?.[0];
+const lienRow = (await get(`/events?contract=${byName('Lien')}&event=LienCreated&limit=1`)).body?.rows?.[0];
+const setId = setRow?.args?.setId ?? null;
+const oblId = setId ? ((await get(`/sets/${setId}`)).body?.obligationIds?.[0] ?? null) : null;
+const lienId = lienRow?.args?.lienId ?? null;
 const ids = {
   address: tape?.rows?.[0]?.address ?? V2_DEPLOYMENT.contracts.find((c) => c.name === 'Vault').address,
   engine: closed?.rows?.[0]?.engine ?? V2_DEPLOYMENT.spot.engine,
@@ -49,20 +58,26 @@ const ids = {
   market: V2_DEPLOYMENT.spot.pairs[0].spotMarket,
   secondary: V2_DEPLOYMENT.contracts.find((c) => c.name === 'ClaimLotMarket').address,
   k: String(V2_DEPLOYMENT.spot.billSeries[0].k),
+  id: { '/obligations/:id': oblId, '/sets/:id': setId, '/liens/:id': lienId },
 };
 const fill = (t) =>
   t.replace(':address', ids.address).replace(':engine', ids.engine).replace(':k', ids.k)
     .replace(/^\/secondary\/:market/, `/secondary/${ids.secondary}`).replace(':market', ids.market).replace(':auctionId', ids.auctionId);
-const QUERY = { '/events': `?contract=${V2_DEPLOYMENT.spot.pairs[0].spotMarket}&event=SlotCleared&limit=1` };
+const QUERY = {
+  '/events': `?contract=${V2_DEPLOYMENT.spot.pairs[0].spotMarket}&event=SlotCleared&limit=1`,
+  '/liquidation-cover/accounts': `?owner=${ids.address}`,
+};
+const WHOLE = new Set(['/deployment', '/curve', '/tape/figures', '/bond/listing', '/accounts/:address/balances', '/obligations/:id', '/sets/:id', '/liens/:id']);
 
 // ── 1. routes ──
 const templates = [...new Set(Object.values(V2_READ_ROUTES).flat())];
-const INDEXER_ROUTES = 27;
-if (templates.length !== INDEXER_ROUTES - 1) fail('route_coverage', `the read tools declare ${templates.length} routes; the indexer serves ${INDEXER_ROUTES}, of which /logs alone is not wrapped`);
+const G1_WRAPPED = 26, I4_STATE_VIEWS = 6;
+if (templates.length !== G1_WRAPPED + I4_STATE_VIEWS) fail('route_coverage', `the read tools declare ${templates.length} routes; G1 wrapped ${G1_WRAPPED} and M1g adds I4's ${I4_STATE_VIEWS} state views`);
 if (templates.includes('/logs')) fail('route_coverage', '/logs is declared; G1 leaves it to the site');
 const routeResults = [];
 for (const t of templates) {
-  const p = fill(t) + (QUERY[t] ?? (t.includes('?') ? '' : t === '/deployment' || t.startsWith('/calendar') || t === '/curve' || t === '/tape/figures' ? '' : '?limit=1'));
+  if (t.includes(':id') && !ids.id[t]) { routeResults.push({ route: t, status: null, envelope: null, skipped: 'no id of this kind on the testnet yet' }); continue; }
+  const p = fill(t).replace(':id', ids.id[t] ?? '') + (QUERY[t] ?? (t.includes('?') ? '' : WHOLE.has(t) || t.startsWith('/calendar') ? '' : '?limit=1'));
   const { status, body } = await get(p);
   const ok = status === 200 && body && 'indexedTo' in body && 'source' in body && 'abiCommit' in body && body.ownAccount && 'available' in body.ownAccount;
   routeResults.push({ route: t, status, envelope: !!ok });
@@ -112,6 +127,7 @@ const ARGS = {
   list_secondary_sales: { limit: 5 },
   get_secondary_sale_bids: { market: ids.secondary, auction_id: '1' },
   get_calendar: {},
+  get_obligation: oblId ? { obligation_id: String(oblId) } : { set_id: String(setId ?? '1') },
 };
 const listed = (await client.listTools()).tools.map((t) => t.name);
 const toolResults = [];
@@ -146,16 +162,25 @@ for (const [name, args, why] of [
   ['list_bullet_loans', { view: 'loans', owner: ids.address }, "owner with view 'loans'"],
   ['list_bullet_loans', { view: 'entries', opener: ids.address }, "opener with view 'entries'"],
   ['list_policies', { role: 'seller' }, 'role without account'],
+  ['get_obligation', {}, 'no id'],
+  ['get_obligation', { obligation_id: '1', set_id: '1' }, 'two ids'],
 ]) {
   const r = await call({ name, arguments: args });
   if (!r.isError) fail('tool_refuses_ignored', `${name}: ${why} was answered, not refused`);
+}
+// M1g: an id the indexer has not seen is refused in the indexer's words, not the client's generic 404 text.
+{
+  const r = await call({ name: 'get_obligation', arguments: { obligation_id: '999999999999' } });
+  const t = r.content?.[0]?.text ?? '';
+  if (!r.isError || !/as at block \d+/.test(t) || /may not be live yet/.test(t)) fail('tool_not_seen', `get_obligation: an unseen id answered ${r.isError ? 'an error not in the indexer words' : 'without an error'}: ${t.slice(0, 160)}`);
 }
 await client.close();
 
 const summary = { ids: Object.keys(ids), routes: routeResults, tools: toolResults, findings };
 if (asJson) console.log(JSON.stringify(summary, null, 2));
 else {
-  console.log(`routes: ${routeResults.filter((r) => r.envelope).length}/${routeResults.length} answer 200 with the V2 envelope`);
+  const skipped = routeResults.filter((r) => r.skipped);
+  console.log(`routes: ${routeResults.filter((r) => r.envelope).length}/${routeResults.length - skipped.length} answer 200 with the V2 envelope${skipped.length ? `; skipped: ${skipped.map((r) => `${r.route} (${r.skipped})`).join(', ')}` : ''}`);
   for (const t of toolResults) console.log(`  ${t.isError ? 'ERR ' : 'ok  '} ${t.tool.padEnd(24)} rows=${t.rows ?? '-'} absences=${t.absences ?? '-'} indexedTo=${t.indexedTo ?? '-'} bytes=${t.bytes}`);
   console.log(findings.length ? findings.map((f) => `[RED] ${f.rule}: ${f.detail}`).join('\n') : `check-v2-reads: clean (0 findings; ${toolResults.length} tools, ${routeResults.length} routes)`);
 }

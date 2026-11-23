@@ -1,5 +1,6 @@
 import { z, type ZodRawShape, type ZodTypeAny } from 'zod';
-import { upstreamGet } from '../upstream.js';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { upstreamGet, upstreamFailureOf } from '../upstream.js';
 import { V2_DEPLOYMENT } from './deployment.generated.js';
 
 // ============================================================================
@@ -50,6 +51,47 @@ export async function v2Get<T = Record<string, unknown>>(path: string, query?: Q
     ? Object.entries(query).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => `${k}=${v}`).join('&')
     : '';
   return { route: `${V2_PREFIX}${path}${qs ? `?${qs}` : ''}`, body };
+}
+
+/**
+ * A route read inside a tool that makes several calls (VZ10 M1g, operator ruling 2026-11-23): if it fails,
+ * that part of the answer becomes a structured absence naming the route, the status and the indexer's own
+ * message, and the rest of the answer stands. A 4xx other than 429 is not retryable; 429 and 5xx may be.
+ */
+export async function v2Try<T = Record<string, unknown>>(path: string, query?: Query): Promise<{ call: Call<T> } | { failed: ReturnType<typeof absent> }> {
+  try {
+    return { call: await v2Get<T>(path, query) };
+  } catch (e) {
+    const u = upstreamFailureOf(e);
+    const status = u?.status ?? null;
+    return {
+      failed: absent('indexer_route_failed', null, null, {
+        route: `${V2_PREFIX}${path}`,
+        status,
+        detail: u?.detail ?? (e instanceof Error ? e.message : String(e)),
+        retryable: status === null || status === 429 || status >= 500,
+      }),
+    };
+  }
+}
+
+/**
+ * A G-2 lookup by id (/obligations/:id, /sets/:id, /liens/:id). An id the indexer has not seen as at its
+ * cursor is refused in the indexer's own words, not the client's generic "not found" (operator ruling, M1g).
+ */
+export async function v2GetById<T = Record<string, unknown>>(path: string): Promise<Call<T>> {
+  try {
+    return await v2Get<T>(path);
+  } catch (e) {
+    const u = upstreamFailureOf(e);
+    if (u?.status === 404) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `${u.detail ?? `not found: ${path}`}. An id appears once the block that created it is indexed; get_contract_events lists the ids seen.`
+      );
+    }
+    throw e;
+  }
 }
 
 /** provenance: what was read, from where, as at which block. Several calls report the lowest indexedTo. */

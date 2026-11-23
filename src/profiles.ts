@@ -230,6 +230,8 @@ const GAVEL_TESTNET_TOOLS = [
   'list_secondary_sales',
   'get_secondary_sale_bids',
   'get_calendar',
+  // VZ10 M1g (operator, 2026-11-23): G-2, an obligation, set or lien by id.
+  'get_obligation',
   // G3, wave 1 (G1 §3.2): unsigned blueprints; the user signs.
   'prepare_test_token_mint',
   'prepare_vault_deposit',
